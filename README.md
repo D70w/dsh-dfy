@@ -2,6 +2,8 @@
 
 `dsh-dfy` is a Host/Browser Cordis plugin for the DeepSeek Harness web profile. It provides the visually approved “Big Fat Fish” desktop-pet runtime, a Harness-native settings page, and privacy-safe reactions to live Harness work.
 
+[中文说明](./README.zh-CN.md)
+
 ## Development
 
 ```sh
