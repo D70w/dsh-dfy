@@ -1,0 +1,283 @@
+{
+  "version": 2,
+  "designSize": [
+    1280,
+    1280
+  ],
+  "source": "Live2D See-through / LayerDiff user export + user-authored default hair-back.psd and torso.psd",
+  "parts": {
+    "hair-back": {
+      "file": "hair-back.png",
+      "x": 328,
+      "y": 139,
+      "width": 628,
+      "height": 707
+    },
+    "hair-back-center": {
+      "file": "hair-back-center.png",
+      "x": 328,
+      "y": 139,
+      "width": 628,
+      "height": 707
+    },
+    "hair-back-inner-right": {
+      "file": "hair-back-inner-right.png",
+      "x": 328,
+      "y": 139,
+      "width": 628,
+      "height": 707
+    },
+    "hair-back-outer-right": {
+      "file": "hair-back-outer-right.png",
+      "x": 328,
+      "y": 139,
+      "width": 628,
+      "height": 707
+    },
+    "hair-back-inner-left": {
+      "file": "hair-back-inner-left.png",
+      "x": 328,
+      "y": 139,
+      "width": 628,
+      "height": 707
+    },
+    "hair-back-outer-left": {
+      "file": "hair-back-outer-left.png",
+      "x": 328,
+      "y": 139,
+      "width": 628,
+      "height": 707
+    },
+    "tail": {
+      "file": "tail.png",
+      "x": 710,
+      "y": 673,
+      "width": 338,
+      "height": 277
+    },
+    "face": {
+      "file": "face.png",
+      "x": 483,
+      "y": 146,
+      "width": 297,
+      "height": 363
+    },
+    "mouth": {
+      "file": "mouth.png",
+      "x": 601,
+      "y": 435,
+      "width": 47,
+      "height": 11
+    },
+    "neck": {
+      "file": "neck.png",
+      "x": 594,
+      "y": 436,
+      "width": 68,
+      "height": 111
+    },
+    "torso": {
+      "file": "torso.png",
+      "x": 506,
+      "y": 504,
+      "width": 242,
+      "height": 440
+    },
+    "torso-bow": {
+      "file": "torso-bow.png",
+      "x": 506,
+      "y": 504,
+      "width": 242,
+      "height": 440
+    },
+    "collar-front": {
+      "file": "collar-front.png",
+      "x": 506,
+      "y": 504,
+      "width": 242,
+      "height": 440
+    },
+    "human-ears": {
+      "file": "human-ears.png",
+      "x": 474,
+      "y": 395,
+      "width": 306,
+      "height": 67
+    },
+    "arm-left": {
+      "file": "arm-left.png",
+      "x": 354,
+      "y": 534,
+      "width": 216,
+      "height": 305
+    },
+    "arm-left-sleeve": {
+      "file": "arm-left-sleeve.png",
+      "x": 354,
+      "y": 534,
+      "width": 216,
+      "height": 305
+    },
+    "hand-left-rest-side": {
+      "file": "hand-left-rest-side.png",
+      "x": 354,
+      "y": 534,
+      "width": 216,
+      "height": 305
+    },
+    "hand-left-wave-front": {
+      "file": "hand-left-wave-front.png",
+      "x": 342,
+      "y": 744,
+      "width": 110,
+      "height": 117
+    },
+    "wave-arm-sleeve": {
+      "file": "wave-action-v1/wave-sleeve.png",
+      "x": 364,
+      "y": 379,
+      "width": 171,
+      "height": 184
+    },
+    "hand-left-wave-three-quarter": {
+      "file": "wave-action-v1/wave-palm-three-quarter.png",
+      "x": 324,
+      "y": 332,
+      "width": 91,
+      "height": 84
+    },
+    "arm-right": {
+      "file": "arm-right.png",
+      "x": 687,
+      "y": 533,
+      "width": 213,
+      "height": 306
+    },
+    "leg-left": {
+      "file": "leg-left.png",
+      "x": 508,
+      "y": 855,
+      "width": 121,
+      "height": 352
+    },
+    "leg-right": {
+      "file": "leg-right.png",
+      "x": 642,
+      "y": 855,
+      "width": 124,
+      "height": 353
+    },
+    "shoe-left": {
+      "file": "shoe-left.png",
+      "x": 519,
+      "y": 1144,
+      "width": 81,
+      "height": 100
+    },
+    "shoe-right": {
+      "file": "shoe-right.png",
+      "x": 674,
+      "y": 1144,
+      "width": 84,
+      "height": 100
+    },
+    "eye-white-left": {
+      "file": "eye-white-left.png",
+      "x": 511,
+      "y": 351,
+      "width": 78,
+      "height": 68
+    },
+    "eye-white-right": {
+      "file": "eye-white-right.png",
+      "x": 663,
+      "y": 351,
+      "width": 81,
+      "height": 68
+    },
+    "iris-left": {
+      "file": "iris-left.png",
+      "x": 529,
+      "y": 357,
+      "width": 56,
+      "height": 62
+    },
+    "iris-right": {
+      "file": "iris-right.png",
+      "x": 666,
+      "y": 357,
+      "width": 58,
+      "height": 62
+    },
+    "lash-left": {
+      "file": "lash-left.png",
+      "x": 495,
+      "y": 338,
+      "width": 93,
+      "height": 82
+    },
+    "lash-right": {
+      "file": "lash-right.png",
+      "x": 663,
+      "y": 338,
+      "width": 98,
+      "height": 82
+    },
+    "brow-left": {
+      "file": "brow-left.png",
+      "x": 524,
+      "y": 299,
+      "width": 63,
+      "height": 24
+    },
+    "brow-right": {
+      "file": "brow-right.png",
+      "x": 663,
+      "y": 299,
+      "width": 65,
+      "height": 23
+    },
+    "hair-front": {
+      "file": "hair-front.png",
+      "x": 421,
+      "y": 140,
+      "width": 403,
+      "height": 500
+    },
+    "ahoge": {
+      "file": "ahoge.png",
+      "x": 557,
+      "y": 9,
+      "width": 160,
+      "height": 151
+    },
+    "maid-headband": {
+      "file": "maid-headband.png",
+      "x": 436,
+      "y": 98,
+      "width": 407,
+      "height": 228
+    },
+    "skirt": {
+      "file": "skirt.png",
+      "x": 395,
+      "y": 691,
+      "width": 476,
+      "height": 303
+    },
+    "whale-fins": {
+      "file": "whale-fins.png",
+      "x": 319,
+      "y": 389,
+      "width": 643,
+      "height": 86
+    },
+    "side-bow": {
+      "file": "side-bow.png",
+      "x": 810,
+      "y": 302,
+      "width": 63,
+      "height": 56
+    }
+  }
+}

@@ -1,0 +1,5 @@
+# One Loader row activates the package Host entry and lets the DSH client
+# module scanner discover the sibling dsh.client declaration.
+- insert:
+    - id: dsh-dfy
+      name: dsh-dfy

@@ -1,0 +1,14 @@
+lib/
+node_modules/
+coverage/
+release/
+artifacts/
+reference/
+.tmp-dsh-e2e-home/
+character-packs/default-whale/source/
+.env
+.env.*
+*.tgz
+*.tsbuildinfo
+__pycache__/
+*.pyc

@@ -1,0 +1,15 @@
+Default whale character asset license
+
+Character source: “鲸鱼娘形象” by 上善无形 (Bilibili UID 4456176)
+Source: https://www.bilibili.com/opus/1231977657712771073
+License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+License text: https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
+
+This character pack contains a modified chibi-maid raster derivative. Changes
+include AI-assisted derivation, community-Q visual adaptation, background
+removal, downscaling, runtime packaging, and whole-character animation.
+
+The character raster and adaptations are licensed under CC BY-NC-SA 4.0 and
+are not covered by the repository MIT license. Plugin code, WhaleRig code,
+shaders, UI, and motion implementation remain licensed under the repository
+MIT license.
