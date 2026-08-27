@@ -98,6 +98,28 @@ describe('WhalePet activity presentation', () => {
     expect(container.querySelector('[data-whale-pet-avatar]')?.getAttribute('data-state')).toBe('working')
   })
 
+  it('plays a non-blocking facial and body performance after a short idle wait', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    await act(async () => { root.render(<WhalePet {...props(undefined)} />) })
+    expect(container.querySelector('[data-whale-pet-entry]')?.getAttribute('data-whale-idle-performance')).toBe('waiting')
+
+    await act(async () => { vi.advanceTimersByTime(9_050) })
+
+    expect(container.querySelector('[data-whale-pet-entry]')?.getAttribute('data-whale-idle-performance')).toBe('quiet-smile')
+    expect(container.querySelector('[data-whale-emotion-fx]')?.getAttribute('data-emotion')).toBe('happy')
+    vi.restoreAllMocks()
+  })
+
+  it('does not start idle acting while Harness work is active', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    await act(async () => {
+      root.render(<WhalePet {...props({ mode: 'thinking', reaction: 'none', reactionSeq: -1 })} />)
+      vi.advanceTimersByTime(20_000)
+    })
+    expect(container.querySelector('[data-whale-pet-entry]')?.getAttribute('data-whale-idle-performance')).toBe('waiting')
+    vi.restoreAllMocks()
+  })
+
   it('opens the menu from keyboard activation and returns focus on Escape', async () => {
     await act(async () => { root.render(<WhalePet {...props(undefined)} />) })
     const trigger = container.querySelector<HTMLButtonElement>('[data-whale-pet-hotspot]')
@@ -200,6 +222,31 @@ describe('WhalePet activity presentation', () => {
     })
     expect(currentProps.actions.setPosition).toHaveBeenLastCalledWith({ right: 24, bottom: 20 })
     expect(container.querySelector('[data-whale-pet-bubble]')?.textContent).toBe('reaction.positionReset')
+  })
+
+  it('keeps the drag pose active until the pointer is released', async () => {
+    await act(async () => { root.render(<WhalePet {...props(undefined)} />) })
+    const trigger = container.querySelector<HTMLButtonElement>('[data-whale-pet-hotspot]')!
+    trigger.setPointerCapture = vi.fn()
+    trigger.releasePointerCapture = vi.fn()
+    const pointerEvent = (type: string, clientX: number, clientY: number): MouseEvent => {
+      const event = new MouseEvent(type, { bubbles: true, button: 0, clientX, clientY })
+      Object.defineProperty(event, 'pointerId', { value: 1 })
+      return event
+    }
+
+    await act(async () => {
+      trigger.dispatchEvent(pointerEvent('pointerdown', 100, 100))
+    })
+    expect(container.querySelector('[data-whale-pet-entry]')?.getAttribute('data-whale-action')).toBe('dragging')
+
+    await act(async () => { trigger.dispatchEvent(pointerEvent('pointermove', 140, 100)) })
+
+    await act(async () => { vi.advanceTimersByTime(2_000) })
+    expect(container.querySelector('[data-whale-pet-entry]')?.getAttribute('data-whale-action')).toBe('dragging')
+
+    await act(async () => { trigger.dispatchEvent(pointerEvent('pointerup', 140, 100)) })
+    expect(container.querySelector('[data-whale-pet-entry]')?.getAttribute('data-whale-action')).toBe('idle')
   })
 
   it('starts an unpersisted manual cursor visit after the summon target settles', async () => {

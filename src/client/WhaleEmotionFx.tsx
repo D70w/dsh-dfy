@@ -40,9 +40,13 @@ function placement(name: WhaleEmotionName, index: number, count: number, originX
     y = 22 - index * 6
     size = [31, 24, 18][index] ?? 18
   } else if (name === 'nervous') {
-    x = 63 + index * 4
-    y = 22 + index * 5
-    size = [27, 20, 14][index] ?? 14
+    // Sweat starts at the temple, then follows the cheek as smaller delayed
+    // beads. Keeping the cluster close to the face reads as tension instead
+    // of a generic cyan particle burst.
+    x = 69 + index * 2.8
+    y = 24 + index * 6
+    size = [17, 12, 8][index] ?? 8
+    className = index === 0 ? 'sweat-bead' : 'sweat-trail'
   } else if (name === 'hungry') {
     x = 62 + index * 7
     y = 23 - index * 5

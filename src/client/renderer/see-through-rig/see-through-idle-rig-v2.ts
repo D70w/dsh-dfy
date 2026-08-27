@@ -9,7 +9,7 @@ export type SeeThroughBoneId =
   | 'root' | 'pelvis' | 'waist' | 'chest' | 'neck' | 'head'
   | 'armLeftUpper' | 'armLeftForearm' | 'handLeft'
   | 'armRightUpper' | 'armRightForearm' | 'handRight'
-  | 'legLeft' | 'legRight'
+  | 'legLeft' | 'legLeftLower' | 'legRight' | 'legRightLower'
   | 'hairBackRoot' | 'hairBackLeft' | 'hairBackRight'
   | 'hairFrontLeft' | 'hairFrontRight'
   | 'ahogeRoot' | 'ahogeTip'
@@ -160,6 +160,8 @@ export interface SeeThroughIdleRigController {
   setPointer(x: number, y: number): void
   /** Feed bounded grab velocity to the rig's shared secondary-motion system. */
   setExternalMotion(x: number, y: number): void
+  setGrabPoint(x: number, y: number): void
+  setGrabbed(value: boolean): void
   setExpression(expression: SeeThroughExpression): void
   playGesture(gesture: Exclude<SeeThroughGesture, 'none'>): void
   stopGesture(): void
@@ -195,7 +197,8 @@ const boneLabels: Record<SeeThroughBoneId, string> = {
   root: '总控制', pelvis: '骨盆', waist: '腰部', chest: '胸腔', neck: '颈部', head: '头部',
   armLeftUpper: '左上臂', armLeftForearm: '左前臂／肘关节', handLeft: '左手掌',
   armRightUpper: '右上臂', armRightForearm: '右前臂／肘关节', handRight: '右手掌',
-  legLeft: '左腿', legRight: '右腿',
+  legLeft: '左大腿／髋关节', legLeftLower: '左小腿／膝关节',
+  legRight: '右大腿／髋关节', legRightLower: '右小腿／膝关节',
   hairBackRoot: '后发根部', hairBackLeft: '左后发梢', hairBackRight: '右后发梢',
   hairFrontLeft: '左前发梢', hairFrontRight: '右前发梢',
   ahogeRoot: '呆毛根部', ahogeTip: '呆毛尖端',
@@ -893,6 +896,32 @@ function drawPartRotatedAtPivot(
   context.restore()
 }
 
+function sampleSkirtMeshDeformation(x: number, y: number, part: LoadedPart, bend: number): { x: number; y: number } {
+  const u = clamp01((x - part.x) / Math.max(1, part.width))
+  const v = clamp01((y - part.y) / Math.max(1, part.height))
+  const rootFree = smoothstep(0.08, 0.3, v)
+  const hemFree = 0.72 + smoothstep(0.52, 1, v) * 0.28
+  const free = rootFree * hemFree
+  const panelWave = Math.sin((u - 0.5) * Math.PI * 4 + bend * 0.035)
+  const edgeGain = 0.78 + Math.abs(u - 0.5) * 0.42
+  return {
+    x: bend * free * edgeGain * (0.9 + panelWave * 0.13),
+    y: -Math.abs(bend) * free * (0.045 + Math.abs(panelWave) * 0.035),
+  }
+}
+
+function sampleLegMeshDeformation(x: number, y: number, part: LoadedPart, bend: number, side: number): { x: number; y: number } {
+  const v = clamp01((y - part.y) / Math.max(1, part.height))
+  const knee = Math.sin(clamp01((v - 0.1) / 0.8) * Math.PI)
+  const rootPin = smoothstep(0.08, 0.25, v)
+  const anklePin = 1 - smoothstep(0.76, 0.95, v)
+  const soft = knee * rootPin * anklePin
+  return {
+    x: bend * side * soft * (0.72 + knee * 0.28),
+    y: -Math.abs(bend) * soft * 0.055,
+  }
+}
+
 function drawBentPart(context: CanvasRenderingContext2D, part: LoadedPart, matrix: DOMMatrix, bend: number, slices = 18, reverse = false): void {
   context.save()
   applyMatrix(context, matrix)
@@ -1047,6 +1076,10 @@ const armLeftAxisX = -124 / Math.hypot(-124, 227)
 const armLeftAxisY = 227 / Math.hypot(-124, 227)
 const armLeftNormalX = -armLeftAxisY
 const armLeftNormalY = armLeftAxisX
+const armRightAxisX = 124 / Math.hypot(124, 227)
+const armRightAxisY = 227 / Math.hypot(124, 227)
+const armRightNormalX = -armRightAxisY
+const armRightNormalY = armRightAxisX
 
 function armLeftCoordinates(x: number, y: number): { along: number; across: number } {
   const offsetX = x - 550
@@ -1054,6 +1087,15 @@ function armLeftCoordinates(x: number, y: number): { along: number; across: numb
   return {
     along: offsetX * armLeftAxisX + offsetY * armLeftAxisY,
     across: offsetX * armLeftNormalX + offsetY * armLeftNormalY,
+  }
+}
+
+function armRightCoordinates(x: number, y: number): { along: number; across: number } {
+  const offsetX = x - 706
+  const offsetY = y - 548
+  return {
+    along: offsetX * armRightAxisX + offsetY * armRightAxisY,
+    across: offsetX * armRightNormalX + offsetY * armRightNormalY,
   }
 }
 
@@ -1077,33 +1119,19 @@ function createArmLeftCorrectiveDeformer(pose: GesturePose): MeshDeformer {
 
 function createArmRightCorrectiveDeformer(pose: GesturePose): MeshDeformer {
   return (x, y) => {
-    const shoulderBand = (1 - smoothstep(533, 650, y)) * pose.shoulderShrug
+    const { along, across } = armRightCoordinates(x, y)
+    const elbowProgress = clamp01((along - 130) / 42)
+    const elbowBand = Math.sin(elbowProgress * Math.PI) * pose.elbowMorph
+    const elbowExpansion = Math.tanh(across / 14) * elbowBand * 7.25
+    const shoulderBand = (1 - smoothstep(0, 105, along)) * pose.shoulderShrug
     return {
-      x: -shoulderBand * 3.2,
-      y: -shoulderBand * 4.8,
+      x: armRightNormalX * elbowExpansion - shoulderBand * 3.2,
+      y: armRightNormalY * elbowExpansion - shoulderBand * 4.8,
     }
   }
 }
 
-function armChainWeights(
-  value: number,
-  upper: SeeThroughBoneId,
-  forearm: SeeThroughBoneId,
-  hand: SeeThroughBoneId,
-): VertexWeights {
-  const upperToForearm = smoothstep(650, 682, value)
-  const forearmToHand = smoothstep(744, 806, value)
-  return [
-    [upper, 1 - upperToForearm],
-    [forearm, upperToForearm * (1 - forearmToHand)],
-    [hand, forearmToHand],
-  ]
-}
-
 function armLeftWeights(x: number, y: number): VertexWeights {
-  // The sleeve ends at the wrist. Letting handLeft influence these vertices
-  // made the cuff twist with the replacement palm and pulled the two layers
-  // through each other. The palm itself remains a separate hand-bone part.
   // Weight along the diagonal arm axis, not by horizontal image rows. This
   // makes every cross-section switch bones together and prevents the sleeve
   // from being cut into skewed wedges at large elbow angles.
@@ -1124,12 +1152,32 @@ function armLeftWeights(x: number, y: number): VertexWeights {
   return [['chest', chestPin], ...limbWeights.map(([id, weight]) => [id, weight * (1 - chestPin)] as const)]
 }
 
+function torsoGarmentWeights(_x: number, y: number): VertexWeights {
+  const pelvisWeight = smoothstep(665, 735, y)
+  return [['chest', 1 - pelvisWeight], ['pelvis', pelvisWeight]]
+}
+
 function armRightWeights(x: number, y: number): VertexWeights {
-  const limbWeights = armChainWeights(y, 'armRightUpper', 'armRightForearm', 'handRight')
-  const rootInfluence = 1 - smoothstep(550, 645, y)
+  const { along } = armRightCoordinates(x, y)
+  const upperToForearm = smoothstep(132, 152, along)
+  const limbWeights: VertexWeights = [
+    ['armRightUpper', 1 - upperToForearm],
+    ['armRightForearm', upperToForearm],
+  ]
+  const rootInfluence = 1 - smoothstep(14, 102, along)
   const innerShoulder = 1 - smoothstep(701, 786, x)
   const chestPin = rootInfluence * innerShoulder * 0.94
   return [['chest', chestPin], ...limbWeights.map(([id, weight]) => [id, weight * (1 - chestPin)] as const)]
+}
+
+function legLeftWeights(_x: number, y: number): VertexWeights {
+  const lowerWeight = smoothstep(1014, 1054, y)
+  return [['legLeft', 1 - lowerWeight], ['legLeftLower', lowerWeight]]
+}
+
+function legRightWeights(_x: number, y: number): VertexWeights {
+  const lowerWeight = smoothstep(1014, 1054, y)
+  return [['legRight', 1 - lowerWeight], ['legRightLower', lowerWeight]]
 }
 
 function drawEye(context: CanvasRenderingContext2D, white: LoadedPart, iris: LoadedPart, lash: LoadedPart, matrix: DOMMatrix, centerX: number, centerY: number, openness: number, gazeX: number, gazeY: number): void {
@@ -1161,6 +1209,9 @@ export async function createSeeThroughIdleRig(canvas: HTMLCanvasElement, options
   let pointerY = 0
   let externalMotionX = 0
   let externalMotionY = 0
+  let grabPointX = 0.5
+  let grabPointY = 0.18
+  let grabbed = false
   let expression: SeeThroughExpression = 'neutral'
   let expressionFrom = expressionStyles.neutral
   let expressionTo = expressionStyles.neutral
@@ -1199,13 +1250,21 @@ export async function createSeeThroughIdleRig(canvas: HTMLCanvasElement, options
   const tail2Spring = new SpringValue({ stiffness: 30, damping: 7, maxOffset: 11 })
   const tailTipSpring = new SpringValue({ stiffness: 27, damping: 6.5, maxOffset: 13 })
   const skirtSwaySpring = new SpringValue({ stiffness: 52, damping: 10.2, maxOffset: 9 })
+  const armLeftUpperFollowSpring = new SpringValue({ stiffness: 52, damping: 10.4, maxOffset: 6 })
+  const armLeftForearmFollowSpring = new SpringValue({ stiffness: 16, damping: 5.6, maxOffset: 13 })
+  const armRightUpperFollowSpring = new SpringValue({ stiffness: 55, damping: 10.8, maxOffset: 6 })
+  const armRightForearmFollowSpring = new SpringValue({ stiffness: 17, damping: 5.8, maxOffset: 13 })
+  const legLeftUpperFollowSpring = new SpringValue({ stiffness: 44, damping: 9.4, maxOffset: 5.5 })
+  const legLeftLowerFollowSpring = new SpringValue({ stiffness: 15, damping: 5.4, maxOffset: 10 })
+  const legRightUpperFollowSpring = new SpringValue({ stiffness: 36, damping: 8.2, maxOffset: 5 })
+  const legRightLowerFollowSpring = new SpringValue({ stiffness: 21, damping: 6.5, maxOffset: 9 })
   // Grab motion is deliberately a separate input from the gaze pointer.  The
   // body receives the first, smaller response and the existing hair/tail
   // springs receive the same input later, creating a stable root-to-tip lag.
   const externalMotionXSpring = new SpringValue({ stiffness: 72, damping: 16, maxOffset: 1 })
   const externalMotionYSpring = new SpringValue({ stiffness: 72, damping: 16, maxOffset: 1 })
-  const grabBodySwaySpring = new SpringValue({ stiffness: 34, damping: 8.2, maxOffset: 5.5 })
-  const grabBodyLiftSpring = new SpringValue({ stiffness: 30, damping: 8.5, maxOffset: 2.6 })
+  const grabBodySwaySpring = new SpringValue({ stiffness: 34, damping: 8.2, maxOffset: 12 })
+  const grabBodyLiftSpring = new SpringValue({ stiffness: 30, damping: 8.5, maxOffset: 5 })
 
   const manual = (id: SeeThroughBoneId): number => manualRotations.get(id) ?? 0
   const scheduleBlink = (now: number): void => { nextBlinkAt = now + 2300 + (Math.sin(now * 0.00131) * 0.5 + 0.5) * 1900 }
@@ -1218,8 +1277,27 @@ export async function createSeeThroughIdleRig(canvas: HTMLCanvasElement, options
     const grabInputY = externalMotionYSpring.step(secondaryMotion && !reducedMotion ? externalMotionY : 0, delta)
     // A leftward grab makes the body lean a little to the right (the delayed
     // side), while vertical grab input only gives a restrained lift/drop.
-    const grabBodySway = grabBodySwaySpring.step(-grabInputX * 5.2, delta)
-    const grabBodyLift = grabBodyLiftSpring.step(-grabInputY * 2.1, delta)
+    const heldGrabSway = grabbed ? (grabPointX - 0.5) * 2.8 : 0
+    const heldGrabLift = grabbed ? (grabPointY - 0.5) * 0.8 : 0
+    const directGrabX = secondaryMotion && !reducedMotion ? externalMotionX : 0
+    const directGrabY = secondaryMotion && !reducedMotion ? externalMotionY : 0
+    const grabBodySway = grabBodySwaySpring.step(-grabInputX * 15 + directGrabX * 7 + heldGrabSway, delta)
+    const grabBodyLift = grabBodyLiftSpring.step(-grabInputY * 6 + directGrabY * 3 + heldGrabLift, delta)
+    const grabSecondaryScale = secondaryMotion && !reducedMotion ? 1 : 0
+    const armLeftInput = (-grabBodySway * 0.48 - directGrabX * 3.1 + directGrabY * 0.34) * grabSecondaryScale
+    const armRightInput = (-grabBodySway * 0.39 - directGrabX * 2.35 - directGrabY * 0.22) * grabSecondaryScale
+    const armLeftUpperFollow = armLeftUpperFollowSpring.step(armLeftInput * 0.92, delta)
+    const armRightUpperFollow = armRightUpperFollowSpring.step(armRightInput * 0.72, delta)
+    // A softer second spring gives the forearm its own delayed local angle at
+    // the elbow instead of multiplying the same value used by the upper arm.
+    const armLeftForearmFollow = armLeftForearmFollowSpring.step(armLeftInput * 3.05 - armLeftUpperFollow * 0.15, delta)
+    const armRightForearmFollow = armRightForearmFollowSpring.step(armRightInput * 2.45 - armRightUpperFollow * 0.22, delta)
+    const legLeftInput = (-grabBodySway * 0.3 - directGrabX * 1.55 + directGrabY * 0.28) * grabSecondaryScale
+    const legRightInput = (-grabBodySway * 0.23 - directGrabX * 1.12 - directGrabY * 0.18) * grabSecondaryScale
+    const legLeftUpperFollow = legLeftUpperFollowSpring.step(legLeftInput * 0.68, delta)
+    const legRightUpperFollow = legRightUpperFollowSpring.step(legRightInput * 0.54, delta)
+    const legLeftLowerFollow = legLeftLowerFollowSpring.step(legLeftInput * 2.15 - legLeftUpperFollow * 0.18, delta)
+    const legRightLowerFollow = legRightLowerFollowSpring.step(legRightInput * 1.72 - legRightUpperFollow * 0.25, delta)
     const gazeX = gazeSpringX.step(reducedMotion ? 0 : pointerX, delta)
     const gazeY = gazeSpringY.step(reducedMotion ? 0 : pointerY, delta)
     if (blinking && !reducedMotion && now >= nextBlinkAt && blinkStartedAt < nextBlinkAt) blinkStartedAt = now
@@ -1257,7 +1335,8 @@ export async function createSeeThroughIdleRig(canvas: HTMLCanvasElement, options
       - grabInputX * 1.8
       + Math.sin(now / 1380) * 0.45
     ) * secondaryScale, delta)
-    const stance = secondaryMotion && !reducedMotion ? Math.sin(now / 2100) * 0.18 : 0
+    const stanceLeft = secondaryMotion && !reducedMotion ? Math.sin(now / 1900 + 0.9) * 0.2 : 0
+    const stanceRight = secondaryMotion && !reducedMotion ? Math.sin(now / 2240 + 2.05) * 0.15 : 0
     const breathScale = breathing && !reducedMotion ? 1 + idle.breath * 0.009 : 1
 
     const poses: BonePose[] = [
@@ -1267,14 +1346,16 @@ export async function createSeeThroughIdleRig(canvas: HTMLCanvasElement, options
       { id: 'chest', parent: 'waist', pivotX: 640, pivotY: 645, scaleX: 1 + (breathScale - 1) * 0.55, scaleY: breathScale, rotation: gesturePose.chestRotation + grabBodySway * 0.72 + manual('chest') },
       { id: 'neck', parent: 'chest', pivotX: 640, pivotY: 525, rotation: manual('neck') },
       { id: 'head', parent: 'neck', pivotX: 640, pivotY: 500, x: idle.headX + gesturePose.headX, y: idle.headY + gesturePose.headY + expressionStyle.headLift + grabBodyLift * 0.22, rotation: totalHeadRotation + grabBodySway * 0.2 + manual('head'), scaleX: gesturePose.headScaleX, scaleY: gesturePose.headScaleY },
-      { id: 'armLeftUpper', parent: 'chest', pivotX: 550, pivotY: 548, x: gesturePose.shoulderLeftX, y: gesturePose.shoulderLeftY, rotation: -idle.breath * 0.65 + gesturePose.armLeftUpper + manual('armLeftUpper') },
-      { id: 'armLeftForearm', parent: 'armLeftUpper', pivotX: committedArmPivots.leftForearm.x, pivotY: committedArmPivots.leftForearm.y, rotation: gesturePose.armLeftForearm + manual('armLeftForearm') },
+      { id: 'armLeftUpper', parent: 'chest', pivotX: 550, pivotY: 548, x: gesturePose.shoulderLeftX, y: gesturePose.shoulderLeftY, rotation: -idle.breath * 0.65 + gesturePose.armLeftUpper + armLeftUpperFollow * 1.15 + manual('armLeftUpper') },
+      { id: 'armLeftForearm', parent: 'armLeftUpper', pivotX: committedArmPivots.leftForearm.x, pivotY: committedArmPivots.leftForearm.y, rotation: gesturePose.armLeftForearm + armLeftForearmFollow * 1.65 + manual('armLeftForearm') },
       { id: 'handLeft', parent: 'armLeftForearm', pivotX: 426, pivotY: 775, rotation: gesturePose.handLeft + manual('handLeft') },
-      { id: 'armRightUpper', parent: 'chest', pivotX: 706, pivotY: 548, x: gesturePose.shoulderRightX, y: gesturePose.shoulderRightY, rotation: idle.breath * 0.65 + gesturePose.armRightUpper + manual('armRightUpper') },
-      { id: 'armRightForearm', parent: 'armRightUpper', pivotX: committedArmPivots.rightForearm.x, pivotY: committedArmPivots.rightForearm.y, rotation: gesturePose.armRightForearm + manual('armRightForearm') },
+      { id: 'armRightUpper', parent: 'chest', pivotX: 706, pivotY: 548, x: gesturePose.shoulderRightX, y: gesturePose.shoulderRightY, rotation: idle.breath * 0.65 + gesturePose.armRightUpper + armRightUpperFollow * 1.08 + manual('armRightUpper') },
+      { id: 'armRightForearm', parent: 'armRightUpper', pivotX: committedArmPivots.rightForearm.x, pivotY: committedArmPivots.rightForearm.y, rotation: gesturePose.armRightForearm + armRightForearmFollow * 1.48 + manual('armRightForearm') },
       { id: 'handRight', parent: 'armRightForearm', pivotX: 831, pivotY: 775, rotation: gesturePose.handRight + manual('handRight') },
-      { id: 'legLeft', parent: 'pelvis', pivotX: 575, pivotY: 900, rotation: gesturePose.legLeftUpper + stance + manual('legLeft') },
-      { id: 'legRight', parent: 'pelvis', pivotX: 705, pivotY: 900, rotation: gesturePose.legRightUpper - stance + manual('legRight') },
+      { id: 'legLeft', parent: 'pelvis', pivotX: 575, pivotY: 900, rotation: gesturePose.legLeftUpper + stanceLeft + legLeftUpperFollow + manual('legLeft') },
+      { id: 'legLeftLower', parent: 'legLeft', pivotX: 570, pivotY: 1038, rotation: legLeftLowerFollow - stanceLeft * 0.18 + manual('legLeftLower') },
+      { id: 'legRight', parent: 'pelvis', pivotX: 705, pivotY: 900, rotation: gesturePose.legRightUpper + stanceRight + legRightUpperFollow + manual('legRight') },
+      { id: 'legRightLower', parent: 'legRight', pivotX: 704, pivotY: 1038, rotation: legRightLowerFollow - stanceRight * 0.14 + manual('legRightLower') },
       { id: 'hairBackRoot', parent: 'head', pivotX: 640, pivotY: 235, rotation: manual('hairBackRoot') },
       { id: 'hairBackLeft', parent: 'hairBackRoot', pivotX: 475, pivotY: 500, rotation: backHairLeft + manual('hairBackLeft') },
       { id: 'hairBackRight', parent: 'hairBackRoot', pivotX: 805, pivotY: 500, rotation: backHairRight + manual('hairBackRight') },
@@ -1294,8 +1375,15 @@ export async function createSeeThroughIdleRig(canvas: HTMLCanvasElement, options
     })
     const bones = solveBones(correctedPoses)
     const bone = (id: SeeThroughBoneId): DOMMatrix => bones.get(id) ?? new DOMMatrix()
-    const armLeftDeformer = createArmLeftCorrectiveDeformer(gesturePose)
-    const armRightDeformer = createArmRightCorrectiveDeformer(gesturePose)
+    const armLeftDeformer = createArmLeftCorrectiveDeformer({
+      ...gesturePose,
+      elbowMorph: Math.max(gesturePose.elbowMorph, clamp01(Math.abs(armLeftForearmFollow) / 3.5)),
+    })
+    const armRightDeformer = createArmRightCorrectiveDeformer({
+      ...gesturePose,
+      elbowMorph: Math.max(gesturePose.elbowMorph, clamp01(Math.abs(armRightForearmFollow) / 3.5)),
+    })
+    const apronDeformer = (x: number, y: number): { x: number; y: number } => sampleSkirtMeshDeformation(x, y, parts.skirt, skirtSway * 0.82)
     const headMatrix = bone('head')
     const headPitchAt = (x: number, y: number): MeshPoint => sampleHeadPitchDeformation(x, y, gesturePose.headPitch)
     const featureMatrixAt = (x: number, y: number): DOMMatrix => {
@@ -1319,26 +1407,26 @@ export async function createSeeThroughIdleRig(canvas: HTMLCanvasElement, options
       'whale-fins': () => drawPart(context, parts['whale-fins'], headMatrix),
       ears: () => drawPart(context, parts['human-ears'], headMatrix),
       'lower-body': () => {
-        drawPart(context, parts['leg-left'], bone('legLeft'))
-        drawPart(context, parts['leg-right'], bone('legRight'))
-        drawBentPart(context, parts.skirt, bone('pelvis'), skirtSway * 0.72, 18)
+        drawSkinnedPart(context, parts['leg-left'], bones, legLeftWeights, 7, 18, 0, 18, (x, y) => sampleLegMeshDeformation(x, y, parts['leg-left'], legLeftLowerFollow * 0.72, -1))
+        drawSkinnedPart(context, parts['leg-right'], bones, legRightWeights, 7, 18, 0, 18, (x, y) => sampleLegMeshDeformation(x, y, parts['leg-right'], legRightLowerFollow * 0.68, 1))
+        drawDeformedPart(context, parts.skirt, bone('pelvis'), (x, y) => sampleSkirtMeshDeformation(x, y, parts.skirt, skirtSway), 8, 12)
       },
       torso: () => {
         // Structural neck stays behind the torso; the small visible patch is
         // then reopened inside the collar window.
         drawPartClippedToDesignRect(context, parts.neck, bone('neck'), 586, 430, 84, 103)
-        drawPart(context, parts.torso, bone('chest'))
-        drawPart(context, parts['collar-front'], bone('chest'))
+        drawSkinnedPart(context, parts.torso, bones, torsoGarmentWeights, 8, 18, 0, 18, apronDeformer)
+        drawSkinnedPart(context, parts['collar-front'], bones, torsoGarmentWeights, 8, 18, 0, 18, apronDeformer)
         drawNeckVisiblePatch(context, parts.neck, bone('neck'))
         drawPartClippedToDesignRect(context, parts['collar-front'], bone('chest'), 506, 528, 242, 95)
       },
       'arms-back': () => {
-        drawSkinnedPart(context, parts['arm-left-sleeve'], bones, armLeftWeights, 12, 32, 0, 32, armLeftDeformer)
-        drawSkinnedPart(context, parts['arm-right'], bones, armRightWeights, 5, 14, 0, 6, armRightDeformer, true)
+        drawSkinnedPart(context, parts['arm-left-sleeve'], bones, armLeftWeights, 12, 32, 0, 22, armLeftDeformer)
+        drawSkinnedPart(context, parts['arm-right'], bones, armRightWeights, 10, 28, 0, 12, armRightDeformer)
       },
       shoes: () => {
-        drawPart(context, parts['shoe-left'], bone('legLeft'))
-        drawPart(context, parts['shoe-right'], bone('legRight'))
+        drawPart(context, parts['shoe-left'], bone('legLeftLower'))
+        drawPart(context, parts['shoe-right'], bone('legRightLower'))
       },
       head: () => {
         drawDeformedPart(context, parts.face, headMatrix, headPitchAt, 8, 10)
@@ -1397,16 +1485,15 @@ export async function createSeeThroughIdleRig(canvas: HTMLCanvasElement, options
         const palmFlip = Math.cos(gesturePose.wavePalm * Math.PI)
         const clockwiseTurn = 90 * gesturePose.wavePalm
         const edgeOnScale = 0.075
-        if (gesturePose.wavePalm <= 0.5) {
-          drawPartScaledAtPivot(context, parts['hand-left-rest-side'], bone('handLeft'), 426, 775, Math.max(edgeOnScale, palmFlip), clockwiseTurn)
-        }
-        if (gesturePose.wavePalm > 0.5) {
-          drawPartScaledAtPivot(context, parts['hand-left-wave-front'], bone('handLeft'), waveFrontPalmPlacement.targetX, waveFrontPalmPlacement.targetY, Math.max(edgeOnScale, -palmFlip), clockwiseTurn + waveFrontPalmPlacement.rotationOffset, waveFrontPalmPlacement.mirrorAxis, waveFrontPalmPlacement.sourceWristX, waveFrontPalmPlacement.sourceWristY)
-        }
+        // The sleeve PNG ends at the cuff; the rest-side PNG's alpha contains
+        // only the hand. Attach it to the forearm so this remains a true
+        // upper-arm/forearm two-link chain without losing the palm.
+        if (gesturePose.wavePalm <= 0.5) drawPart(context, parts['hand-left-rest-side'], bone('armLeftForearm'))
+        else drawPartScaledAtPivot(context, parts['hand-left-wave-front'], bone('armLeftForearm'), waveFrontPalmPlacement.targetX, waveFrontPalmPlacement.targetY, Math.max(edgeOnScale, -palmFlip), clockwiseTurn + gesturePose.handLeft + waveFrontPalmPlacement.rotationOffset, waveFrontPalmPlacement.mirrorAxis, waveFrontPalmPlacement.sourceWristX, waveFrontPalmPlacement.sourceWristY)
       },
       'arms-front': () => {
-        drawSkinnedPart(context, parts['arm-left-sleeve'], bones, armLeftWeights, 12, 32, 22, 31, armLeftDeformer)
-        drawSkinnedPart(context, parts['arm-right'], bones, armRightWeights, 5, 14, 6, 14, armRightDeformer, true)
+        drawSkinnedPart(context, parts['arm-left-sleeve'], bones, armLeftWeights, 12, 32, 22, 32, armLeftDeformer)
+        drawSkinnedPart(context, parts['arm-right'], bones, armRightWeights, 10, 28, 12, 28, armRightDeformer)
       },
     }
     for (const id of layerOrder) {
@@ -1466,6 +1553,11 @@ export async function createSeeThroughIdleRig(canvas: HTMLCanvasElement, options
       externalMotionX = Math.max(-1, Math.min(1, Number(x) || 0))
       externalMotionY = Math.max(-1, Math.min(1, Number(y) || 0))
     },
+    setGrabPoint(x: number, y: number): void {
+      grabPointX = clamp01(Number.isFinite(Number(x)) ? Number(x) : 0.5)
+      grabPointY = clamp01(Number.isFinite(Number(y)) ? Number(y) : 0.18)
+    },
+    setGrabbed(value: boolean): void { grabbed = value === true },
     setExpression(value): void {
       if (value === expression) return
       const now = performance.now()

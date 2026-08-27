@@ -27,9 +27,15 @@ import {
 } from './WhaleDialogue.tsx'
 import { WhaleMenuPanel, type WhaleLlmConfig } from './WhaleMenuPanel.tsx'
 import {
-  EMOTION_PROFILES, IDLE_LINES, emotionLine, offlineReply, pickLine, touchLine,
-  type DialogueLine, type WhaleEmotionName,
+  EMOTION_PROFILES, IDLE_LINES, emotionLine, idlePerformanceDelay, offlineReply,
+  pickIdlePerformance, touchLine,
+  type DialogueLine, type IdlePerformance, type WhaleEmotionName,
 } from './emotions.ts'
+import {
+  fetchLlmModels, loadSavedLlmConfig, parseStructuredLlmReply, persistLlmConfig,
+  probeLlm, WHALE_LLM_SYSTEM_PROMPT,
+} from './llm.ts'
+import type { StationaryAction, StationaryActionCommand } from './stationary-actions.ts'
 
 export type WhalePetProps =
   PropsRuntime<'shell.overlay'>
@@ -75,7 +81,7 @@ export function dialoguePlacement(
   const ordinaryBubbleTop = stageTop - 145 * scale
   if (ordinaryBubbleTop >= 12) return 'above'
   const petWidth = PET_SIZE.width * scale
-  const bubbleWidth = 318 * scale
+  const bubbleWidth = 360 * scale
   const rightSpace = positionRight
   const leftSpace = viewportWidth - positionRight - petWidth
   if (rightSpace >= bubbleWidth && rightSpace >= leftSpace) return 'side-right'
@@ -144,11 +150,18 @@ export function WhalePet({
   const [petReaction, setPetReaction] = useState<Readonly<{
     id: number; xRatio: number; blushLevel: number; blushHoldMs: number
   }>>()
-  const [llm, setLlm] = useState<WhaleLlmConfig>({
-    enabled: false,
-    baseUrl: 'https://api.deepseek.com/v1',
-    model: 'deepseek-chat',
-    apiKey: '',
+  const [stationaryAction, setStationaryAction] = useState<StationaryActionCommand>()
+  const [llm, setLlm] = useState<WhaleLlmConfig>(() => {
+    const saved = loadSavedLlmConfig(typeof window === 'undefined' ? undefined : window.localStorage)
+    return {
+      enabled: saved.enabled ?? false,
+      baseUrl: saved.baseUrl ?? 'https://api.deepseek.com/v1',
+      model: saved.model ?? 'deepseek-chat',
+      apiKey: saved.apiKey ?? '',
+      remember: saved.remember ?? false,
+      models: saved.models ?? [],
+      connection: 'idle',
+    }
   })
   const [interaction, setInteraction] = useState<WhaleInteraction>('none')
   const [liveReaction, setLiveReaction] = useState<WhaleWorkReaction>('none')
@@ -164,11 +177,26 @@ export function WhalePet({
   const suppressClick = useRef(false)
   const dialogueSequence = useRef(1)
   const emotionSequence = useRef(0)
+  const stationaryActionSequence = useRef(0)
   const touchCount = useRef(0)
   const touchStreak = useRef(0)
   const lastTouchAt = useRef(Number.NEGATIVE_INFINITY)
+  const lastTouchEmotion = useRef<WhaleEmotionName>()
+  const idlePerformanceCycle = useRef(0)
+  const lastIdlePerformance = useRef<string>()
   const announcedRiceCatch = useRef<string>()
   const announcedContinuation = useRef<string>()
+
+  useEffect(() => {
+    persistLlmConfig({
+      enabled: llm.enabled,
+      baseUrl: llm.baseUrl,
+      model: llm.model,
+      apiKey: llm.apiKey,
+      remember: llm.remember === true,
+      models: llm.models ?? [],
+    }, typeof window === 'undefined' ? undefined : window.localStorage)
+  }, [llm])
 
   // DSH's shell.overlay slot is mounted inside a z-indexed overlay layer.
   // Some host panels (for example the file explorer) intentionally sit above
@@ -227,6 +255,7 @@ export function WhalePet({
       && !workActive
       && interaction === 'none'
       && liveReaction === 'none'
+      && stationaryAction === undefined
       && !menuOpen
       && !ledgerOpen
       && !focusWithin,
@@ -235,7 +264,8 @@ export function WhalePet({
       && !reduceMotion
       && !workActive
       && interaction === 'none'
-      && liveReaction === 'none',
+      && liveReaction === 'none'
+      && stationaryAction === undefined,
     cursorApproachEnabled: preferences['autonomy.cursorApproach']
       && (petApi.state === undefined || relationship.automaticCursorVisit),
     cursorClearancePx: relationship.cursorClearancePx,
@@ -284,6 +314,23 @@ export function WhalePet({
     if (line.emotion !== undefined) playEmotion(line.emotion)
   }
 
+  const runIdlePerformance = (
+    performance: IdlePerformance,
+    source: 'automatic' | 'manual',
+  ): void => {
+    lastIdlePerformance.current = performance.id
+    if (source === 'automatic') idlePerformanceCycle.current += 1
+    if (performance.line !== undefined && preferences['bubble.enabled']) {
+      showDialogueLine(
+        { ...performance.line, emotion: performance.emotion },
+        'speech',
+        'idle-performance',
+      )
+    } else {
+      playEmotion(performance.emotion, performance.durationMs, performance.originX)
+    }
+  }
+
   useEffect(() => {
     const normalize = (): void => {
       actions.setPosition(clampPosition(positionRef.current, viewport(), PET_SIZE))
@@ -296,24 +343,60 @@ export function WhalePet({
   useEffect(() => {
     if (bubble === null) return
     if (composerOpen || dialogueMeta.context === 'account-balance' || dialogueMeta.context === 'deepseek-peak') return
-    const timer = window.setTimeout(() => setBubbleVisible(false), 7600)
+    const timer = window.setTimeout(
+      () => setBubbleVisible(false),
+      dialogueMeta.context === 'idle-performance' ? 4_800 : 7_600,
+    )
     return () => window.clearTimeout(timer)
   }, [bubble, composerOpen, dialogueMeta.context])
 
   useEffect(() => {
-    if (preferences['general.quietMode'] || !preferences['bubble.enabled']) return
-    const timer = window.setInterval(() => {
-      if (menuOpen || composerOpen || interaction !== 'none' || document.visibilityState !== 'visible') return
-      showDialogueLine(pickLine(IDLE_LINES))
-    }, 28_000)
-    return () => window.clearInterval(timer)
-  }, [composerOpen, interaction, menuOpen, preferences])
+    const eligible = !preferences['general.quietMode']
+      && !workActive
+      && autonomy.episode === undefined
+      && interaction === 'none'
+      && liveReaction === 'none'
+      && stationaryAction === undefined
+      && !menuOpen
+      && !composerOpen
+      && !chatBusy
+      && !ledgerOpen
+      && !focusWithin
+    if (!eligible) return undefined
+
+    let timer = 0
+    const perform = (): void => {
+      if (document.visibilityState !== 'visible') {
+        timer = window.setTimeout(perform, 5_000)
+        return
+      }
+      const performance = pickIdlePerformance(lastIdlePerformance.current)
+      runIdlePerformance(performance, 'automatic')
+    }
+    timer = window.setTimeout(
+      perform,
+      idlePerformanceDelay(idlePerformanceCycle.current),
+    )
+    return () => window.clearTimeout(timer)
+  }, [
+    autonomy.episode, chatBusy, composerOpen, focusWithin, interaction, ledgerOpen,
+    liveReaction, menuOpen, preferences, stationaryAction, workActive,
+  ])
 
   useEffect(() => {
-    if (interaction === 'none') return
-    const timer = window.setTimeout(() => setInteraction('none'), interaction === 'drag' ? 400 : 1200)
+    // A drag owns the pose for the whole pointer gesture. Timing it out here
+    // made the character stop receiving external motion after 400ms while the
+    // pointer was still held, so the pet moved but no longer shook.
+    if (interaction === 'none' || interaction === 'drag') return
+    const timer = window.setTimeout(() => setInteraction('none'), 1200)
     return () => window.clearTimeout(timer)
   }, [interaction])
+
+  useEffect(() => {
+    // Reduced-motion remains authoritative, but DSH work must not cancel a
+    // performance the user explicitly selected from the companion menu.
+    if (stationaryAction !== undefined && reduceMotion) setStationaryAction(undefined)
+  }, [reduceMotion, stationaryAction])
 
   useEffect(() => {
     if (liveReaction === 'none') return
@@ -396,11 +479,41 @@ export function WhalePet({
     : horizontalSide === 'left'
       ? { right: currentPosition.right + PET_SIZE.width * scale + 8, bottom: currentPosition.bottom }
       : { left: window.innerWidth - currentPosition.right + 8, bottom: currentPosition.bottom }
+  const menuAnchor = {
+    left: window.innerWidth - currentPosition.right - PET_SIZE.width * scale,
+    top: window.innerHeight - currentPosition.bottom - PET_SIZE.height * scale,
+    width: PET_SIZE.width * scale,
+    height: PET_SIZE.height * scale,
+  }
 
   const speak = (key: WhaleLocaleKey): void => {
     if (preferences['bubble.enabled'] || key === 'reaction.quiet') {
       showDialogueLine({ text: t(key), subtext: '她认真回应了你的操作' })
     }
+  }
+
+  const testLlmConnection = async (): Promise<void> => {
+    setLlm(current => ({ ...current, connection: 'checking' }))
+    try {
+      await probeLlm(llm.baseUrl, llm.apiKey)
+      setLlm(current => ({ ...current, connection: 'ok' }))
+    } catch {
+      setLlm(current => ({ ...current, connection: 'error' }))
+    }
+  }
+
+  const loadLlmModels = async (): Promise<void> => {
+    setLlm(current => ({ ...current, connection: 'checking' }))
+    try {
+      const models = await fetchLlmModels(llm.baseUrl, llm.apiKey)
+      setLlm(current => ({ ...current, models, connection: 'ok', model: models.includes(current.model) ? current.model : (models[0] ?? current.model) }))
+    } catch {
+      setLlm(current => ({ ...current, connection: 'error' }))
+    }
+  }
+
+  const saveLlmConfig = (): void => {
+    setLlm(current => ({ ...current, remember: true }))
   }
 
   const runPersistentInteraction = async (kind: 'pet' | 'feed'): Promise<void> => {
@@ -435,7 +548,12 @@ export function WhalePet({
 
   const onPointerDown = (event: React.PointerEvent<HTMLButtonElement>): void => {
     if (event.button !== 0 || preferences['general.positionLocked'] === true) return
+    setStationaryAction(undefined)
     event.currentTarget.setPointerCapture(event.pointerId)
+    // Enter the held/grabbed pose immediately. A click is still recognized on
+    // pointerup when the pointer did not travel, but a held pointer now gives
+    // the rig a real grab state instead of behaving like a window drag.
+    setInteraction('drag')
     drag.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -476,8 +594,14 @@ export function WhalePet({
   const balanceCurrency = officialReady && officialBalance.currency === 'USD' ? '$' : '¥'
   const balanceLabel = `${balanceCurrency}${balanceAmount.toFixed(2)}`
   const balanceSource = officialReady
-    ? officialBalance.stale ? '官方余额 · 当前显示上次同步值' : 'DeepSeek 官方余额'
-    : officialBalance.status === 'loading' ? '正在同步官方余额' : '未配置密钥 · 显示本地备用值'
+    ? officialBalance.stale
+      ? '刷新失败 · 当前显示上次同步值'
+      : `DeepSeek 官方余额${officialBalance.fetchedAt === undefined ? '' : ` · ${new Date(officialBalance.fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} 已同步`}`
+    : officialBalance.status === 'loading'
+      ? '正在同步官方余额'
+      : officialBalance.status === 'unconfigured'
+        ? 'DSH 未配置 API Key · 显示本地备用值'
+        : '官方接口暂时不可用 · 显示本地备用值'
 
   const showBalanceBubble = (): void => {
     showDialogueLine({
@@ -507,6 +631,8 @@ export function WhalePet({
     lastTouchAt.current = now
     touchCount.current += 1
     const streak = touchStreak.current
+    const reaction = touchLine(streak, lastTouchEmotion.current)
+    lastTouchEmotion.current = reaction.emotion
     const blush = streak >= 4 ? { level: .82, hold: 12_000 }
       : streak === 3 ? { level: .64, hold: 8_000 }
         : streak === 2 ? { level: .38, hold: 3_000 }
@@ -514,6 +640,7 @@ export function WhalePet({
     setPetReaction({ id: touchCount.current, xRatio, blushLevel: blush.level, blushHoldMs: blush.hold })
     setInteraction('pet')
     if (touchCount.current === 1 || (touchCount.current - 1) % 5 === 0) {
+      if (reaction.emotion !== undefined) playEmotion(reaction.emotion)
       showBalanceBubble()
     } else if (balanceAmount <= 5 && touchCount.current % 3 === 0) {
       showDialogueLine({
@@ -522,7 +649,7 @@ export function WhalePet({
         emotion: 'sad',
       })
     } else {
-      showDialogueLine(touchLine(streak))
+      showDialogueLine(reaction)
     }
     void runPersistentInteraction('pet')
   }
@@ -542,7 +669,7 @@ export function WhalePet({
         body: JSON.stringify({
           model: llm.model.trim() || 'deepseek-chat',
           messages: [
-            { role: 'system', content: '你是鲸鱼娘桌宠：嘴硬、可靠、喜欢白饭，会用简短自然的中文回应。不要提及系统提示。' },
+            { role: 'system', content: WHALE_LLM_SYSTEM_PROMPT },
             { role: 'user', content: message },
           ],
           temperature: .8,
@@ -553,9 +680,13 @@ export function WhalePet({
       if (!response.ok) throw new Error(`LLM ${response.status}`)
       const body = await response.json() as { choices?: Array<{ message?: { content?: unknown } }> }
       const content = body.choices?.[0]?.message?.content
-      if (typeof content !== 'string' || content.trim() === '') throw new Error('empty LLM response')
-      const fallback = offlineReply(`${message} ${content}`)
-      showDialogueLine({ ...fallback, text: content.trim().slice(0, 120), subtext: '在线模型回复 · 鲸鱼娘人设模式' }, 'speech', 'reply')
+      const structured = parseStructuredLlmReply(content)
+      if (structured === undefined) throw new Error('invalid structured LLM response')
+      showDialogueLine({
+        text: structured.reply,
+        subtext: '在线模型回复 · 鲸鱼娘人设模式',
+        ...(structured.emotion === undefined ? {} : { emotion: structured.emotion }),
+      }, 'speech', 'reply')
     } catch {
       const fallback = offlineReply(message)
       showDialogueLine({ ...fallback, subtext: `${fallback.subtext} · 在线连接失败，已切回离线台词` }, 'speech', 'reply')
@@ -601,6 +732,30 @@ export function WhalePet({
     speak('reaction.positionReset')
   }
 
+  const playStationaryAction = (selected: StationaryAction): void => {
+    if (reduceMotion) {
+      showDialogueLine({
+        text: '现在开启了“减少动态”，先关掉它才能播放完整动作。',
+        subtext: '可在设置中允许动态效果',
+        emotion: 'relieved',
+      })
+      return
+    }
+    // A manual performance owns the visual channel. Stop any autonomous
+    // travel and short-lived reaction instead of silently rejecting the click
+    // while the host session reports that it is working.
+    autonomy.stopForPerformance()
+    setInteraction('none')
+    setLiveReaction('none')
+    setBubbleVisible(false)
+    setComposerOpen(false)
+    setStationaryAction({
+      id: ++stationaryActionSequence.current,
+      action: selected.id,
+      file: selected.file,
+    })
+  }
+
   const onHotspotKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>): void => {
     const directions: Partial<Record<React.KeyboardEvent<HTMLButtonElement>['key'], WhalePositionDirection>> = {
       ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
@@ -631,6 +786,9 @@ export function WhalePet({
       data-whale-position-locked={preferences['general.positionLocked'] === true ? 'true' : 'false'}
       data-whale-ledger-open={ledgerOpen ? 'true' : 'false'}
       data-whale-relationship={petApi.state === undefined ? 'loading' : relationship.stage}
+      data-whale-idle-performance={lastIdlePerformance.current ?? 'waiting'}
+      data-whale-idle-performance-cycle={idlePerformanceCycle.current}
+      data-whale-video-action={stationaryAction?.action ?? 'none'}
     >
       {debugEnabled ? (
         <WhaleDebugPanel
@@ -795,7 +953,10 @@ export function WhalePet({
         <WhaleEmotionFx command={emotionCommand} />
         <WhaleDialogue
           dialogue={{ ...dialogueMeta, text: bubble ?? IDLE_LINES[0].text }}
-          visible={preferences['bubble.enabled'] && bubbleVisible}
+          // Keep the interaction surface clear while the pet is being held.
+          // Placement is based on the stage position, so recomputing it during
+          // a drag makes the bubble jump between above/side anchors.
+          visible={preferences['bubble.enabled'] && bubbleVisible && interaction !== 'drag' && !menuOpen}
           placement={dialogueSide}
           composerOpen={composerOpen}
           busy={chatBusy}
@@ -804,44 +965,17 @@ export function WhalePet({
             else if (dialogueMeta.context === 'deepseek-peak') showBalanceBubble()
             else setComposerOpen(open => !open)
           }}
-          onHide={() => setBubbleVisible(false)}
+          onHide={() => {
+            setBubbleVisible(false)
+            setComposerOpen(false)
+          }}
           onComposerClose={() => setComposerOpen(false)}
           onSubmit={(message) => { void submitDialogue(message) }}
-        />
-        <WhaleMenuPanel
-          open={menuOpen && !keyboardMenuOpen}
-          balanceLabel={balanceLabel}
-          balanceSource={balanceSource}
-          todayCost={`今日已用 ¥${dayBilling.costCny.toFixed(4)}`}
-          llm={llm}
-          bubbleEnabled={preferences['bubble.enabled']}
-          autonomyEnabled={preferences['autonomy.enabled']}
-          positionLocked={preferences['general.positionLocked'] === true}
-          reducedMotion={reduceMotion}
-          chaseDisabled={!autonomy.canStartButterfly}
-          onToggle={() => { setKeyboardMenuOpen(false); setMenuOpen(open => !open) }}
-          onClose={() => closeMenu(false)}
-          onDialogueOpen={() => { setComposerOpen(true); setBubbleVisible(true); closeMenu(false) }}
-          onQuickLine={(line) => { showDialogueLine(line); closeMenu(false) }}
-          onEmotion={(name) => { showDialogueLine(emotionLine(name)); closeMenu(false) }}
-          onLlmChange={setLlm}
-          onRefreshBalance={() => { void officialBalance.refresh() }}
-          onShowBalance={() => { showBalanceBubble(); closeMenu(false) }}
-          onOpenLedger={() => { setLedgerOpen(true); void petApi.refresh(); closeMenu(false) }}
-          onPreference={(field, value) => {
-            if (field === 'bubble') actions.setPreference('bubble.enabled', value)
-            else if (field === 'autonomy') actions.setPreference('autonomy.enabled', value)
-            else if (field === 'position') actions.setPreference('general.positionLocked', value)
-            else actions.setPreference('animation.reducedMotion', value ? 'reduce' : 'allow')
-          }}
-          onPet={() => { registerTouch(.5); closeMenu(false) }}
-          onFeed={() => { void runPersistentInteraction('feed'); closeMenu(false) }}
-          onChase={() => { autonomy.startButterfly(); closeMenu(false) }}
-          onCome={() => { autonomy.armCursorVisit(); speak('reaction.come'); closeMenu(false) }}
-          onHome={() => { autonomy.returnHome(); speak('reaction.home'); closeMenu(false) }}
-          onReset={() => { resetPosition(); closeMenu(false) }}
-          onQuiet={() => { actions.setPreference('general.quietMode', true); speak('reaction.quiet'); closeMenu(false) }}
-          onHide={() => { setLedgerOpen(false); actions.setPreference('general.visible', false); closeMenu(false) }}
+          llmEnabled={llm.enabled}
+          llmModel={llm.model}
+          llmModels={llm.models}
+          onLlmModeChange={(enabled) => setLlm(current => ({ ...current, enabled }))}
+          onLlmModelChange={(model) => setLlm(current => ({ ...current, model }))}
         />
         <button
           ref={hotspotRef}
@@ -873,9 +1007,48 @@ export function WhalePet({
             motionIntensity={2}
             emotion={emotionCommand}
             petReaction={petReaction}
+            stationaryAction={stationaryAction}
+            onStationaryActionEnd={() => setStationaryAction(undefined)}
           />
         </button>
       </div>
+      <WhaleMenuPanel
+        open={menuOpen && !keyboardMenuOpen}
+        side={horizontalSide}
+        anchor={menuAnchor}
+        balanceLabel={balanceLabel}
+        balanceSource={balanceSource}
+        todayCost={`今日已用 ¥${dayBilling.costCny.toFixed(4)}`}
+        llm={llm}
+        bubbleEnabled={preferences['bubble.enabled']}
+        autonomyEnabled={preferences['autonomy.enabled']}
+        positionLocked={preferences['general.positionLocked'] === true}
+        reducedMotion={reduceMotion}
+        onToggle={() => { setKeyboardMenuOpen(false); setMenuOpen(open => !open) }}
+        onClose={() => closeMenu(false)}
+        onDialogueOpen={() => { setComposerOpen(true); setBubbleVisible(true); closeMenu(false) }}
+        onEmotion={(name) => { showDialogueLine(emotionLine(name)); closeMenu(false) }}
+        onIdlePerformance={(performance) => { runIdlePerformance(performance, 'manual'); closeMenu(false) }}
+        onStationaryAction={(selected) => { playStationaryAction(selected); closeMenu(false) }}
+        onLlmChange={setLlm}
+        onSaveLlm={saveLlmConfig}
+        onTestLlm={() => { void testLlmConnection() }}
+        onFetchModels={() => { void loadLlmModels() }}
+        onRefreshBalance={() => officialBalance.refresh()}
+        onShowBalance={() => { showBalanceBubble(); closeMenu(false) }}
+        onOpenLedger={() => { setLedgerOpen(true); void petApi.refresh(); closeMenu(false) }}
+        onPreference={(field, value) => {
+          if (field === 'bubble') actions.setPreference('bubble.enabled', value)
+          else if (field === 'autonomy') actions.setPreference('autonomy.enabled', value)
+          else if (field === 'position') actions.setPreference('general.positionLocked', value)
+          else actions.setPreference('animation.reducedMotion', value ? 'reduce' : 'allow')
+        }}
+        onPet={() => { registerTouch(.5); closeMenu(false) }}
+        onFeed={() => { void runPersistentInteraction('feed'); closeMenu(false) }}
+        onReset={() => { resetPosition(); closeMenu(false) }}
+        onQuiet={() => { actions.setPreference('general.quietMode', true); speak('reaction.quiet'); closeMenu(false) }}
+        onHide={() => { setLedgerOpen(false); actions.setPreference('general.visible', false); closeMenu(false) }}
+      />
       {ledgerOpen ? (
         <WhaleLedger
           state={petApi.state}

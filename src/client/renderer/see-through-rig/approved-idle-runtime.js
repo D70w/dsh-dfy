@@ -160,8 +160,10 @@ const boneLabels = {
 	armRightUpper: "右上臂",
 	armRightForearm: "右前臂／肘关节",
 	handRight: "右手掌",
-	legLeft: "左腿",
-	legRight: "右腿",
+	legLeft: "左大腿／髋关节",
+	legLeftLower: "左小腿／膝关节",
+	legRight: "右大腿／髋关节",
+	legRightLower: "右小腿／膝关节",
 	hairBackRoot: "后发根部",
 	hairBackOuterLeft: "左后发外束",
 	hairBackInnerLeft: "左后发内束",
@@ -617,6 +619,14 @@ function samplePetReaction(now, startedAt, direction, reducedMotion) {
 		headRotation: 0,
 		secondaryX: 0,
 		secondaryY: 0,
+		armLeftKick: 0,
+		armRightKick: 0,
+		legLeftKick: 0,
+		legRightKick: 0,
+		hairKick: 0,
+		earKick: 0,
+		clothKick: 0,
+		tailKick: 0,
 		blinkOpenness: 1,
 		smile: 0,
 		blush: 0
@@ -628,7 +638,12 @@ function samplePetReaction(now, startedAt, direction, reducedMotion) {
 	const settle = pulse(t, .32, .5, .72);
 	const finish = pulse(t, .62, .77, .98);
 	const blushEnvelope = phase(t, .025, .13) * (1 - phase(t, .56, .94));
-	const side = Math.max(-1, Math.min(1, direction));
+	const rawSide = Math.max(-1, Math.min(1, direction));
+	// A centre click still needs a small readable direction. Alternate the
+	// fallback deterministically so repeated pats do not always lean one way.
+	const side = Math.abs(rawSide) < .16 ? (Math.sin(startedAt * .013) >= 0 ? 1 : -1) * .28 : rawSide;
+	const limbImpulse = press * .72 - rebound * 1.85 + settle * .82 - finish * .18;
+	const softImpulse = press * .5 - rebound * 1.18 + settle * .62 - finish * .16;
 	return {
 		active: true,
 		progress: t,
@@ -643,6 +658,14 @@ function samplePetReaction(now, startedAt, direction, reducedMotion) {
 		headRotation: side * (-press * 2.7 + rebound * 5.4 - settle * 2 + finish * .55) * amount,
 		secondaryX: side * (press * .34 - rebound * .62 + settle * .24) * amount,
 		secondaryY: (press * .42 - rebound * .76 + settle * .26) * amount,
+		armLeftKick: limbImpulse * (1.18 + side * .34) * amount,
+		armRightKick: -limbImpulse * (.92 - side * .22) * amount,
+		legLeftKick: -limbImpulse * (.72 + side * .16) * amount,
+		legRightKick: limbImpulse * (.56 - side * .12) * amount,
+		hairKick: side * softImpulse * 2.45 * amount,
+		earKick: softImpulse * 3.2 * amount,
+		clothKick: side * softImpulse * 2.15 * amount,
+		tailKick: -side * softImpulse * 3.1 * amount,
 		blinkOpenness: 1 - press * .24 * amount,
 		smile: (.22 * rebound + .14 * settle) * amount,
 		blush: blushEnvelope * .92 * amount
@@ -1113,6 +1136,43 @@ function drawPartRotatedAtPivot(context, part, matrix, pivotX, pivotY, rotation)
 	context.drawImage(part.image, part.x, part.y, part.width, part.height);
 	context.restore();
 }
+function sampleSkirtMeshDeformation(x, y, part, bend) {
+	const u = clamp01((x - part.x) / Math.max(1, part.width));
+	const v = clamp01((y - part.y) / Math.max(1, part.height));
+	// Keep the waistband attached to the pelvis.  The lower cloth gets a
+	// denser, panel-like response instead of one uniform horizontal shear.
+	const rootFree = smoothstep(.08, .3, v);
+	const hemFree = .72 + smoothstep(.52, 1, v) * .28;
+	const free = rootFree * hemFree;
+	const panelWave = Math.sin((u - .5) * Math.PI * 4 + bend * .035);
+	const edgeGain = .78 + Math.abs(u - .5) * .42;
+	return {
+		x: bend * free * edgeGain * (.9 + panelWave * .13),
+		y: -Math.abs(bend) * free * (.045 + Math.abs(panelWave) * .035)
+	};
+}
+function sampleLegMeshDeformation(x, y, part, bend, side) {
+	const v = clamp01((y - part.y) / Math.max(1, part.height));
+	// A soft knee band bends through the middle of the leg while the hip and
+	// ankle remain planted to their parent and shoe anchors.
+	const knee = Math.sin(clamp01((v - .1) / .8) * Math.PI);
+	const rootPin = smoothstep(.08, .25, v);
+	const anklePin = 1 - smoothstep(.76, .95, v);
+	const soft = knee * rootPin * anklePin;
+	return {
+		x: bend * side * soft * (.72 + knee * .28),
+		y: -Math.abs(bend) * soft * .055
+	};
+}
+function samplePairedEarDeformation(x, y, kick) {
+	const side = x < 640 ? -1 : 1;
+	const distance = clamp01(Math.abs(x - 640) / 210);
+	const influence = smoothstep(.16, .72, distance);
+	return {
+		x: side * Math.abs(kick) * influence * .86,
+		y: kick * influence * .42
+	};
+}
 function drawBentPart(context, part, matrix, bend, slices = 18, reverse = false) {
 	context.save();
 	applyMatrix(context, matrix);
@@ -1290,12 +1350,24 @@ const armLeftAxisX = -124 / Math.hypot(-124, 227);
 const armLeftAxisY = 227 / Math.hypot(-124, 227);
 const armLeftNormalX = -armLeftAxisY;
 const armLeftNormalY = armLeftAxisX;
+const armRightAxisX = 124 / Math.hypot(124, 227);
+const armRightAxisY = 227 / Math.hypot(124, 227);
+const armRightNormalX = -armRightAxisY;
+const armRightNormalY = armRightAxisX;
 function armLeftCoordinates(x, y) {
 	const offsetX = x - 550;
 	const offsetY = y - 548;
 	return {
 		along: offsetX * armLeftAxisX + offsetY * armLeftAxisY,
 		across: offsetX * armLeftNormalX + offsetY * armLeftNormalY
+	};
+}
+function armRightCoordinates(x, y) {
+	const offsetX = x - 706;
+	const offsetY = y - 548;
+	return {
+		along: offsetX * armRightAxisX + offsetY * armRightAxisY,
+		across: offsetX * armRightNormalX + offsetY * armRightNormalY
 	};
 }
 function createArmLeftCorrectiveDeformer(pose) {
@@ -1313,21 +1385,16 @@ function createArmLeftCorrectiveDeformer(pose) {
 }
 function createArmRightCorrectiveDeformer(pose) {
 	return (x, y) => {
-		const shoulderBand = (1 - smoothstep(533, 650, y)) * pose.shoulderShrug;
+		const { along, across } = armRightCoordinates(x, y);
+		const elbowProgress = clamp01((along - 130) / 42);
+		const elbowBand = Math.sin(elbowProgress * Math.PI) * pose.elbowMorph;
+		const elbowExpansion = Math.tanh(across / 14) * elbowBand * 7.25;
+		const shoulderBand = (1 - smoothstep(0, 105, along)) * pose.shoulderShrug;
 		return {
-			x: -shoulderBand * 3.2,
-			y: -shoulderBand * 4.8
+			x: armRightNormalX * elbowExpansion - shoulderBand * 3.2,
+			y: armRightNormalY * elbowExpansion - shoulderBand * 4.8
 		};
 	};
-}
-function armChainWeights(value, upper, forearm, hand) {
-	const upperToForearm = smoothstep(650, 682, value);
-	const forearmToHand = smoothstep(744, 806, value);
-	return [
-		[upper, 1 - upperToForearm],
-		[forearm, upperToForearm * (1 - forearmToHand)],
-		[hand, forearmToHand]
-	];
 }
 function armLeftWeights(x, y) {
 	const { along } = armLeftCoordinates(x, y);
@@ -1337,9 +1404,23 @@ function armLeftWeights(x, y) {
 	return [["chest", chestPin], ...limbWeights.map(([id, weight]) => [id, weight * (1 - chestPin)])];
 }
 function armRightWeights(x, y) {
-	const limbWeights = armChainWeights(y, "armRightUpper", "armRightForearm", "handRight");
-	const chestPin = (1 - smoothstep(550, 645, y)) * (1 - smoothstep(701, 786, x)) * .94;
+	const { along } = armRightCoordinates(x, y);
+	const upperToForearm = smoothstep(132, 152, along);
+	const limbWeights = [["armRightUpper", 1 - upperToForearm], ["armRightForearm", upperToForearm]];
+	const chestPin = (1 - smoothstep(14, 102, along)) * (1 - smoothstep(701, 786, x)) * .94;
 	return [["chest", chestPin], ...limbWeights.map(([id, weight]) => [id, weight * (1 - chestPin)])];
+}
+function legLeftWeights(x, y) {
+	const lowerWeight = smoothstep(1014, 1054, y);
+	return [["legLeft", 1 - lowerWeight], ["legLeftLower", lowerWeight]];
+}
+function legRightWeights(x, y) {
+	const lowerWeight = smoothstep(1014, 1054, y);
+	return [["legRight", 1 - lowerWeight], ["legRightLower", lowerWeight]];
+}
+function torsoGarmentWeights(x, y) {
+	const pelvisWeight = smoothstep(665, 735, y);
+	return [["chest", 1 - pelvisWeight], ["pelvis", pelvisWeight]];
 }
 function drawEye(context, white, iris, lash, matrix, centerX, centerY, openness, gazeX, gazeY) {
 	context.save();
@@ -1884,6 +1965,7 @@ async function createSeeThroughIdleRig(canvas, options) {
 	let externalMotionY = 0;
 	let grabPointX = .5;
 	let grabPointY = .18;
+	let grabbed = false;
 	let expression = "neutral";
 	let expressionFrom = expressionStyles.neutral;
 	let expressionTo = expressionStyles.neutral;
@@ -2010,25 +2092,65 @@ async function createSeeThroughIdleRig(canvas, options) {
 		damping: 10.2,
 		maxOffset: 9
 	});
+	const armLeftUpperFollowSpring = new SpringValue({
+		stiffness: 52,
+		damping: 10.4,
+		maxOffset: 6
+	});
+	const armLeftForearmFollowSpring = new SpringValue({
+		stiffness: 16,
+		damping: 5.6,
+		maxOffset: 13
+	});
+	const armRightUpperFollowSpring = new SpringValue({
+		stiffness: 55,
+		damping: 10.8,
+		maxOffset: 6
+	});
+	const armRightForearmFollowSpring = new SpringValue({
+		stiffness: 17,
+		damping: 5.8,
+		maxOffset: 13
+	});
+	const legLeftUpperFollowSpring = new SpringValue({
+		stiffness: 44,
+		damping: 9.4,
+		maxOffset: 5.5
+	});
+	const legLeftLowerFollowSpring = new SpringValue({
+		stiffness: 15,
+		damping: 5.4,
+		maxOffset: 10
+	});
+	const legRightUpperFollowSpring = new SpringValue({
+		stiffness: 36,
+		damping: 8.2,
+		maxOffset: 5
+	});
+	const legRightLowerFollowSpring = new SpringValue({
+		stiffness: 21,
+		damping: 6.5,
+		maxOffset: 9
+	});
 	const externalMotionXSpring = new SpringValue({
-		stiffness: 72,
-		damping: 16,
+		stiffness: 112,
+		damping: 18,
 		maxOffset: 1
 	});
 	const externalMotionYSpring = new SpringValue({
-		stiffness: 72,
-		damping: 16,
+		stiffness: 112,
+		damping: 18,
 		maxOffset: 1
 	});
 	const grabBodySwaySpring = new SpringValue({
-		stiffness: 34,
+		stiffness: 52,
 		damping: 8.2,
-		maxOffset: 5.5
+		maxOffset: 12
 	});
 	const grabBodyLiftSpring = new SpringValue({
-		stiffness: 30,
+		stiffness: 46,
 		damping: 8.5,
-		maxOffset: 2.6
+		maxOffset: 5
 	});
 	const manual = (id) => manualRotations.get(id) ?? 0;
 	const scheduleBlink = (now) => {
@@ -2071,8 +2193,15 @@ async function createSeeThroughIdleRig(canvas, options) {
 		const emotionPose = sampleTransientEmotion(now, transientEmotion, emotionElapsed, emotionDuration);
 		const grabInputX = externalMotionXSpring.step(secondaryMotion && !reducedMotion ? externalMotionX + petReaction.secondaryX : petReaction.secondaryX, delta);
 		const grabInputY = externalMotionYSpring.step(secondaryMotion && !reducedMotion ? externalMotionY + petReaction.secondaryY : petReaction.secondaryY, delta);
-		const grabBodySway = grabBodySwaySpring.step(-grabInputX * 5.2, delta);
-		const grabBodyLift = grabBodyLiftSpring.step(-grabInputY * 2.1, delta);
+		const heldGrabSway = grabbed ? (grabPointX - .5) * 2.8 : 0;
+		const heldGrabLift = grabbed ? (grabPointY - .5) * .8 : 0;
+		// Deliberately visible but bounded secondary motion: the pointer velocity
+		// drives the body first, then the springs distribute it to the limbs,
+		// hair, skirt and tail. The maxOffset caps keep a fast shake controlled.
+		const directGrabX = secondaryMotion && !reducedMotion ? externalMotionX : 0;
+		const directGrabY = secondaryMotion && !reducedMotion ? externalMotionY : 0;
+		const grabBodySway = grabBodySwaySpring.step(-grabInputX * 15 + directGrabX * 7 + heldGrabSway, delta);
+		const grabBodyLift = grabBodyLiftSpring.step(-grabInputY * 6 + directGrabY * 3 + heldGrabLift, delta);
 		const rootLever = grabLeverWeight(.5, .63, grabPointX, grabPointY, .58, .1, .76);
 		const pelvisLever = grabLeverWeight(.5, .7, grabPointX, grabPointY, .82, .14, 1.1);
 		const waistLever = grabLeverWeight(.5, .59, grabPointX, grabPointY, .78, .14, 1.05);
@@ -2086,6 +2215,23 @@ async function createSeeThroughIdleRig(canvas, options) {
 		const armRightLever = grabLeverWeight(.69, .57, grabPointX, grabPointY, .92, .16, 1.3);
 		const legLeftLever = grabLeverWeight(.45, .87, grabPointX, grabPointY, 1.02, .2, 1.45);
 		const legRightLever = grabLeverWeight(.55, .87, grabPointX, grabPointY, 1.02, .2, 1.45);
+		const armMotionScale = secondaryMotion && !reducedMotion ? 1 : 0;
+		const armLeftInput = ((-grabBodySway * .48 - directGrabX * 3.1 + directGrabY * .34) * armLeftLever + petReaction.armLeftKick * 3.8) * armMotionScale;
+		const armRightInput = ((-grabBodySway * .39 - directGrabX * 2.35 - directGrabY * .22) * armRightLever + petReaction.armRightKick * 3.2) * armMotionScale;
+		const armLeftUpperFollow = armLeftUpperFollowSpring.step(armLeftInput * .92, delta);
+		const armRightUpperFollow = armRightUpperFollowSpring.step(armRightInput * .72, delta);
+		// The elbow is a real second stage, not a second multiplier of the same
+		// value. A softer spring follows the acceleration input and the already
+		// moving upper arm, creating visible delay and a local elbow angle.
+		const armLeftForearmFollow = armLeftForearmFollowSpring.step(armLeftInput * 3.05 - armLeftUpperFollow * .15, delta);
+		const armRightForearmFollow = armRightForearmFollowSpring.step(armRightInput * 2.45 - armRightUpperFollow * .22, delta);
+		const legMotionScale = secondaryMotion && !reducedMotion ? 1 : 0;
+		const legLeftInput = ((-grabBodySway * .3 - directGrabX * 1.55 + directGrabY * .28) * legLeftLever + petReaction.legLeftKick * 3.45) * legMotionScale;
+		const legRightInput = ((-grabBodySway * .23 - directGrabX * 1.12 - directGrabY * .18) * legRightLever + petReaction.legRightKick * 2.85) * legMotionScale;
+		const legLeftUpperFollow = legLeftUpperFollowSpring.step(legLeftInput * .68, delta);
+		const legRightUpperFollow = legRightUpperFollowSpring.step(legRightInput * .54, delta);
+		const legLeftLowerFollow = legLeftLowerFollowSpring.step(legLeftInput * 2.15 - legLeftUpperFollow * .18, delta);
+		const legRightLowerFollow = legRightLowerFollowSpring.step(legRightInput * 1.72 - legRightUpperFollow * .25, delta);
 		const gazeX = gazeSpringX.step(reducedMotion ? 0 : pointerX, delta);
 		const gazeY = gazeSpringY.step(reducedMotion ? 0 : pointerY, delta);
 		const idleMotionEnabled = secondaryMotion && !reducedMotion;
@@ -2124,24 +2270,25 @@ async function createSeeThroughIdleRig(canvas, options) {
 		const totalHeadRotation = idle.headRotationDeg + gesturePose.headRotation + petReaction.headRotation + emotionPose.headRotation + idleBodyFollow * 1.45;
 		const secondaryScale = secondaryMotion && !reducedMotion ? 1 : 0;
 		const nodInertia = Math.max(0, gesturePose.headY);
-		const backHairLeft = backHairLeftSpring.step((-totalHeadRotation * 1.15 - nodInertia * .11 + (grabBodySway * .78 + grabInputX * -1.4) * hairLeftLever + windWave * .82 + windFlutter * .28) * secondaryScale, delta);
-		const backHairRight = backHairRightSpring.step((-totalHeadRotation * 1.05 + nodInertia * .11 + (grabBodySway * .82 + grabInputX * -1.2) * hairRightLever + windWave * .74 - windFlutter * .24) * secondaryScale, delta);
+		const backHairLeft = backHairLeftSpring.step((-totalHeadRotation * 1.15 - nodInertia * .11 + (grabBodySway * .78 + grabInputX * -1.4) * hairLeftLever + windWave * .82 + windFlutter * .28 + petReaction.hairKick * 1.4) * secondaryScale, delta);
+		const backHairRight = backHairRightSpring.step((-totalHeadRotation * 1.05 + nodInertia * .11 + (grabBodySway * .82 + grabInputX * -1.2) * hairRightLever + windWave * .74 - windFlutter * .24 + petReaction.hairKick * 1.08) * secondaryScale, delta);
 		const backHairCenter = backHairCenterSpring.step(((backHairLeft + backHairRight) * .16 + grabBodySway * .1) * secondaryScale, delta);
 		const backHairInnerLeft = backHairLeft * .72;
 		const backHairInnerRight = backHairRight * .72;
 		const backHairOuterLeft = backHairOuterLeftSpring.step((backHairLeft * 1.16 - grabInputX * .34) * secondaryScale, delta);
 		const backHairOuterRight = backHairOuterRightSpring.step((backHairRight * 1.14 - grabInputX * .3) * secondaryScale, delta);
-		const torsoBow = torsoBowSpring.step(((grabBodySway * .24 - grabInputX * .42) * chestLever - gesturePose.chestRotation * .12 + idleBodyFollow * .7) * secondaryScale, delta);
-		const frontHairLeft = frontHairLeftSpring.step((-totalHeadRotation * .42 - nodInertia * .045 + grabBodySway * .48 + grabInputX * -.75 + windWave * .32 + windFlutter * .2) * secondaryScale, delta);
-		const frontHairRight = frontHairRightSpring.step((-totalHeadRotation * .38 + nodInertia * .045 + grabBodySway * .5 + grabInputX * -.68 + windWave * .28 - windFlutter * .18) * secondaryScale, delta);
+		const torsoBow = torsoBowSpring.step(((grabBodySway * .24 - grabInputX * .42) * chestLever - gesturePose.chestRotation * .12 + idleBodyFollow * .7 + petReaction.clothKick * .72) * secondaryScale, delta);
+		const frontHairLeft = frontHairLeftSpring.step((-totalHeadRotation * .42 - nodInertia * .045 + grabBodySway * .48 + grabInputX * -.75 + windWave * .32 + windFlutter * .2 + petReaction.hairKick * .74) * secondaryScale, delta);
+		const frontHairRight = frontHairRightSpring.step((-totalHeadRotation * .38 + nodInertia * .045 + grabBodySway * .5 + grabInputX * -.68 + windWave * .28 - windFlutter * .18 + petReaction.hairKick * .58) * secondaryScale, delta);
 		const ahogeRoot = ahogeRootSpring.step((-backHairLeft * .74 + grabBodySway * .34 + nodInertia * .12 + windWave * .72 + windFlutter * .52) * secondaryScale, delta);
 		const ahogeTip = ahogeTipSpring.step((-ahogeRoot * .72 + windWave * .88 + windFlutter * .72) * secondaryScale, delta);
-		const tailRoot = tailRootSpring.step((Math.sin(now / 980) * 2.3 + (grabBodySway * .48 - grabInputX * 1.4) * tailLever - gesturePose.chestRotation * .35) * secondaryScale, delta);
+		const tailRoot = tailRootSpring.step((Math.sin(now / 980) * 2.3 + (grabBodySway * .48 - grabInputX * 1.4) * tailLever - gesturePose.chestRotation * .35 + petReaction.tailKick * 1.1) * secondaryScale, delta);
 		const tail1 = tail1Spring.step((Math.sin(now / 980 - .32) * 2.7 - tailRoot * .28) * secondaryScale, delta);
 		const tail2 = tail2Spring.step((Math.sin(now / 980 - .68) * 3.1 - tail1 * .22) * secondaryScale, delta);
 		const tailTip = tailTipSpring.step((Math.sin(now / 980 - 1.02) * 3.5 - tail2 * .18) * secondaryScale, delta);
-		const skirtSway = skirtSwaySpring.step((gesturePose.skirtSway * .82 - gesturePose.pelvisRotation * 1.6 - gesturePose.chestRotation * .34 + (grabBodySway * 1.08 - grabInputX * 1.8) * skirtLever + idleClothWave * 2.6) * secondaryScale, delta);
-		const stance = idleMotionEnabled ? Math.sin(now / 1520 + .9) * .95 : 0;
+		const skirtSway = skirtSwaySpring.step((gesturePose.skirtSway * .82 - gesturePose.pelvisRotation * 1.6 - gesturePose.chestRotation * .34 + (grabBodySway * 1.08 - grabInputX * 1.8) * skirtLever + idleClothWave * 2.6 + petReaction.clothKick * 1.9) * secondaryScale, delta);
+		const stanceLeft = idleMotionEnabled ? Math.sin(now / 1520 + .9) * .95 : 0;
+		const stanceRight = idleMotionEnabled ? Math.sin(now / 1710 + 2.05) * .72 : 0;
 		const breathScale = breathing && !reducedMotion ? 1 + idle.breath * .018 : 1;
 		const correctedPoses = [
 			{
@@ -2211,14 +2358,14 @@ async function createSeeThroughIdleRig(canvas, options) {
 				pivotY: 548,
 				x: gesturePose.shoulderLeftX + emotionPose.shoulderLeftX,
 				y: gesturePose.shoulderLeftY + emotionPose.shoulderLeftY,
-				rotation: -idle.breath * .65 - idleBodyFollow * .72 + gesturePose.armLeftUpper + grabBodySway * .22 * armLeftLever + manual("armLeftUpper")
+				rotation: -idle.breath * .65 - idleBodyFollow * .72 + gesturePose.armLeftUpper + armLeftUpperFollow * 1.15 + manual("armLeftUpper")
 			},
 			{
 				id: "armLeftForearm",
 				parent: "armLeftUpper",
 				pivotX: committedArmPivots.leftForearm.x,
 				pivotY: committedArmPivots.leftForearm.y,
-				rotation: gesturePose.armLeftForearm + manual("armLeftForearm")
+				rotation: gesturePose.armLeftForearm + armLeftForearmFollow * 1.65 + manual("armLeftForearm")
 			},
 			{
 				id: "handLeft",
@@ -2234,14 +2381,14 @@ async function createSeeThroughIdleRig(canvas, options) {
 				pivotY: 548,
 				x: gesturePose.shoulderRightX + emotionPose.shoulderRightX,
 				y: gesturePose.shoulderRightY + emotionPose.shoulderRightY,
-				rotation: idle.breath * .65 + idleBodyFollow * .72 + gesturePose.armRightUpper + grabBodySway * .22 * armRightLever + manual("armRightUpper")
+				rotation: idle.breath * .65 + idleBodyFollow * .72 + gesturePose.armRightUpper + armRightUpperFollow * 1.08 + manual("armRightUpper")
 			},
 			{
 				id: "armRightForearm",
 				parent: "armRightUpper",
 				pivotX: committedArmPivots.rightForearm.x,
 				pivotY: committedArmPivots.rightForearm.y,
-				rotation: gesturePose.armRightForearm + manual("armRightForearm")
+				rotation: gesturePose.armRightForearm + armRightForearmFollow * 1.48 + manual("armRightForearm")
 			},
 			{
 				id: "handRight",
@@ -2255,14 +2402,28 @@ async function createSeeThroughIdleRig(canvas, options) {
 				parent: "pelvis",
 				pivotX: 575,
 				pivotY: 900,
-				rotation: gesturePose.legLeftUpper + stance + grabBodySway * .18 * legLeftLever + manual("legLeft")
+				rotation: gesturePose.legLeftUpper + stanceLeft + legLeftUpperFollow + manual("legLeft")
+			},
+			{
+				id: "legLeftLower",
+				parent: "legLeft",
+				pivotX: 570,
+				pivotY: 1038,
+				rotation: legLeftLowerFollow - stanceLeft * .18 + manual("legLeftLower")
 			},
 			{
 				id: "legRight",
 				parent: "pelvis",
 				pivotX: 705,
 				pivotY: 900,
-				rotation: gesturePose.legRightUpper - stance + grabBodySway * .18 * legRightLever + manual("legRight")
+				rotation: gesturePose.legRightUpper + stanceRight + legRightUpperFollow + manual("legRight")
+			},
+			{
+				id: "legRightLower",
+				parent: "legRight",
+				pivotX: 704,
+				pivotY: 1038,
+				rotation: legRightLowerFollow - stanceRight * .14 + manual("legRightLower")
 			},
 			{
 				id: "hairBackRoot",
@@ -2373,8 +2534,15 @@ async function createSeeThroughIdleRig(canvas, options) {
 		});
 		const bones = solveBones(correctedPoses);
 		const bone = (id) => bones.get(id) ?? new DOMMatrix();
-		const armLeftDeformer = createArmLeftCorrectiveDeformer(gesturePose);
-		const armRightDeformer = createArmRightCorrectiveDeformer(gesturePose);
+		const armLeftDeformer = createArmLeftCorrectiveDeformer({
+			...gesturePose,
+			elbowMorph: Math.max(gesturePose.elbowMorph, clamp01(Math.abs(armLeftForearmFollow) / 3.5))
+		});
+		const armRightDeformer = createArmRightCorrectiveDeformer({
+			...gesturePose,
+			elbowMorph: Math.max(gesturePose.elbowMorph, clamp01(Math.abs(armRightForearmFollow) / 3.5))
+		});
+		const apronDeformer = (x, y) => sampleSkirtMeshDeformation(x, y, parts.skirt, skirtSway * .82);
 		const headMatrix = bone("head");
 		const combinedHeadPitch = gesturePose.headPitch + emotionPose.headPitch;
 		const headPitchAt = (x, y) => sampleHeadPitchDeformation(x, y, combinedHeadPitch);
@@ -2408,28 +2576,28 @@ async function createSeeThroughIdleRig(canvas, options) {
 					backHairOuterRight + manual("hairBackOuterRight") + rootRotation
 				]);
 			},
-			"whale-fins": () => drawPart(context, parts["whale-fins"], headMatrix),
-			ears: () => drawPart(context, parts["human-ears"], headMatrix),
+			"whale-fins": () => drawDeformedPart(context, parts["whale-fins"], headMatrix, (x, y) => samplePairedEarDeformation(x, y, petReaction.earKick * 1.18), 10, 4),
+			ears: () => drawDeformedPart(context, parts["human-ears"], headMatrix, (x, y) => samplePairedEarDeformation(x, y, petReaction.earKick), 8, 4),
 			"lower-body": () => {
-				drawPart(context, parts["leg-left"], bone("legLeft"));
-				drawPart(context, parts["leg-right"], bone("legRight"));
-				drawBentPart(context, parts.skirt, bone("pelvis"), skirtSway * .72, 14);
+				drawSkinnedPart(context, parts["leg-left"], bones, legLeftWeights, 7, 18, 0, 18, (x, y) => sampleLegMeshDeformation(x, y, parts["leg-left"], legLeftLowerFollow * .72, -1));
+				drawSkinnedPart(context, parts["leg-right"], bones, legRightWeights, 7, 18, 0, 18, (x, y) => sampleLegMeshDeformation(x, y, parts["leg-right"], legRightLowerFollow * .68, 1));
+				drawDeformedPart(context, parts.skirt, bone("pelvis"), (x, y) => sampleSkirtMeshDeformation(x, y, parts.skirt, skirtSway), 8, 12);
 			},
 			torso: () => {
 				drawPartClippedToDesignRect(context, parts.neck, bone("neck"), 586, 430, 84, 103);
-				drawPart(context, parts.torso, bone("chest"));
-				drawPart(context, parts["collar-front"], bone("chest"));
+				drawSkinnedPart(context, parts.torso, bones, torsoGarmentWeights, 8, 18, 0, 18, apronDeformer);
+				drawSkinnedPart(context, parts["collar-front"], bones, torsoGarmentWeights, 8, 18, 0, 18, apronDeformer);
 				drawNeckVisiblePatch(context, parts.neck, bone("neck"));
 				drawPartClippedToDesignRect(context, parts["collar-front"], bone("chest"), 506, 528, 242, 95);
 				drawPart(context, parts["torso-bow"], bone("torsoBow"));
 			},
 			"arms-back": () => {
-				drawSkinnedPart(context, parts["arm-left-sleeve"], bones, armLeftWeights, 12, 32, 0, 32, armLeftDeformer);
-				drawSkinnedPart(context, parts["arm-right"], bones, armRightWeights, 5, 14, 0, 6, armRightDeformer, true);
+				drawSkinnedPart(context, parts["arm-left-sleeve"], bones, armLeftWeights, 12, 32, 0, 22, armLeftDeformer);
+				drawSkinnedPart(context, parts["arm-right"], bones, armRightWeights, 10, 28, 0, 12, armRightDeformer);
 			},
 			shoes: () => {
-				drawPart(context, parts["shoe-left"], bone("legLeft"));
-				drawPart(context, parts["shoe-right"], bone("legRight"));
+				drawPart(context, parts["shoe-left"], bone("legLeftLower"));
+				drawPart(context, parts["shoe-right"], bone("legRightLower"));
 			},
 			head: () => {
 				drawDeformedPart(context, parts.face, headMatrix, headPitchAt, 6, 8);
@@ -2491,12 +2659,17 @@ async function createSeeThroughIdleRig(canvas, options) {
 				const palmFlip = Math.cos(gesturePose.wavePalm * Math.PI);
 				const clockwiseTurn = 90 * gesturePose.wavePalm;
 				const edgeOnScale = .075;
-				if (gesturePose.wavePalm <= .5) drawPartScaledAtPivot(context, parts["hand-left-rest-side"], bone("handLeft"), 426, 775, Math.max(edgeOnScale, palmFlip), clockwiseTurn);
-				if (gesturePose.wavePalm > .5) drawPartScaledAtPivot(context, parts["hand-left-wave-front"], bone("handLeft"), waveFrontPalmPlacement.targetX, waveFrontPalmPlacement.targetY, Math.max(edgeOnScale, -palmFlip), clockwiseTurn + waveFrontPalmPlacement.rotationOffset, waveFrontPalmPlacement.mirrorAxis, waveFrontPalmPlacement.sourceWristX, waveFrontPalmPlacement.sourceWristY);
+				// Both PNGs share the full arm canvas, but their alpha channels are
+				// complementary: the sleeve file stops at the cuff and this file only
+				// contains the hand. Keep that hand rigidly on the forearm so the arm
+				// remains a two-link upper-arm/forearm chain while reconstructing the
+				// complete approved silhouette.
+				if (gesturePose.wavePalm <= .5) drawPart(context, parts["hand-left-rest-side"], bone("armLeftForearm"));
+				else drawPartScaledAtPivot(context, parts["hand-left-wave-front"], bone("armLeftForearm"), waveFrontPalmPlacement.targetX, waveFrontPalmPlacement.targetY, Math.max(edgeOnScale, -palmFlip), clockwiseTurn + gesturePose.handLeft + waveFrontPalmPlacement.rotationOffset, waveFrontPalmPlacement.mirrorAxis, waveFrontPalmPlacement.sourceWristX, waveFrontPalmPlacement.sourceWristY);
 			},
 			"arms-front": () => {
-				drawSkinnedPart(context, parts["arm-left-sleeve"], bones, armLeftWeights, 12, 32, 22, 31, armLeftDeformer);
-				drawSkinnedPart(context, parts["arm-right"], bones, armRightWeights, 5, 14, 6, 14, armRightDeformer, true);
+				drawSkinnedPart(context, parts["arm-left-sleeve"], bones, armLeftWeights, 12, 32, 22, 32, armLeftDeformer);
+				drawSkinnedPart(context, parts["arm-right"], bones, armRightWeights, 10, 28, 12, 28, armRightDeformer);
 			}
 		};
 		for (const id of layerOrder) if (layerVisibility.get(id) !== false) drawLayers[id]();
@@ -2538,6 +2711,11 @@ async function createSeeThroughIdleRig(canvas, options) {
 		canvas.dataset.frontHairCommon = ((frontHairLeft + frontHairRight) * .5).toFixed(3);
 		canvas.dataset.frontHairSplit = ((frontHairLeft - frontHairRight) * .5).toFixed(3);
 		canvas.dataset.petReaction = petReaction.active ? petReaction.progress.toFixed(3) : "idle";
+		canvas.dataset.petReactionMode = "full-body-secondary-impulse";
+		canvas.dataset.petHairKick = petReaction.hairKick.toFixed(3);
+		canvas.dataset.petClothKick = petReaction.clothKick.toFixed(3);
+		canvas.dataset.petTailKick = petReaction.tailKick.toFixed(3);
+		canvas.dataset.petEarKick = petReaction.earKick.toFixed(3);
 		canvas.dataset.petBlush = petReaction.blush.toFixed(3);
 		canvas.dataset.affectionBlush = heldBlush.toFixed(3);
 		canvas.dataset.emotion = emotionPose.active ? transientEmotion : "neutral";
@@ -2548,6 +2726,22 @@ async function createSeeThroughIdleRig(canvas, options) {
 		canvas.dataset.grabWaistWeight = waistLever.toFixed(3);
 		canvas.dataset.grabSkirtWeight = skirtLever.toFixed(3);
 		canvas.dataset.grabTailWeight = tailLever.toFixed(3);
+		canvas.dataset.grabbed = String(grabbed);
+		canvas.dataset.grabSway = grabBodySway.toFixed(3);
+		canvas.dataset.grabLift = grabBodyLift.toFixed(3);
+		canvas.dataset.skirtMesh = "8x12-lattice";
+		canvas.dataset.legMesh = "7x18-two-link-knee";
+		canvas.dataset.apronBinding = "chest-to-pelvis-skirt-field";
+		canvas.dataset.armPhysics = "upper-forearm-cascade";
+		canvas.dataset.armLeftUpperFollow = armLeftUpperFollow.toFixed(3);
+		canvas.dataset.armLeftForearmFollow = armLeftForearmFollow.toFixed(3);
+		canvas.dataset.armRightUpperFollow = armRightUpperFollow.toFixed(3);
+		canvas.dataset.armRightForearmFollow = armRightForearmFollow.toFixed(3);
+		canvas.dataset.legPhysics = "independent-upper-lower-cascade";
+		canvas.dataset.legLeftUpperFollow = legLeftUpperFollow.toFixed(3);
+		canvas.dataset.legLeftLowerFollow = legLeftLowerFollow.toFixed(3);
+		canvas.dataset.legRightUpperFollow = legRightUpperFollow.toFixed(3);
+		canvas.dataset.legRightLowerFollow = legRightLowerFollow.toFixed(3);
 	};
 	const animate = (now) => {
 		if (disposed) return;
@@ -2584,6 +2778,9 @@ async function createSeeThroughIdleRig(canvas, options) {
 			const nextY = Number(y);
 			grabPointX = clamp01(Number.isFinite(nextX) ? nextX : .5);
 			grabPointY = clamp01(Number.isFinite(nextY) ? nextY : .18);
+		},
+		setGrabbed(value) {
+			grabbed = value === true;
 		},
 		setExpression(value) {
 			if (value === expression) return;

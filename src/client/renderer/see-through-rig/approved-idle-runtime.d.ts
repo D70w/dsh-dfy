@@ -16,6 +16,7 @@ export interface ApprovedIdleRigController {
   setPointer(x: number, y: number): void
   setExternalMotion(x: number, y: number): void
   setGrabPoint(x: number, y: number): void
+  setGrabbed(value: boolean): void
   setExpression(value: ApprovedExpression): void
   playGesture(value: Exclude<ApprovedGesture, 'none'>): void
   stopGesture(): void

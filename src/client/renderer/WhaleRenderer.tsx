@@ -9,6 +9,7 @@ import { phaseDuration } from '../../autonomy.ts'
 import { fallbackStateFor, type WhaleAction } from '../../behavior.ts'
 import type { WhaleAnimationQuality } from '../../preferences.ts'
 import { WhaleAvatar } from '../WhaleAvatar.tsx'
+import type { StationaryActionCommand } from '../stationary-actions.ts'
 import {
   createSeeThroughIdleRig,
   type ApprovedEmotion,
@@ -46,6 +47,39 @@ export interface WhaleAnimationProfile {
   outputSize: 640 | 480
   activeFps: 60 | 30
   idleFps: 30 | 20
+}
+
+export interface GrabMotionInput {
+  x: number
+  y: number
+  velocityX: number
+  velocityY: number
+  accelerationX: number
+  accelerationY: number
+}
+
+export function resolveGrabMotionInput(
+  deltaX: number,
+  deltaY: number,
+  elapsedMs: number,
+  previousVelocityX: number,
+  previousVelocityY: number,
+  offsetX: number,
+  offsetY: number,
+): GrabMotionInput {
+  const elapsed = Math.max(8, elapsedMs)
+  const velocityX = deltaX / elapsed
+  const velocityY = deltaY / elapsed
+  const accelerationX = (velocityX - previousVelocityX) * 0.72
+  const accelerationY = (velocityY - previousVelocityY) * 0.58
+  return {
+    x: Math.max(-1, Math.min(1, velocityX * 0.5 + accelerationX + offsetX)),
+    y: Math.max(-1, Math.min(1, velocityY * 0.5 + accelerationY + offsetY)),
+    velocityX,
+    velocityY,
+    accelerationX,
+    accelerationY,
+  }
 }
 
 export function resolveAnimationProfile(
@@ -135,6 +169,8 @@ export interface WhaleRendererProps {
     blushLevel: number
     blushHoldMs: number
   }>
+  stationaryAction?: StationaryActionCommand
+  onStationaryActionEnd?(): void
 }
 
 /**
@@ -143,21 +179,30 @@ export interface WhaleRendererProps {
  */
 export function WhaleRenderer({
   action, autonomy, reducedMotion, quality, secondaryMotion,
-  motionIntensity = 2, emotion, petReaction,
+  motionIntensity = 2, emotion, petReaction, stationaryAction, onStationaryActionEnd,
 }: WhaleRendererProps): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const controllerRef = useRef<ApprovedIdleRigController>()
-  const previousPointer = useRef<{ x: number; y: number; at: number }>()
+  const previousPointer = useRef<{ x: number; y: number; at: number; velocityX: number; velocityY: number }>()
+  const grabActive = useRef(false)
+  const grabOrigin = useRef<{ x: number; y: number; width: number; height: number }>()
   const [status, setStatus] = useState<RendererStatus>('loading')
   const [failure, setFailure] = useState<FailureCode>('none')
   const [videoFailed, setVideoFailed] = useState(false)
+  const [videoReady, setVideoReady] = useState(false)
+  const [videoEnding, setVideoEnding] = useState(false)
   const profile = resolveAnimationProfile(quality, browserAnimationEnvironment())
   const movement = useMemo(() => reducedMotion ? undefined : movementVisualFor(autonomy), [autonomy, reducedMotion])
-  const actionVideo = reducedMotion ? undefined : stationaryVideo(action)
+  const actionVideo = reducedMotion
+    ? undefined
+    : stationaryAction === undefined
+      ? stationaryVideo(action)
+      : whaleActionUrl(stationaryAction.file)
   const videoSource = movement === undefined ? actionVideo : movementSource(movement)
   const performanceName = movement === undefined
-    ? actionVideo === undefined ? 'idle-puppet' : `action-${action}`
+    ? actionVideo === undefined ? 'idle-puppet' : `action-${stationaryAction?.action ?? action}`
     : `${movement.route}-${movement.phase}`
+  const videoKey = stationaryAction === undefined ? videoSource : `${stationaryAction.id}:${videoSource}`
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -172,6 +217,7 @@ export function WhaleRenderer({
     }).then(controller => {
       if (!mounted) { controller.dispose(); return }
       controllerRef.current = controller
+      controller.setGrabbed(grabActive.current)
       controller.setExpression(actionExpression(action))
       controller.setSecondaryMotion(secondaryMotion && !reducedMotion)
       controller.setMotionIntensity(motionIntensity)
@@ -228,46 +274,103 @@ export function WhaleRenderer({
       controller.setPointer(x, y)
       const now = performance.now()
       const previous = previousPointer.current
-      if (action === 'dragging' && previous !== undefined) {
+      // Use an imperative ref instead of the rendered action. React state can
+      // lag behind the first pointermove, which otherwise drops the velocity
+      // impulse and makes a grab feel like plain window dragging.
+      if (grabActive.current && previous !== undefined) {
         const elapsed = Math.max(8, now - previous.at)
-        controller.setExternalMotion(
-          Math.max(-1, Math.min(1, (event.clientX - previous.x) / elapsed * 0.22)),
-          Math.max(-1, Math.min(1, (event.clientY - previous.y) / elapsed * 0.22)),
+        const origin = grabOrigin.current
+        const offsetX = origin === undefined ? 0 : (event.clientX - origin.x) / Math.max(1, origin.width) * 1.15
+        const offsetY = origin === undefined ? 0 : (event.clientY - origin.y) / Math.max(1, origin.height) * 0.9
+        // A rapid direction reversal is felt as acceleration, not merely as
+        // high speed. This impulse survives dense pointer events and gives a
+        // sharp but capped kick to the secondary springs.
+        const motion = resolveGrabMotionInput(
+          event.clientX - previous.x,
+          event.clientY - previous.y,
+          elapsed,
+          previous.velocityX,
+          previous.velocityY,
+          offsetX,
+          offsetY,
         )
+        controller.setExternalMotion(motion.x, motion.y)
+        canvas.dataset.grabVelocityX = motion.velocityX.toFixed(3)
+        canvas.dataset.grabAccelerationX = motion.accelerationX.toFixed(3)
+        previousPointer.current = {
+          x: event.clientX,
+          y: event.clientY,
+          at: now,
+          velocityX: motion.velocityX,
+          velocityY: motion.velocityY,
+        }
       } else {
         controller.setExternalMotion(0, 0)
+        previousPointer.current = {
+          x: event.clientX,
+          y: event.clientY,
+          at: now,
+          velocityX: 0,
+          velocityY: 0,
+        }
       }
-      previousPointer.current = { x: event.clientX, y: event.clientY, at: now }
     }
     const onPointerDown = (event: PointerEvent): void => {
       const canvas = canvasRef.current
       if (canvas === null || !(event.target instanceof Element)
-        || event.target.closest('[data-whale-pet-hotspot]') === null) return
+        || event.target.closest('[data-whale-pet-hotspot]') === null
+        || event.target.closest('[data-whale-position-locked=true]') !== null) return
+      if (grabActive.current) return
+      grabActive.current = true
+      previousPointer.current = {
+        x: event.clientX,
+        y: event.clientY,
+        at: performance.now(),
+        velocityX: 0,
+        velocityY: 0,
+      }
       const bounds = canvas.getBoundingClientRect()
+      grabOrigin.current = { x: event.clientX, y: event.clientY, width: bounds.width, height: bounds.height }
       controllerRef.current?.setGrabPoint(
         Math.max(0, Math.min(1, (event.clientX - bounds.left) / Math.max(1, bounds.width))),
         Math.max(0, Math.min(1, (event.clientY - bounds.top) / Math.max(1, bounds.height))),
       )
+      controllerRef.current?.setGrabbed(true)
     }
     const onPointerUp = (): void => {
+      grabActive.current = false
+      grabOrigin.current = undefined
+      previousPointer.current = undefined
       controllerRef.current?.setExternalMotion(0, 0)
       controllerRef.current?.setGrabPoint(.5, .18)
+      controllerRef.current?.setGrabbed(false)
     }
     window.addEventListener('pointerdown', onPointerDown, { passive: true })
+    // Listen on the canvas itself as well as the window. The button owns the
+    // pointer capture during a drag, and the canvas listener guarantees that
+    // the initial grab is recognized even when the event target is a child
+    // layer inside the renderer.
+    const canvas = canvasRef.current
+    canvas?.addEventListener('pointerdown', onPointerDown, { passive: true })
     window.addEventListener('pointermove', onPointerMove, { passive: true })
     window.addEventListener('pointerup', onPointerUp, { passive: true })
     window.addEventListener('pointercancel', onPointerUp, { passive: true })
     return () => {
       window.removeEventListener('pointerdown', onPointerDown)
+      canvas?.removeEventListener('pointerdown', onPointerDown)
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerup', onPointerUp)
       window.removeEventListener('pointercancel', onPointerUp)
     }
   }, [action])
 
-  useEffect(() => { setVideoFailed(false) }, [videoSource])
+  useEffect(() => {
+    setVideoFailed(false)
+    setVideoReady(false)
+    setVideoEnding(false)
+  }, [videoKey])
 
-  const videoVisible = status === 'ready' && videoSource !== undefined && !videoFailed
+  const videoVisible = status === 'ready' && videoSource !== undefined && videoReady && !videoEnding && !videoFailed
   return (
     <span
       data-whale-renderer={status}
@@ -290,7 +393,7 @@ export function WhaleRenderer({
         />
         {videoSource === undefined ? null : (
           <video
-            key={videoSource}
+            key={videoKey}
             data-whale-action-video
             data-whale-video-performance={performanceName}
             src={videoSource}
@@ -301,12 +404,24 @@ export function WhaleRenderer({
             preload="auto"
             aria-hidden="true"
             style={{ opacity: videoVisible ? 1 : 0 }}
+            onCanPlay={(event) => {
+              setVideoReady(true)
+              void event.currentTarget.play().catch(() => undefined)
+            }}
             onLoadedMetadata={(event) => {
               if (movement === undefined || movement.phase === 'cycle') return
               const targetSeconds = Math.max(0.2, movement.durationMs / 1000)
               event.currentTarget.playbackRate = Math.max(0.5, Math.min(4, event.currentTarget.duration / targetSeconds))
             }}
-            onError={() => setVideoFailed(true)}
+            onEnded={() => {
+              if (stationaryAction === undefined) return
+              setVideoEnding(true)
+              window.setTimeout(() => onStationaryActionEnd?.(), 140)
+            }}
+            onError={() => {
+              setVideoFailed(true)
+              if (stationaryAction !== undefined) onStationaryActionEnd?.()
+            }}
           />
         )}
         <WhaleAvatar state={fallbackStateFor(action)} />

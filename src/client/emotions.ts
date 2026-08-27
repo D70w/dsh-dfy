@@ -17,6 +17,16 @@ export interface DialogueLine {
   emotion?: WhaleEmotionName
 }
 
+export interface IdlePerformance {
+  id: string
+  label: string
+  description: string
+  emotion: WhaleEmotionName
+  durationMs: number
+  originX: number
+  line?: DialogueLine
+}
+
 export const EMOTION_PROFILES: Readonly<Record<WhaleEmotionName, EmotionProfile>> = Object.freeze({
   love: { label: '喜欢', durationMs: 2400, className: 'heart', count: 7 },
   shy: { label: '害羞', durationMs: 2800, className: 'shy-heart', count: 4 },
@@ -131,6 +141,61 @@ export const IDLE_LINES: readonly DialogueLine[] = [
   { text: '白饭是不是也该有下午茶时间？', subtext: '这个提案显然蓄谋已久', speaker: '鲸鱼娘 · 米饭提案', emotion: 'hungry' },
 ]
 
+/**
+ * Curated idle acting beats. Calm entries intentionally omit dialogue so the
+ * companion can feel alive without filling the workspace with speech bubbles.
+ * Every beat maps to a complete facial/body emotion in the realtime rig.
+ */
+export const IDLE_PERFORMANCES: readonly IdlePerformance[] = Object.freeze([
+  {
+    id: 'quiet-smile', label: '开心待机', description: '轻轻微笑，尾巴跟着摇', emotion: 'happy', durationMs: 2500, originX: .46,
+  },
+  {
+    id: 'tail-credit', label: '得意邀功', description: '摆出等待表扬的神情', emotion: 'proud', durationMs: 2800, originX: .72,
+    line: { text: '尾巴今天状态不错，我调的。', subtext: '尾巴对此没有发表不同意见', speaker: '鲸鱼娘 · 待机自检' },
+  },
+  {
+    id: 'rice-radar', label: '白饭雷达', description: '闻到不存在的白饭香气', emotion: 'hungry', durationMs: 3200, originX: .67,
+    line: { text: '奇怪，我好像听见白饭在叫我。', subtext: '白饭雷达刚刚完成了一次扫描', speaker: '鲸鱼娘 · 米饭频道' },
+  },
+  {
+    id: 'tiny-doze', label: '偷偷犯困', description: '闭眼进入低功耗模式', emotion: 'sleepy', durationMs: 3600, originX: .66,
+    line: { text: '我只是闭眼整理一下缓存。', subtext: '缓存里很快传来了轻轻的呼吸声', speaker: '鲸鱼娘 · 后台运行' },
+  },
+  {
+    id: 'puzzled-ahoge', label: '呆毛问号', description: '歪头思考一个小问题', emotion: 'confused', durationMs: 2900, originX: .64,
+  },
+  {
+    id: 'outfit-settle', label: '安心整理', description: '放松下来，整理裙摆', emotion: 'relieved', durationMs: 3400, originX: .5,
+  },
+  {
+    id: 'secret-plan', label: '可疑计划', description: '坏笑着藏起一个主意', emotion: 'mischievous', durationMs: 2800, originX: .58,
+    line: { text: '我刚想到一个好主意……先保密。', subtext: '她悄悄把某个饭碗计划藏了起来', speaker: '鲸鱼娘 · 可疑待机' },
+  },
+  {
+    id: 'caught-looking', label: '害羞偷看', description: '视线躲开，耳鳍先露馅', emotion: 'shy', durationMs: 3000, originX: .42,
+    line: { text: '我没有偷看你，只是在看这个方向。', subtext: '耳鳍和尾巴同时暴露了她', speaker: '鲸鱼娘 · 视线说明' },
+  },
+  {
+    id: 'ready-spark', label: '准备开工', description: '眼睛发亮，进入待命状态', emotion: 'excited', durationMs: 2500, originX: .56,
+  },
+  {
+    id: 'soft-company', label: '安静陪伴', description: '温柔看向你，安静守在旁边', emotion: 'love', durationMs: 2600, originX: .5,
+    line: { text: '你忙吧，我会好好待在旁边。', subtext: '这次没有嘴硬太久', speaker: '鲸鱼娘 · 安静陪伴' },
+  },
+])
+
+export function pickIdlePerformance(previousId: string | undefined, seed = Math.random()): IdlePerformance {
+  const choices = IDLE_PERFORMANCES.filter(item => item.id !== previousId)
+  return pickLine(choices, seed)
+}
+
+export function idlePerformanceDelay(cycle: number, seed = Math.random()): number {
+  return cycle === 0
+    ? 9_000 + Math.floor(seed * 5_000)
+    : 18_000 + Math.floor(seed * 14_000)
+}
+
 export function pickLine<T>(lines: readonly T[], seed = Math.random()): T {
   return lines[Math.min(lines.length - 1, Math.max(0, Math.floor(seed * lines.length)))]
 }
@@ -139,11 +204,50 @@ export function emotionLine(name: WhaleEmotionName): DialogueLine {
   return { ...pickLine(EMOTION_LINES[name]), emotion: name, speaker: `鲸鱼娘 · ${EMOTION_PROFILES[name].label}` }
 }
 
-export function touchLine(streak: number): DialogueLine {
-  if (streak >= 4) return { text: '停一下，我真的要红透了。', subtext: '她用呆毛发出了暂停信号', emotion: 'shy' }
-  if (streak === 3) return { text: '别、别一直摸啦。', subtext: '她的脸颊已经藏不住了', emotion: 'shy' }
-  if (streak === 2) return { text: '还摸？……也不是不行。', subtext: '她努力装作毫不在意', emotion: 'shy' }
-  return { text: '嗯？找我吗？', subtext: '她轻轻回弹了一下', emotion: 'happy' }
+interface TouchReaction extends DialogueLine {
+  emotion: WhaleEmotionName
+  weight: number
+  rapidWeight?: number
+  minStreak?: number
+}
+
+const TOUCH_REACTIONS: readonly TouchReaction[] = [
+  { text: '嗯？找我吗？', subtext: '她轻轻回弹了一下', emotion: 'happy', weight: 4 },
+  { text: '今天也可以多陪我一会儿。', subtext: '尾巴已经替她表示欢迎', emotion: 'love', weight: 3 },
+  { text: '突然摸过来会吓到鱼的！', subtext: '呆毛被惊得晃了两下', emotion: 'surprise', weight: 2 },
+  { text: '这是某种新的打招呼方式吗？', subtext: '她认真思考了半秒', emotion: 'confused', weight: 2 },
+  { text: '哼，眼光不错，知道来找我。', subtext: '她已经开始理直气壮地得意', emotion: 'proud', weight: 2 },
+  { text: '再摸一下，就要收白饭当门票了。', subtext: '她露出了可疑的小算盘', emotion: 'mischievous', weight: 2 },
+  { text: '刚好，我也正想活动一下。', subtext: '她一下子精神起来了', emotion: 'excited', weight: 2 },
+  { text: '摸完记得投喂，服务要配套。', subtext: '白饭雷达顺势启动', emotion: 'hungry', weight: 2 },
+  { text: '你在就好，我继续陪着。', subtext: '她慢慢放松了肩膀', emotion: 'relieved', weight: 2 },
+  { text: '唔……差点把我的瞌睡碰掉了。', subtext: '她勉强把眼睛重新睁开', emotion: 'sleepy', weight: 1 },
+  { text: '还摸？……也不是不行。', subtext: '她努力装作毫不在意', emotion: 'shy', weight: 1, rapidWeight: 2, minStreak: 2 },
+  { text: '别、别一直摸啦。', subtext: '她的脸颊已经藏不住了', emotion: 'nervous', weight: 1, rapidWeight: 1, minStreak: 3 },
+  { text: '再闹我就真的要鼓脸了。', subtext: '这句威胁听起来并不吓人', emotion: 'pout', weight: 1, rapidWeight: 1, minStreak: 3 },
+  { text: '停一下，我真的要红透了！', subtext: '她用呆毛发出了暂停信号', emotion: 'angry', weight: 1, rapidWeight: 1, minStreak: 5 },
+]
+
+/** Pick a complete click reaction while avoiding the expression just shown. */
+export function touchLine(
+  streak: number,
+  previousEmotion?: WhaleEmotionName,
+  seed = Math.random(),
+): DialogueLine {
+  const eligible = TOUCH_REACTIONS.filter(item => (item.minStreak ?? 1) <= streak)
+  const nonRepeating = eligible.filter(item => item.emotion !== previousEmotion)
+  const candidates = nonRepeating.length > 0 ? nonRepeating : eligible
+  const weighted = candidates.map(item => ({
+    item,
+    weight: item.weight + Math.max(0, streak - 1) * (item.rapidWeight ?? 0),
+  }))
+  const total = weighted.reduce((sum, candidate) => sum + candidate.weight, 0)
+  let cursor = Math.max(0, Math.min(.999_999, seed)) * total
+  const selected = weighted.find(candidate => {
+    cursor -= candidate.weight
+    return cursor < 0
+  })?.item ?? weighted[weighted.length - 1]!.item
+  return { text: selected.text, subtext: selected.subtext, emotion: selected.emotion }
 }
 
 export function offlineReply(message: string): DialogueLine {

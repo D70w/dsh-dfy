@@ -68,6 +68,7 @@ export interface AutonomyPresentation {
   startButterfly(): void
   armCursorVisit(): void
   returnHome(): void
+  stopForPerformance(): void
   wakeNap(): void
   catchRice(): void
   startPreviewStory(story: AutonomyEpisode['story']): void
@@ -229,6 +230,12 @@ export function useAutonomy(options: UseAutonomyOptions): AutonomyPresentation {
     setEpisode(current => current?.story === 'cursor_visit'
       ? returnCursorVisitHome(current, Date.now())
       : undefined)
+  }, [])
+
+  const stopForPerformance = useCallback((): void => {
+    setManualRequestAt(undefined)
+    setStayingHome(true)
+    setEpisode(undefined)
   }, [])
 
   const wakeNap = useCallback((): void => {
@@ -439,6 +446,7 @@ export function useAutonomy(options: UseAutonomyOptions): AutonomyPresentation {
     startButterfly,
     armCursorVisit,
     returnHome,
+    stopForPerformance,
     wakeNap,
     catchRice,
     startPreviewStory,
