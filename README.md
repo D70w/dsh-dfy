@@ -7,7 +7,7 @@ English: [README.en.md](./README.en.md)
 ## 当前版本
 
 - npm 包名：`dsh-dfy`
-- 当前版本：`0.1.4`
+- 当前版本：`0.1.5`
 - 默认分支：`main`
 - GitHub：<https://github.com/D70w/dsh-dfy>
 
@@ -32,7 +32,7 @@ dsh plugin --profile web add dsh-dfy
 ```sh
 corepack pnpm install
 corepack pnpm run build
-dsh plugin --profile web add ./dsh-dfy-0.1.4.tgz
+dsh plugin --profile web add ./dsh-dfy-0.1.5.tgz
 ```
 
 如果使用项目中的发布脚本生成包，tarball 会放在 `release/packages/`。安装完成后启动 Web Profile：
@@ -69,10 +69,9 @@ dsh web --port 3088
 - 使用 DSH 提供的 token 数据在本地统计输入、缓存命中、缓存写入和输出消耗。
 - 支持按天和按小时查看本地账单；未配置官方余额时，会明确显示不可用状态，不伪装成官方余额。
 
-### 桌宠故事与设置
+### 桌宠设置
 
-- 支持蝴蝶追逐、光标靠近、午睡、白饭和饭碗小故事。
-- 互动、食物、工作反应和关系阶段使用 Host 持久化状态与 UUID 幂等命令。
+- 当前稳定可用的互动入口为：摸摸她、给她白饭、和她说话、让她表演。
 - 支持自动漫游、减少动态、固定当前位置、回到底部默认位置、键盘方向微调和安静模式。
 - 思考状态相关资源当前按上线后路线保留；正常上线运行不强制启用思考态移动动作。
 
