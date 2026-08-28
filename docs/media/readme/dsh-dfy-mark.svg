@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">dsh-dfy 鲸鱼标志</title>
+  <desc id="desc">深蓝圆形中的白色鲸鱼与对话气泡</desc>
+  <defs>
+    <linearGradient id="ocean" x1="32" y1="24" x2="224" y2="232" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4C78D6"/>
+      <stop offset="1" stop-color="#203A87"/>
+    </linearGradient>
+    <linearGradient id="bubble" x1="161" y1="42" x2="218" y2="97" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#DDF4FF"/>
+      <stop offset="1" stop-color="#A9D9FF"/>
+    </linearGradient>
+  </defs>
+  <circle cx="128" cy="128" r="118" fill="url(#ocean)"/>
+  <circle cx="128" cy="128" r="104" fill="none" stroke="#DDE9FF" stroke-opacity=".42" stroke-width="3"/>
+  <path d="M54 137c9-28 38-47 75-47 20 0 38 6 52 17 10-2 20-9 28-20 3 14 1 27-7 37 9 5 17 13 22 24-14 2-27-1-38-9-13 20-37 32-68 32-32 0-56-13-64-34Z" fill="#FFFFFF"/>
+  <path d="M75 128c8 2 14 8 17 17-10 2-19-2-26-10 3-4 6-6 9-7Z" fill="#BBDFFF"/>
+  <path d="M117 169c7 13 19 21 36 24-18 7-36 3-49-10 2-6 7-11 13-14Z" fill="#BBDFFF"/>
+  <circle cx="151" cy="119" r="5" fill="#203A87"/>
+  <path d="M171 127c8 6 15 7 22 4" fill="none" stroke="#203A87" stroke-linecap="round" stroke-width="5"/>
+  <path d="M95 94c-2-18 11-30 29-31 3 15-3 27-16 36" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="9"/>
+  <path d="M171 48h33a18 18 0 0 1 18 18v13a18 18 0 0 1-18 18h-13l-13 12 3-12h-10a18 18 0 0 1-18-18V66a18 18 0 0 1 18-18Z" fill="url(#bubble)" stroke="#FFFFFF" stroke-width="5"/>
+  <circle cx="181" cy="73" r="4" fill="#2D50A2"/>
+  <circle cx="193" cy="73" r="4" fill="#2D50A2"/>
+  <circle cx="205" cy="73" r="4" fill="#2D50A2"/>
+</svg>

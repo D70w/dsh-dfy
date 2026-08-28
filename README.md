@@ -1,125 +1,201 @@
-# dsh-dfy
+<p align="center">
+  <img src="./docs/media/readme/dsh-dfy-mark.svg" width="108" alt="dsh-dfy 标志" />
+</p>
 
-`dsh-dfy` 是一个面向 DeepSeek Harness Web Profile 的 Host/Browser Cordis 插件。它将测试网站中已经确认的鲸鱼娘桌宠运行时迁移为可安装的 DSH 插件，包含 Live2D 风格分层待机、移动动作、互动反馈、情绪特效、对话气泡、独立输入框、菜单、账单和桌宠设置。
+<h1 align="center">dsh-dfy</h1>
 
-English: [README.en.md](./README.en.md)
+<p align="center"><strong>住进 DeepSeek Harness 工作台的鲸鱼娘桌宠</strong></p>
 
-## 当前版本
+<p align="center">
+  会呼吸、会摇晃、能抓起来玩，也会用表情和对话陪你工作。
+</p>
 
-- npm 包名：`dsh-dfy`
-- 当前版本：`0.1.5`
-- 默认分支：`main`
-- GitHub：<https://github.com/D70w/dsh-dfy>
+<p align="center">
+  <a href="./README.en.md">English</a>
+  · <a href="#安装">安装</a>
+  · <a href="#实机画面">实机画面</a>
+  · <a href="#功能">功能</a>
+  · <a href="#和-dsh-如何协作">原理</a>
+</p>
 
-## 安装到 DSH
+<p align="center">
+  <a href="https://www.npmjs.com/package/dsh-dfy"><img alt="npm version" src="https://img.shields.io/npm/v/dsh-dfy?style=flat-square&label=npm&color=3156A3" /></a>
+  <a href="https://www.npmjs.com/package/dsh-dfy"><img alt="npm downloads" src="https://img.shields.io/npm/dm/dsh-dfy?style=flat-square&label=downloads&color=4C8DCC" /></a>
+  <a href="https://github.com/D70w/dsh-dfy/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/D70w/dsh-dfy?style=flat-square&logo=github&color=263B6A" /></a>
+  <img alt="DeepSeek Harness plugin" src="https://img.shields.io/badge/DeepSeek_Harness-plugin-24468F?style=flat-square" />
+  <img alt="Node 22.19 or newer" src="https://img.shields.io/badge/Node-%E2%89%A522.19-3C873A?style=flat-square&logo=nodedotjs&logoColor=white" />
+  <a href="./LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-EA7C5B?style=flat-square" /></a>
+</p>
 
-发布到 npm 后，可直接安装注册表中的包：
+<p align="center">
+  <img src="./character-packs/default-whale/runtime/production-v1/idle/see-through-idle-rig-v2/source-master.png" width="280" alt="鲸鱼娘桌宠立绘" />
+</p>
 
-```sh
-npm install dsh-dfy
-```
+---
 
-插件依赖由 DSH Web Profile 提供；如果 npm 在普通项目中尝试自动解析整套 DSH peer 依赖并报 `ERESOLVE`，请使用 `npm install --legacy-peer-deps dsh-dfy`，或直接使用下面的 DSH 插件命令。
+## 她能做什么
 
-如果是在 DSH Web Profile 中启用，使用 DSH 的插件命令（它会把 npm 包加入当前 profile）：
+| 像桌宠一样互动 | 有情绪地回应 | 在 DSH 内对话 | 看得懂你的消耗 |
+| --- | --- | --- | --- |
+| 点击 Q 弹、抓取摇晃、缩放与位置记忆 | 16 种情绪、独立眼眉嘴变形与专属特效 | 离线台词或自定义 OpenAI 兼容模型 | 官方余额刷新与本地 Token 小账单 |
+
+> 当前稳定互动入口只有：**摸摸她、给她白饭、和她说话、让她表演**。开发中的实验动作不会混入正式功能说明。
+
+## 实机画面
+
+> 以下画面直接截取自最新版 DSH Web Profile 中正在运行的插件，不是测试页或概念图。
+
+<p align="center">
+  <img src="./docs/media/readme/dsh-live-default.png" width="100%" alt="dsh-dfy 在 DSH 工作台中的实际运行画面" />
+</p>
+
+<p align="center"><strong>桌宠与 DSH 工作台自然共存</strong> · 不遮挡主要操作区域</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="./docs/media/readme/dsh-live-menu.png" alt="桌宠互动菜单实机画面" /></td>
+    <td width="50%"><img src="./docs/media/readme/dsh-live-dialogue.png" alt="桌宠对话模型设置实机画面" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>互动菜单</strong><br />常用动作与最近互动记录</td>
+    <td align="center"><strong>对话设置</strong><br />离线模式与自定义在线模型</td>
+  </tr>
+</table>
+
+### 情绪瞬间
+
+表情不只是换一句台词：眼睛、眉毛、嘴型、身体姿态和周围特效会一起变化。
+
+<table>
+  <tr>
+    <td width="50%"><img src="./docs/media/readme/dsh-emotion-love.png" alt="鲸鱼娘喜欢表情与爱心特效实机画面" /></td>
+    <td width="50%"><img src="./docs/media/readme/dsh-emotion-anger.png" alt="鲸鱼娘生气表情与怒气特效实机画面" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>喜欢</strong><br />闭眼微笑、腮红与漂浮爱心</td>
+    <td align="center"><strong>生气</strong><br />压眉撇嘴、怒气符号与专属台词</td>
+  </tr>
+</table>
+
+## 功能
+
+### Live2D 风格桌宠
+
+- 透明 Canvas 分层渲染，统一使用 1280×1280 设计坐标系。
+- 头发、呆毛、眼睛、眉毛、耳朵、身体、裙子、腿、尾巴和服装附件分别驱动。
+- 呼吸、眨眼、视线、身体关节与次级部件持续运动。
+- 支持抓取点物理：离抓取点越远，惯性摆动越明显。
+- 点击会触发 QQ 弹、局部跟随、随机表情和可持续腮红。
+- 桌宠大小、位置、安静模式和减少动态设置保存在当前设备。
+
+### 表情与演出
+
+- 喜欢、害羞、生气、惊讶、难过、开心、困惑、委屈、困倦、得意、期待、坏笑、安心、认真、紧张和馋嘴等情绪。
+- 每种情绪使用不同的眼眉嘴变形、身体姿态与粒子效果。
+- 爱心、怒气、问号、眼泪、汗滴、`Z` 和白饭均为视觉特效，不是文字占位。
+- 可随机播放已校准的一次性演出视频；播放期间与实时桌宠无缝交接。
+
+### 对话与记忆
+
+- 头顶气泡只显示鲸鱼娘说的话，独立输入框位于角色下方并可拖动。
+- 支持符合角色设定的离线台词，也可接入 OpenAI 兼容接口。
+- 可保存多个模型配置、检测连接并读取模型列表。
+- 本地保存有限的对话历史与轻量记忆，在线模型会参考最近上下文。
+- 在线调用失败时会清晰回退到离线回应，不会让角色失去反应。
+
+### 余额与本地账单
+
+- Host 端代理 DeepSeek 官方余额接口，浏览器端不会接触 Host 凭据。
+- 可设置定时刷新，默认每 10 分钟更新一次官方余额。
+- 根据 DSH 提供的输入、缓存命中、缓存写入和输出 Token 统计本地消耗。
+- 可按天和按小时查看用量；官方余额与本地估算始终明确区分。
+
+## 安装
+
+### 推荐：安装到 DSH Web Profile
 
 ```sh
 dsh plugin --profile web add dsh-dfy
 ```
 
-离线或本地验收时，也可以先构建 tarball，再安装本地包：
-
-```sh
-corepack pnpm install
-corepack pnpm run build
-dsh plugin --profile web add ./dsh-dfy-0.1.5.tgz
-```
-
-如果使用项目中的发布脚本生成包，tarball 会放在 `release/packages/`。安装完成后启动 Web Profile：
+安装后启动 DSH：
 
 ```sh
 dsh web --port 3088
 ```
 
-插件会以一个 `dsh-dfy` Loader 项加载，并向 `shell.overlay` 和 `settings.section` 提供界面。它不会创建第二个 React 根，也不会替换 DSH 的 `root` 页面。
+也可以在普通 npm 项目中安装：
 
-## 功能范围
+```sh
+npm install dsh-dfy
+```
 
-### 角色与动作
+> 插件运行依赖由 DSH Web Profile 提供。如果普通 npm 项目自动解析整套 DSH peer 依赖时出现 `ERESOLVE`，可使用 `npm install --legacy-peer-deps dsh-dfy`。
 
-- 1280×1280 的共享设计坐标系和透明 Canvas 渲染。
-- 分层待机角色：头发、呆毛、眼睛、眉毛、耳朵、身体、裙子、腿、尾巴和服装附件。
-- 呼吸、眨眼、视线、身体关节、头发、裙摆、呆毛和尾巴的连续动态。
-- 水平跑步、向左跑、上浮和下潜动作，均使用准备、循环、结束三段式视频，并与角色位置和朝向衔接。
-- 经过校准的一次性动作视频；待机、移动和动作共享 350×350 CSS 表面、底部锚点和缩放策略。
-- 点击时的 QQ 弹反馈、抓取点物理、腮红持续状态和次级部件跟随。
+### 本地包验收
 
-### 对话与情绪
+```sh
+corepack pnpm install
+corepack pnpm run build
+npm pack
+dsh plugin --profile web add ./dsh-dfy-0.1.5.tgz
+```
 
-- 头顶气泡默认显示角色说话内容；气泡输入框单独位于角色下方，并可拖动。
-- 菜单包含对话、表情、模型、账户和设置页。
-- 支持离线人设台词，也支持用户填写 OpenAI 兼容接口的 Base URL、模型名和 API Key。
-- 预置喜欢、害羞、生气、惊讶、难过、开心、困惑、委屈、困倦、得意、期待、坏笑、安心、认真、紧张和馋嘴等情绪。
-- 情绪拥有独立的眼眉嘴变形、身体表演和粒子特效，例如爱心、怒气、问号、流泪、汗滴、`Z` 和白米饭。
+## 和 DSH 如何协作
 
-### 账户与本地账单
+`dsh-dfy` 以一个 Host/Browser Cordis 插件运行：
 
-- DSH Host 端代理官方 DeepSeek 余额接口，浏览器端不接触 Host 凭据。
-- 余额按设置的时间间隔刷新，默认每 10 分钟。
-- 使用 DSH 提供的 token 数据在本地统计输入、缓存命中、缓存写入和输出消耗。
-- 支持按天和按小时查看本地账单；未配置官方余额时，会明确显示不可用状态，不伪装成官方余额。
+- 界面挂载到 `shell.overlay` 与 `settings.section`，不会替换 DSH 主页面。
+- Host 端只向浏览器投影有限状态，不传递提示词、工具参数、文件路径或输出正文。
+- 角色设置和位置保存在当前设备，不会跨设备同步。
+- 正式安装包只分发 `character-packs/default-whale/runtime/production-v1/` 运行资源。
 
-### 桌宠设置
+<details>
+<summary><strong>开发与验证</strong></summary>
 
-- 当前稳定可用的互动入口为：摸摸她、给她白饭、和她说话、让她表演。
-- 支持自动漫游、减少动态、固定当前位置、回到底部默认位置、键盘方向微调和安静模式。
-- 思考状态相关资源当前按上线后路线保留；正常上线运行不强制启用思考态移动动作。
-
-## 开发与验证
-
-安装依赖并运行完整检查：
+完整检查：
 
 ```sh
 corepack pnpm install
 corepack pnpm run verify
 ```
 
-`verify` 包含：
+`verify` 包含 TypeScript 类型检查、273 个 Vitest 测试、正式构建和 npm 包内容预览。
 
-- TypeScript 类型检查；
-- 273 个 Vitest 单元/组件/契约测试；
-- 正式构建；
-- npm 包内容预览。
-
-真实浏览器验收使用隔离的 DSH Web Profile：
+真实浏览器验收：
 
 ```sh
 python tests/run_browser_e2e.py --dsh-home <isolated-dsh-home> --port 3088
 ```
 
-视觉调试面板只在 URL 带 `?whaleDebug=1` 时启用，例如：
+视觉调试面板仅在 URL 带 `?whaleDebug=1` 时启用。
 
-```text
-http://127.0.0.1:3088/?whaleDebug=1
-```
+</details>
 
-## 仓库内容边界
+<details>
+<summary><strong>仓库与 npm 包边界</strong></summary>
 
-仓库保留源码、测试、正式运行资源、许可证和设计文档。以下内容不会进入 Git：
+仓库保留源码、测试、正式运行资源、许可证以及归档开发文档。npm 正式包只包含构建产物、运行资源、README 和许可证，不包含：
 
-- `node_modules/`、`lib/`、`release/` 和构建缓存；
-- `artifacts/` 中的历史预览、视频分析和截图；
-- PSD、临时抠图源、E2E 临时 DSH Home；
-- `character-packs/default-whale/source/` 下的开发期源素材。
+- `node_modules/`、构建缓存和测试输出；
+- `artifacts/` 中的历史预览、视频分析与验收截图原件；
+- PSD、临时抠图源和 E2E 临时 DSH Home；
+- `character-packs/default-whale/source/` 下的开发期源素材；
+- `docs/archive/` 中的体验、设计和后续规划文档。
 
-正式安装包只分发 `character-packs/default-whale/runtime/production-v1/`，这样运行所需资源与开发阶段素材保持分离。
-
-## 许可证与素材来源
-
-插件代码采用 MIT License。默认角色是“鲸鱼娘形象”的获批 chibi-maid 衍生资源，角色栅格素材遵循 CC BY-NC-SA 4.0。作者、来源、改动链和再分发说明见 [ASSETS_LICENSE.md](./ASSETS_LICENSE.md) 与 [character-packs/default-whale/SOURCE.md](./character-packs/default-whale/SOURCE.md)。
+</details>
 
 ## 已知限制
 
-- 大角度肘部表演、跳跃落地、更丰富的嘴型和更多语义表情仍需要经过确认的新素材与局部网格。
-- 当前白饭故事是叙事互动，不会真正扣减库存。
-- 八小时长时间运行、低端设备代表性性能测试和完整屏幕阅读器验收仍属于后续发布门槛。
+- 大角度肘部表演、跳跃落地、更丰富的嘴型和更多语义表情仍需要新的局部素材与网格权重。
+- 当前白饭互动不会真正扣减库存。
+- 八小时长时间运行、低端设备性能测试和完整屏幕阅读器验收仍属于后续发布门槛。
+- 思考状态资源作为上线后的开发方向保留，正式运行不启用思考态移动动画。
+
+## 许可证与素材
+
+插件代码采用 [MIT License](./LICENSE)。默认角色是“鲸鱼娘形象”的获批 chibi-maid 衍生资源，角色栅格素材遵循 CC BY-NC-SA 4.0。作者、来源、改动链和再分发说明见 [ASSETS_LICENSE.md](./ASSETS_LICENSE.md) 与 [character-packs/default-whale/SOURCE.md](./character-packs/default-whale/SOURCE.md)。
+
+<p align="center">
+  <strong>让工作台里真的住着一位会回应你的鲸鱼娘。</strong>
+</p>
