@@ -127,6 +127,25 @@ function stationaryVideo(action: WhaleAction): string | undefined {
   return undefined
 }
 
+export function resolveActionVideo(
+  reducedMotion: boolean,
+  action: WhaleAction,
+  stationaryAction?: StationaryActionCommand,
+): string | undefined {
+  return stationaryAction === undefined
+    ? reducedMotion ? undefined : stationaryVideo(action)
+      : whaleActionUrl(stationaryAction.file)
+}
+
+export function shouldPauseLive2d(
+  videoSource: string | undefined,
+  videoPlaying: boolean,
+  videoFailed: boolean,
+  videoEnding: boolean,
+): boolean {
+  return videoSource !== undefined && videoPlaying && !videoFailed && !videoEnding
+}
+
 function episodeDisplacement(episode: AutonomyEpisode): { x: number; y: number } {
   if (episode.story === 'cursor_visit') return episode.targetOffset
   return { x: -68, y: 0 }
@@ -170,6 +189,7 @@ export interface WhaleRendererProps {
     blushHoldMs: number
   }>
   stationaryAction?: StationaryActionCommand
+  onStationaryActionStart?(): void
   onStationaryActionEnd?(): void
 }
 
@@ -179,7 +199,7 @@ export interface WhaleRendererProps {
  */
 export function WhaleRenderer({
   action, autonomy, reducedMotion, quality, secondaryMotion,
-  motionIntensity = 2, emotion, petReaction, stationaryAction, onStationaryActionEnd,
+  motionIntensity = 2, emotion, petReaction, stationaryAction, onStationaryActionStart, onStationaryActionEnd,
 }: WhaleRendererProps): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const controllerRef = useRef<ApprovedIdleRigController>()
@@ -190,14 +210,15 @@ export function WhaleRenderer({
   const [failure, setFailure] = useState<FailureCode>('none')
   const [videoFailed, setVideoFailed] = useState(false)
   const [videoReady, setVideoReady] = useState(false)
+  const [videoPlaying, setVideoPlaying] = useState(false)
   const [videoEnding, setVideoEnding] = useState(false)
   const profile = resolveAnimationProfile(quality, browserAnimationEnvironment())
   const movement = useMemo(() => reducedMotion ? undefined : movementVisualFor(autonomy), [autonomy, reducedMotion])
-  const actionVideo = reducedMotion
-    ? undefined
-    : stationaryAction === undefined
-      ? stationaryVideo(action)
-      : whaleActionUrl(stationaryAction.file)
+  // Reduced-motion is a preference for ambient/autonomous motion. A classic
+  // action selected explicitly from the menu must still play: otherwise the
+  // click appears to do nothing and the selected performance is immediately
+  // indistinguishable from idle.
+  const actionVideo = resolveActionVideo(reducedMotion, action, stationaryAction)
   const videoSource = movement === undefined ? actionVideo : movementSource(movement)
   const performanceName = movement === undefined
     ? actionVideo === undefined ? 'idle-puppet' : `action-${stationaryAction?.action ?? action}`
@@ -367,10 +388,30 @@ export function WhaleRenderer({
   useEffect(() => {
     setVideoFailed(false)
     setVideoReady(false)
+    setVideoPlaying(false)
     setVideoEnding(false)
   }, [videoKey])
 
-  const videoVisible = status === 'ready' && videoSource !== undefined && videoReady && !videoEnding && !videoFailed
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (canvas === null) return
+    const paused = shouldPauseLive2d(videoSource, videoPlaying, videoFailed, videoEnding)
+    // Loading is not a handoff: the idle rig keeps moving until the media
+    // element confirms playback. Pausing only at `playing` removes the frozen
+    // gap between a menu click and the first decoded performance frame.
+    canvas.dataset.renderActive = paused ? 'false' : 'true'
+    canvas.dataset.whaleLive2dPaused = String(paused)
+    return () => {
+      canvas.dataset.renderActive = 'true'
+      canvas.dataset.whaleLive2dPaused = 'false'
+    }
+  }, [videoSource, videoPlaying, videoFailed, videoEnding])
+
+  // Manual videos load in parallel with the idle rig. Waiting for every idle
+  // layer before revealing a selected performance made the click feel stuck,
+  // especially on a cold cache. The first decoded frame is enough to hand off
+  // the visual surface; the rig can finish warming in the background.
+  const videoVisible = videoSource !== undefined && videoReady && videoPlaying && !videoEnding && !videoFailed
   return (
     <span
       data-whale-renderer={status}
@@ -384,6 +425,7 @@ export function WhaleRenderer({
           ref={canvasRef}
           data-whale-rig-canvas
           data-whale-production-canvas
+          data-whale-live2d-paused="false"
           data-whale-engine="see-through-idle-rig-v2"
           data-whale-animation-source="approved-test-runtime-v104"
           data-whale-performance={videoVisible ? 'handoff' : 'idle-puppet'}
@@ -405,8 +447,19 @@ export function WhaleRenderer({
             aria-hidden="true"
             style={{ opacity: videoVisible ? 1 : 0 }}
             onCanPlay={(event) => {
+              void event.currentTarget.play().catch(() => undefined)
+            }}
+            onLoadedData={(event) => {
               setVideoReady(true)
               void event.currentTarget.play().catch(() => undefined)
+            }}
+            onPlaying={() => {
+              // `playing` is the browser's first reliable handoff boundary:
+              // enough data exists for continuous playback and the initial
+              // frame is ready. The same state reveals the video and pauses
+              // Live2D, so there is no visible stopped interval.
+              setVideoPlaying(true)
+              if (stationaryAction !== undefined) onStationaryActionStart?.()
             }}
             onLoadedMetadata={(event) => {
               if (movement === undefined || movement.phase === 'cycle') return
@@ -414,11 +467,13 @@ export function WhaleRenderer({
               event.currentTarget.playbackRate = Math.max(0.5, Math.min(4, event.currentTarget.duration / targetSeconds))
             }}
             onEnded={() => {
+              setVideoPlaying(false)
               if (stationaryAction === undefined) return
               setVideoEnding(true)
               window.setTimeout(() => onStationaryActionEnd?.(), 140)
             }}
             onError={() => {
+              setVideoPlaying(false)
               setVideoFailed(true)
               if (stationaryAction !== undefined) onStationaryActionEnd?.()
             }}

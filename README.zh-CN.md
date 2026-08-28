@@ -13,7 +13,21 @@ English: [README.md](./README.md)
 
 ## 安装到 DSH
 
-先构建插件包，然后使用 DSH CLI 安装 tarball：
+发布到 npm 后，可直接安装注册表中的包：
+
+```sh
+npm install dsh-dfy
+```
+
+插件依赖由 DSH Web Profile 提供；如果 npm 在普通项目中尝试自动解析整套 DSH peer 依赖并报 `ERESOLVE`，请使用 `npm install --legacy-peer-deps dsh-dfy`，或直接使用下面的 DSH 插件命令。
+
+如果是在 DSH Web Profile 中启用，使用 DSH 的插件命令（它会把 npm 包加入当前 profile）：
+
+```sh
+dsh plugin --profile web add dsh-dfy
+```
+
+离线或本地验收时，也可以先构建 tarball，再安装本地包：
 
 ```sh
 corepack pnpm install

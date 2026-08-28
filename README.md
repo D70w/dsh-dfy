@@ -17,9 +17,25 @@ The published `rc.5` SDK set is incomplete on npm, so development types are pinn
 
 ## Install into a local Harness profile
 
-Build the package first, then run the Harness CLI from its own checkout:
+After publication, install the package from npm:
 
 ```sh
+npm install dsh-dfy
+```
+
+The DSH Web Profile supplies the plugin's peer runtime. If npm tries to resolve the whole DSH peer tree in a plain project and reports `ERESOLVE`, use `npm install --legacy-peer-deps dsh-dfy`, or use the DSH plugin command below.
+
+To enable it in a DSH Web Profile, add the npm package to that profile:
+
+```sh
+dsh plugin --profile web add dsh-dfy
+```
+
+For offline or local acceptance, build and install the tarball instead:
+
+```sh
+corepack pnpm install
+corepack pnpm run build
 dsh plugin --profile web add <path-or-packed-tarball>
 ```
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveAnimationProfile, resolveGrabMotionInput } from './WhaleRenderer.tsx'
+import { resolveActionVideo, resolveAnimationProfile, resolveGrabMotionInput, shouldPauseLive2d } from './WhaleRenderer.tsx'
 
 describe('approved desktop runtime quality policy', () => {
   it('keeps capable desktop devices on the high-quality realtime renderer', () => {
@@ -16,6 +16,25 @@ describe('approved desktop runtime quality policy', () => {
   it('respects an explicit quality choice', () => {
     expect(resolveAnimationProfile('high', { hardwareConcurrency: 2 })).toMatchObject({ quality: 'high' })
     expect(resolveAnimationProfile('economy', { hardwareConcurrency: 16 })).toMatchObject({ quality: 'economy' })
+  })
+})
+
+describe('manual classic action playback', () => {
+  it('keeps an explicitly selected video available with reduced motion enabled', () => {
+    expect(resolveActionVideo(true, 'idle', { id: 1, action: 'curtsy', file: 'curtsy.webm' }))
+      .toContain('/production-v1/actions/curtsy.webm')
+  })
+
+  it('still suppresses ambient video actions when reduced motion is enabled', () => {
+    expect(resolveActionVideo(true, 'idle')).toBeUndefined()
+  })
+
+  it('keeps Live2D moving while video loads, then pauses only for active playback', () => {
+    expect(shouldPauseLive2d('/actions/curtsy.webm', false, false, false)).toBe(false)
+    expect(shouldPauseLive2d('/actions/curtsy.webm', true, false, false)).toBe(true)
+    expect(shouldPauseLive2d('/actions/curtsy.webm', true, false, true)).toBe(false)
+    expect(shouldPauseLive2d('/actions/curtsy.webm', true, true, false)).toBe(false)
+    expect(shouldPauseLive2d(undefined, true, false, false)).toBe(false)
   })
 })
 

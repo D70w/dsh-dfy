@@ -1,5 +1,29 @@
 import { describe, expect, it } from 'vitest'
-import { IDLE_PERFORMANCES, idlePerformanceDelay, pickIdlePerformance, touchLine } from './emotions.ts'
+import {
+  IDLE_PERFORMANCES, emotionLine, idlePerformanceDelay, pickIdlePerformance, touchLine,
+  type WhaleEmotionName,
+} from './emotions.ts'
+
+function uniqueLineCount(emotion: WhaleEmotionName): number {
+  return new Set(Array.from({ length: 160 }, (_, index) => emotionLine(emotion, index / 160).text)).size
+}
+
+describe('emotion dialogue depth', () => {
+  it('gives the most frequently triggered emotions the broadest line pools', () => {
+    for (const emotion of ['happy', 'love', 'shy', 'proud', 'hungry'] as const) {
+      expect(uniqueLineCount(emotion)).toBeGreaterThanOrEqual(8)
+    }
+  })
+
+  it('keeps common states varied and every rarer emotion above the old three-line floor', () => {
+    for (const emotion of ['surprise', 'confused', 'sleepy', 'excited', 'relieved', 'determined', 'nervous'] as const) {
+      expect(uniqueLineCount(emotion)).toBeGreaterThanOrEqual(6)
+    }
+    for (const emotion of ['angry', 'sad', 'pout', 'mischievous'] as const) {
+      expect(uniqueLineCount(emotion)).toBeGreaterThanOrEqual(5)
+    }
+  })
+})
 
 describe('idle performance selection', () => {
   it('does not immediately repeat the same performance', () => {

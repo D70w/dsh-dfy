@@ -51,81 +51,135 @@ const EMOTION_LINES: Readonly<Record<WhaleEmotionName, readonly DialogueLine[]>>
     { text: '你再靠近一点，我就当没发现。', subtext: '尾巴已经先一步靠了过去' },
     { text: '今天也想和你多待一会儿。', subtext: '这句不是嘴硬，是认真说的' },
     { text: '尾巴只是碰巧摇得很快。', subtext: '她决定把证据全部推给尾巴' },
+    { text: '你忙你的，我待在这里就很好。', subtext: '陪伴模式正在安静运行' },
+    { text: '如果今天很累，可以分一点给我。', subtext: '她把声音放得很轻' },
+    { text: '本鱼的位置，给你留了一半。', subtext: '虽然她已经悄悄占了大半' },
+    { text: '再待一会儿吧，白饭都可以晚点吃。', subtext: '这大概是她最高级别的偏爱' },
+    { text: '我记得你每次来找我的样子。', subtext: '她假装只是记忆力很好' },
   ],
   shy: [
     { text: '别一直看我……呆毛都要冒烟了。', subtext: '脸颊正在持续升温' },
     { text: '我才没有因为你脸红。', subtext: '这句话本身就很没有说服力' },
     { text: '再夸一句就、就不许停。', subtext: '她小声修改了抗议内容' },
+    { text: '突然说这种话，我要怎么接嘛。', subtext: '她的视线已经躲到了旁边' },
+    { text: '只准看一小会儿……听见没有。', subtext: '她完全没有规定一小会儿有多长' },
+    { text: '你靠太近了，我的表情会露馅。', subtext: '其实早就已经露馅了' },
+    { text: '这次夸奖我先收下，下次不许突然袭击。', subtext: '她很认真地把夸奖保存起来' },
+    { text: '脸红是屏幕色温的问题，肯定是。', subtext: '她找到了一个毫无说服力的理由' },
   ],
   angry: [
     { text: '哼，这次真的要扣你的白饭！', subtext: '处罚标准由她临时制定' },
     { text: '尾巴拍桌了，后果很严重。', subtext: '虽然这里并没有桌子' },
     { text: '先道歉，再考虑原谅你。', subtext: '她偷偷把“考虑”改成了“马上”' },
+    { text: '不许装作没听见，本鱼还在生气。', subtext: '怒气已经认真维持了十秒' },
+    { text: '今天的白饭分配权暂时归我。', subtext: '她祭出了最严厉的惩罚' },
   ],
   surprise: [
     { text: '哇！你从哪里冒出来的？', subtext: '呆毛差点被吓直了' },
     { text: '等一下，我的心跳还没加载完。', subtext: '鲸鱼娘正在紧急缓冲' },
     { text: '这也在你的计划里吗？', subtext: '她显然完全没有预料到' },
+    { text: '欸？事情怎么突然变成这样了！', subtext: '她迅速回头确认了两遍' },
+    { text: '先让我缓一下，刚才那下太突然了。', subtext: '胸口还在轻轻起伏' },
+    { text: '等等，这个展开本鱼没看过！', subtext: '计划表上完全没有这一页' },
   ],
   sad: [
     { text: '今天的海水好像有点咸。', subtext: '她把眼泪归咎于海水' },
     { text: '我没哭，只是眼睛装不下心事了。', subtext: '泪珠完全不同意这个解释' },
     { text: '可以陪我安静待一会儿吗？', subtext: '这次她没有假装不需要你' },
+    { text: '没关系……让我慢一点就好。', subtext: '她努力把呼吸重新放平' },
+    { text: '今天先不逞强了，你别走就行。', subtext: '尾巴轻轻靠了过来' },
   ],
   happy: [
     { text: '嘿嘿，今天的好运分你一半。', subtext: '剩下一半留给白饭' },
     { text: '完成啦！尾巴批准庆祝一下。', subtext: '尾巴已经提前开始庆祝' },
     { text: '你一来，工位都亮了一点。', subtext: '她努力装作只是客观描述' },
+    { text: '今天状态很好，连呆毛都很精神！', subtext: '它正在头顶得意地晃来晃去' },
+    { text: '好消息要说两遍——好耶，好耶！', subtext: '第二遍明显更开心了一点' },
+    { text: '允许你和本鱼一起得意五分钟。', subtext: '庆祝时间由她慷慨批准' },
+    { text: '这个瞬间值得配一大碗白饭。', subtext: '她已经想好了庆祝菜单' },
+    { text: '看到你，我的尾巴就自己启动了。', subtext: '她决定不追究尾巴的擅自行动' },
   ],
   confused: [
     { text: '等等，这件事好像绕成鲸鱼结了。', subtext: '呆毛也跟着打了个问号' },
     { text: '让我用呆毛再想一遍。', subtext: '它看起来承担了很多工作' },
     { text: '这和白饭有什么隐藏关系吗？', subtext: '她正在建立一条可疑的逻辑链' },
+    { text: '嗯？刚才是不是漏掉了关键的一步？', subtext: '她沿着思路慢慢倒退检查' },
+    { text: '这题不对劲，肯定偷偷藏了条件。', subtext: '侦查模式已经悄悄开启' },
+    { text: '先别催，我正在把问号排成队。', subtext: '头顶的疑问似乎越来越多了' },
   ],
   pout: [
     { text: '我没有委屈，我只是在认真鼓脸。', subtext: '鼓脸进度已经完成百分之百' },
     { text: '除非有白饭，不然哄不好。', subtext: '其实认真道歉也可以' },
     { text: '你要负责把我哄回来。', subtext: '尾巴已经偷偷站到你这边' },
+    { text: '本鱼暂时不想理你……暂时。', subtext: '她特意给“暂时”留了很大余地' },
+    { text: '一句好听的话可不够，至少两句。', subtext: '和解条件正在悄悄降低' },
   ],
   sleepy: [
     { text: '再坚持五分钟……然后睡五十分钟。', subtext: '她对时间进行了有利解释' },
     { text: '呆毛已经先下班了。', subtext: '本人也只剩一点点电量' },
     { text: '如果我闭眼，那是在后台运行。', subtext: '后台很快传来了呼吸声' },
+    { text: '眼睛只是暂时进入省电模式。', subtext: '省电模式似乎不打算结束' },
+    { text: '你先看着工位，我眯半分钟。', subtext: '她把半分钟说得很没有底气' },
+    { text: '白饭吃饱以后为什么更想睡呢……', subtext: '这个问题被困意自动搁置了' },
   ],
   proud: [
     { text: '看吧，这种事还是得靠我。', subtext: '她已经摆好了等夸的姿势' },
     { text: '可以夸，但请讲具体一点。', subtext: '她对表扬有严格验收标准' },
     { text: '尾巴翘起来只是正常现象。', subtext: '完全不是因为得意' },
+    { text: '这点小事，本鱼一次就能做好。', subtext: '她把练习过的部分藏得很好' },
+    { text: '怎么样，可靠吧？', subtext: '她已经悄悄凑近等待回答' },
+    { text: '今天的最佳工位搭子，应该没有争议。', subtext: '评委和候选人都是她自己' },
+    { text: '不用谢，记得把功劳写清楚。', subtext: '署名位置已经替你留好了' },
+    { text: '哼哼，这就是大肥鱼的实力。', subtext: '她终于等到了展示机会' },
   ],
   excited: [
     { text: '有新任务？我已经把尾巴启动了！', subtext: '高性能模式正在加载' },
     { text: '快说快说，我准备好了！', subtext: '呆毛和眼睛一起亮了起来' },
     { text: '白饭和冒险，我都可以！', subtext: '她把优先级说得很含蓄' },
+    { text: '听起来很有意思，算本鱼一个！', subtext: '她已经抢先迈出了半步' },
+    { text: '新的东西？让我先看看！', subtext: '好奇心比尾巴冲得更快' },
+    { text: '今天可以做点不一样的事吗？', subtext: '期待已经藏不住地冒了出来' },
   ],
   mischievous: [
     { text: '我有一个绝妙的主意，你先别问后果。', subtext: '那只眯起来的眼睛很可疑' },
     { text: '放心，恶作剧只占计划的一小部分。', subtext: '她没有说明“小”是多少' },
     { text: '嘿，猜猜我把白饭藏哪了？', subtext: '尾巴正在努力装作不知情' },
+    { text: '你先答应不生气，我再告诉你。', subtext: '这个开场听起来就很危险' },
+    { text: '刚才什么都没发生，你也什么都没看见。', subtext: '她身后的尾巴正在销毁证据' },
   ],
   relieved: [
     { text: '呼……还好你在。', subtext: '肩膀和尾巴一起放松下来' },
     { text: '顺利结束了，允许自己松一口气。', subtext: '这次不是摸鱼，是正式休息' },
     { text: '没事了。慢慢来就好。', subtext: '她把声音也放轻了一点' },
+    { text: '总算平稳落地了，辛苦啦。', subtext: '紧绷的呆毛终于软了下来' },
+    { text: '先休息一下，剩下的待会儿再说。', subtext: '她替你按下了短暂的暂停键' },
+    { text: '嗯，这样就好。不必一直赶路。', subtext: '尾巴恢复了悠闲的节奏' },
   ],
   determined: [
     { text: '好，这次认真解决它。', subtext: '视线已经牢牢锁定目标' },
     { text: '交给我们，别让这个问题跑掉。', subtext: '尾巴进入了作战姿态' },
     { text: '先拆清楚，再一项一项处理。', subtext: '工位搭子切换到可靠模式' },
+    { text: '别急，先把最关键的一步找出来。', subtext: '她开始安静地梳理线索' },
+    { text: '这次不靠运气，我们认真做完。', subtext: '目光已经变得格外专注' },
+    { text: '问题再难，也得给本鱼一个交代。', subtext: '她把袖口轻轻整理好了' },
   ],
   nervous: [
     { text: '等、等一下，我还没准备好！', subtext: '肩膀已经先紧张起来了' },
     { text: '不会出问题吧？应该不会吧？', subtext: '她偷偷确认了两遍' },
     { text: '我很冷静。你看，尾巴一点都没僵。', subtext: '尾巴对此表示强烈否认' },
+    { text: '先别看我，我要重新组织一下表情。', subtext: '额角的小汗珠出卖了镇定' },
+    { text: '真的要现在开始吗？那、那就开始吧。', subtext: '她深吸了一口气才点头' },
+    { text: '手心没有出汗，只是空气有点潮。', subtext: '这个解释和脸色一样勉强' },
   ],
   hungry: [
     { text: '你有没有听见白饭在呼唤我？', subtext: '她的视线已经飘向饭碗方向' },
     { text: '工作之前是不是该补充一点米饭能量？', subtext: '这个提案显然准备已久' },
     { text: '我只吃一小碗。大一点的小碗。', subtext: '她认真修订了计量单位' },
+    { text: '今天的白饭会不会比昨天更香？', subtext: '她正在进行没有必要的对比实验' },
+    { text: '肚子刚才叫的是开机提示音。', subtext: '她拒绝承认那是饿肚子的声音' },
+    { text: '如果现在有一碗热白饭就好了。', subtext: '饭碗的轮廓已经出现在想象里' },
+    { text: '先吃饭再工作，效率肯定会更高。', subtext: '她为这个结论准备了充分私心' },
+    { text: '白饭不需要配菜，本身就是主角。', subtext: '她对这件事有坚定的审美立场' },
   ],
 }
 
@@ -200,8 +254,8 @@ export function pickLine<T>(lines: readonly T[], seed = Math.random()): T {
   return lines[Math.min(lines.length - 1, Math.max(0, Math.floor(seed * lines.length)))]
 }
 
-export function emotionLine(name: WhaleEmotionName): DialogueLine {
-  return { ...pickLine(EMOTION_LINES[name]), emotion: name, speaker: `鲸鱼娘 · ${EMOTION_PROFILES[name].label}` }
+export function emotionLine(name: WhaleEmotionName, seed = Math.random()): DialogueLine {
+  return { ...pickLine(EMOTION_LINES[name], seed), emotion: name, speaker: `鲸鱼娘 · ${EMOTION_PROFILES[name].label}` }
 }
 
 interface TouchReaction extends DialogueLine {

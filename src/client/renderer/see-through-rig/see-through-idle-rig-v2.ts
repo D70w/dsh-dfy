@@ -1425,8 +1425,14 @@ export async function createSeeThroughIdleRig(canvas: HTMLCanvasElement, options
         drawSkinnedPart(context, parts['arm-right'], bones, armRightWeights, 10, 28, 0, 12, armRightDeformer)
       },
       shoes: () => {
-        drawPart(context, parts['shoe-left'], bone('legLeftLower'))
-        drawPart(context, parts['shoe-right'], bone('legRightLower'))
+        // Keep the soles visually grounded while the two lower-leg links
+        // catch up independently. A small ankle counter-rotation prevents
+        // the shoes from looking glued to a swinging shin, without locking
+        // them rigidly to the viewport.
+        const leftAnkleTilt = -(legLeftLowerFollow - stanceLeft * 0.18) * 0.34
+        const rightAnkleTilt = -(legRightLowerFollow - stanceRight * 0.14) * 0.34
+        drawPartRotatedAtPivot(context, parts['shoe-left'], bone('legLeftLower'), 560, 1144, leftAnkleTilt)
+        drawPartRotatedAtPivot(context, parts['shoe-right'], bone('legRightLower'), 716, 1144, rightAnkleTilt)
       },
       head: () => {
         drawDeformedPart(context, parts.face, headMatrix, headPitchAt, 8, 10)

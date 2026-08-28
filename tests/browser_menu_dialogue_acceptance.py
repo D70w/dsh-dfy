@@ -43,6 +43,26 @@ with sync_playwright() as playwright:
     assert "到光标附近" not in menu_text
     assert "回到当前位置" not in menu_text
     assert "摸摸她" in menu_text and "给她白饭" in menu_text
+    assert panel.locator("[data-whale-interaction-empty]").count() == 1
+    assert panel.locator("[data-whale-interaction-action]").count() == 4
+    panel.locator("[data-whale-interaction-action]").nth(3).click()
+    page.wait_for_function("element => element.dataset.open === 'false'", arg=panel.element_handle())
+    entry = page.locator("[data-whale-pet-entry]")
+    page.wait_for_function("element => element.dataset.whaleVideoAction !== 'none'", arg=entry.element_handle())
+    random_video = page.locator("[data-whale-action-video]")
+    page.wait_for_function("element => !element.paused && element.currentTime > 0", arg=random_video.element_handle())
+    assert page.locator("[data-whale-dialogue]").get_attribute("data-context") == "classic-performance"
+    random_video.evaluate("element => { element.playbackRate = 8 }")
+    page.wait_for_function("element => element.dataset.whaleVideoAction === 'none'", arg=entry.element_handle(), timeout=15_000)
+    toggle.click()
+    panel.get_by_role("tab", name="互动", exact=True).click()
+    panel.locator("[data-whale-interaction-action]").first.click()
+    page.wait_for_function("element => element.dataset.open === 'false'", arg=panel.element_handle())
+    toggle.click()
+    panel.get_by_role("tab", name="互动", exact=True).click()
+    assert panel.locator("[data-whale-interaction-record]").count() == 2
+    interaction_text = panel.locator("[data-whale-interaction-history]").inner_text()
+    assert "随机演出" in interaction_text and "摸摸她" in interaction_text
 
     header = panel.locator("[data-whale-menu-head]")
     header_box = header.bounding_box()
@@ -75,9 +95,12 @@ with sync_playwright() as playwright:
     page.wait_for_timeout(500)
     assert "curtsy.webm" in (video.get_attribute("src") or "")
     assert video.evaluate("element => element.currentTime") > 0
+    assert video.evaluate("element => !element.paused")
+    assert page.locator("[data-whale-rig-canvas]").get_attribute("data-whale-live2d-paused") == "true"
     page.screenshot(path=str(ARTIFACT_DIR / "dsh-dfy-curtsy-departure.png"), full_page=True)
     video.evaluate("element => { element.playbackRate = 4 }")
     page.wait_for_function("element => element.dataset.whaleVideoAction === 'none'", arg=page.locator("[data-whale-pet-entry]").element_handle(), timeout=15_000)
+    assert page.locator("[data-whale-rig-canvas]").get_attribute("data-whale-live2d-paused") == "false"
     page.screenshot(path=str(ARTIFACT_DIR / "dsh-dfy-curtsy-settled.png"), full_page=True)
 
     toggle.click()
@@ -91,6 +114,21 @@ with sync_playwright() as playwright:
 
     dialogue = page.locator("[data-whale-dialogue]")
     dialogue.wait_for(state="attached")
+    toggle.click()
+    panel.get_by_role("tab", name="对话", exact=True).click()
+    panel.get_by_role("button", name="打开输入框", exact=True).click()
+    composer = page.locator("[data-whale-chat-composer]")
+    page.wait_for_function("element => element.dataset.open === 'true'", arg=composer.element_handle())
+    composer.locator("input[aria-label='对话内容']").fill("今天想吃白饭")
+    composer.locator("input[aria-label='对话内容']").press("Enter")
+    page.wait_for_function("element => element.dataset.busy === 'false'", arg=composer.element_handle())
+    composer.locator("[data-whale-chat-history-toggle]").click()
+    page.wait_for_timeout(120)
+    assert composer.locator("[data-whale-chat-history-item]").count() >= 2
+    assert "今天想吃白饭" in composer.locator("[data-whale-chat-history-list]").inner_text()
+    composer.locator("[data-whale-chat-history-tabs] button").nth(1).click()
+    assert composer.locator("[data-whale-chat-memory-item]").count() >= 2
+    page.screenshot(path=str(ARTIFACT_DIR / "dsh-dfy-dialogue-memory-timeline.png"), full_page=True)
     page.locator("[data-whale-dialogue-hide]").click(force=True)
     assert dialogue.get_attribute("data-visible") == "false"
     assert page.locator("[data-whale-chat-composer]").get_attribute("data-open") == "false"

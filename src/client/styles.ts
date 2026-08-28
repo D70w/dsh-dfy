@@ -269,8 +269,25 @@ export const WHALE_STYLE = `
 .emotion-particle.gloom{font-size:0;color:#91a9c8;animation:whale-gloom-drift var(--fx-duration,1700ms) ease-in-out forwards}.emotion-particle.gloom::before{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:9px 0 0 currentColor,18px 0 0 currentColor;content:""}
 .emotion-particle.sleep{width:auto;height:auto;color:#c5e2ff;font-family:Georgia,"Times New Roman",serif;font-size:var(--fx-size,24px);font-weight:900;text-shadow:0 2px 0 #24488f,0 0 11px rgba(92,169,255,.86);animation:whale-sleep-drift var(--fx-duration,1900ms) ease-out forwards}
 .emotion-particle.relief{font-size:0;color:#a7f1e0;animation:whale-relief-breathe var(--fx-duration,1600ms) ease-out forwards}.emotion-particle.relief::before{width:22px;height:11px;border:3px solid currentColor;border-color:currentColor transparent transparent;border-radius:50%;content:""}
-.emotion-particle.rice-thought{font-size:0;border:2px solid #536fae;border-radius:50%;background:#fff;box-shadow:0 0 8px rgba(129,188,255,.52);animation:whale-rice-thought var(--fx-duration,1850ms) ease-out forwards}
-.emotion-particle.rice-dream{width:var(--fx-size,58px);height:calc(var(--fx-size,58px) * .84);font-size:0;border:3px solid #536fae;border-radius:48%;background:radial-gradient(ellipse at 50% 69%,#fffdf7 0 25%,#5f83cf 27% 43%,transparent 45%),#fff;box-shadow:0 3px 7px rgba(24,57,112,.3);animation:whale-rice-dream var(--fx-duration,2100ms) ease-in-out forwards}
+.emotion-particle.rice-dream-cluster{width:116px;height:106px;font-size:0;transform-origin:72% 54%;animation:whale-rice-dream-cluster var(--fx-duration,2300ms) cubic-bezier(.16,1,.3,1) forwards}
+.rice-dream-cluster .rice-thought{position:absolute;border:2px solid #7895d2;border-radius:50%;background:#fff;box-shadow:inset 2px 2px 0 rgba(255,255,255,.9),0 3px 8px rgba(54,91,160,.24)}
+.rice-dream-cluster .rice-thought::after{position:absolute;inset:32%;border-radius:50%;background:#dce9ff;content:""}
+.rice-dream-cluster .rice-thought-small{left:1px;top:70px;width:11px;height:11px}
+.rice-dream-cluster .rice-thought-medium{left:18px;top:45px;width:17px;height:17px}
+.rice-dream-cluster .rice-dream{position:absolute;right:0;top:0;width:76px;height:70px;filter:drop-shadow(0 7px 7px rgba(27,54,111,.25));transform-origin:50% 76%}
+.rice-dream-cluster .rice-dream svg{display:block;width:100%;height:100%;overflow:visible}
+.rice-bowl-shadow{fill:rgba(31,55,108,.18)}
+.rice-steam{stroke:#a9d9f0;stroke-width:3.2;filter:drop-shadow(0 1px 1px rgba(255,255,255,.8))}
+.rice-steam path{transform-box:fill-box;transform-origin:center bottom;animation:whale-rice-steam 1.15s ease-in-out infinite alternate}
+.rice-steam path:nth-child(2){animation-delay:-.38s}.rice-steam path:nth-child(3){animation-delay:-.72s}
+.rice-bowl-rim-back{fill:#dceaff;stroke:#365caa;stroke-width:2.7}
+.rice-mound{fill:#fffdf6;stroke:#647db3;stroke-width:2.3;stroke-linejoin:round}
+.rice-grains{fill:#e2d9c7;opacity:.9}
+.rice-bowl-body{stroke:#31559f;stroke-width:2.8;stroke-linejoin:round}
+.rice-bowl-rim-front{fill:#86a7e3;stroke:#31559f;stroke-width:2.3;stroke-linejoin:round}
+.rice-bowl-highlight{fill:none;stroke:rgba(235,245,255,.9);stroke-width:3.2;stroke-linecap:round}
+.rice-bowl-wave{fill:none;stroke:#e7f1ff;stroke-width:2.4;stroke-linecap:round}
+.rice-bowl-foot{fill:#4c70bb;stroke:#31559f;stroke-width:2;stroke-linejoin:round}
 @keyframes whale-dialogue-pop{0%{opacity:0;transform:translateY(12px) scale(.72)}68%{transform:translateY(-2px) scale(1.035)}100%{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes whale-menu-view-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 @keyframes whale-heart-rise{0%{opacity:0;transform:translate(-50%,10px) scale(.25)}18%{opacity:1;transform:translate(-50%,0) scale(1.08)}100%{opacity:0;transform:translate(calc(-50% + var(--fx-drift,0px)),-92px) scale(.72) rotate(14deg)}}
@@ -285,8 +302,8 @@ export const WHALE_STYLE = `
 @keyframes whale-gloom-drift{0%{opacity:0;transform:translate(-50%,-6px) scale(.7)}25%{opacity:.95;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(calc(-50% + var(--fx-drift,0px)),20px) scale(.85)}}
 @keyframes whale-sleep-drift{0%{opacity:0;transform:translate(-50%,12px) scale(.45)}18%{opacity:1;transform:translate(-50%,0) scale(.94)}100%{opacity:0;transform:translate(calc(-50% + 28px),-76px) scale(1.3) rotate(12deg)}}
 @keyframes whale-relief-breathe{0%{opacity:0;transform:translate(-50%,10px) scale(.55)}24%{opacity:1;transform:translate(-50%,-2px) scale(1.08)}100%{opacity:0;transform:translate(calc(-50% + var(--fx-drift,0px)),-66px) scale(.6)}}
-@keyframes whale-rice-thought{0%{opacity:0;transform:translate(-50%,8px) scale(.2)}22%{opacity:1;transform:translate(-50%,0) scale(1.12)}100%{opacity:0;transform:translate(-50%,-18px) scale(.72)}}
-@keyframes whale-rice-dream{0%{opacity:0;transform:translate(-50%,12px) scale(.28) rotate(-8deg)}20%{opacity:1;transform:translate(-50%,0) scale(1.08) rotate(2deg)}78%{opacity:1;transform:translate(-50%,-7px) scale(1.03)}100%{opacity:0;transform:translate(-50%,-20px) scale(.78) rotate(4deg)}}
+@keyframes whale-rice-dream-cluster{0%{opacity:0;filter:blur(2px);transform:translate(-50%,12px) scale(.55) rotate(-4deg)}18%{opacity:1;filter:blur(0);transform:translate(-50%,-2px) scale(1.04) rotate(1deg)}38%{transform:translate(-50%,0) scale(1) rotate(0)}76%{opacity:1;transform:translate(-50%,-4px) scale(1.018) rotate(-.7deg)}100%{opacity:0;filter:blur(.35px);transform:translate(-50%,-14px) scale(.88) rotate(2deg)}}
+@keyframes whale-rice-steam{from{opacity:.42;transform:translateY(2px) scaleY(.88) rotate(-3deg)}to{opacity:.95;transform:translateY(-3px) scaleY(1.08) rotate(3deg)}}
 @media (max-width:700px){[data-whale-dialogue]{max-width:calc(100vw - 20px)}[data-whale-menu-panel]{width:min(306px,calc(100vw - 16px))}[data-whale-chat-composer]{bottom:-66px}}
 @media (forced-colors:active){
   [data-whale-pet-hotspot]:focus-visible,[data-whale-pet-menu] button:focus-visible,[data-whale-pet-summon]:focus-visible{outline:2px solid Highlight;outline-offset:2px}
@@ -476,6 +493,12 @@ export const WHALE_STYLE = `
 [data-whale-emotion-grid]{gap:8px}
 [data-whale-emotion-grid] button{min-height:42px;font-size:11px}
 [data-whale-setting-row]{min-height:44px;color:#4c6596;font-size:12px}
+[data-whale-scale-control]{display:grid;gap:8px;margin:2px 0 12px;padding:12px;border:1px solid #ccd9eb;border-radius:12px;background:#f6f9ff}
+[data-whale-scale-heading]{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#3c5c96;font-size:12px;font-weight:800}
+[data-whale-scale-heading] output{min-width:46px;color:#294f93;font-size:13px;text-align:right}
+[data-whale-scale-control] input[type=range]{width:100%;height:22px;margin:0;accent-color:#315b9f;cursor:pointer}
+[data-whale-scale-control] input[type=range]:focus-visible{outline:2px solid rgba(49,91,159,.24);outline-offset:3px}
+[data-whale-scale-range]{display:flex;justify-content:space-between;color:#8293b0;font-size:9px;font-weight:650}
 [data-whale-setting-field]{gap:5px;margin-top:12px;color:#647ba5;font-size:11px}
 [data-whale-setting-field] input,[data-whale-setting-field] select{height:40px;padding:0 11px;border-radius:10px;font-size:12px}
 [data-whale-llm-settings]{margin-top:18px;border-top:1px solid #d7e1ef}
@@ -550,6 +573,30 @@ export const WHALE_STYLE = `
 [data-whale-chat-tools]{margin-left:0}
 [data-whale-chat-head] [data-whale-chat-tools] button{width:32px;height:32px;border-radius:10px;color:#6c80a8}
 [data-whale-chat-head] [data-whale-chat-tools] button:hover,[data-whale-chat-head] [data-whale-chat-tools] button:focus-visible{background:#e6edf9;color:#294f91}
+[data-whale-chat-head] [data-whale-chat-history-toggle] svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-width:1.7}
+[data-whale-chat-head] [data-whale-chat-history-toggle][aria-expanded=true]{background:#e4edfc;color:#2b5598}
+[data-whale-chat-history-panel]{margin:0 10px 8px;padding:9px;border:1px solid #d5e0ef;border-radius:12px;background:#f7faff;box-shadow:inset 0 1px 2px rgba(35,62,110,.03)}
+[data-whale-chat-history-tabs]{display:flex;align-items:center;gap:4px;margin-bottom:7px;border-bottom:1px solid #dce5f1}
+[data-whale-chat-history-tabs] button{min-height:28px;padding:0 8px;border:0;border-bottom:2px solid transparent;border-radius:6px 6px 0 0;background:transparent;color:#7c8eae;font-size:10px;font-weight:700;cursor:pointer}
+[data-whale-chat-history-tabs] button[data-active=true]{border-bottom-color:#4168aa;color:#315a9d;background:#edf3ff}
+[data-whale-chat-history-tabs] button small{margin-left:3px;color:#95a4bc;font-size:9px;font-weight:700}
+[data-whale-chat-history-tabs] [data-whale-chat-history-clear]{margin-left:auto;color:#9b7890;font-size:9px}
+[data-whale-chat-history-tabs] [data-whale-chat-history-clear]:hover{color:#995b76;background:#fff0f5}
+[data-whale-chat-history-empty],[data-whale-chat-memory-note]{margin:0;padding:12px 6px;color:#8999b2;font-size:10px;line-height:1.5;text-align:center}
+[data-whale-chat-history-list]{display:grid;gap:7px;max-height:172px;overflow:auto;padding:1px 2px 2px}
+[data-whale-chat-history-item]{display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:start;gap:6px;padding:7px 8px;border-radius:9px;background:#fff;color:#4d6594}
+[data-whale-chat-history-item]>span{display:inline-flex;min-height:19px;align-items:center;justify-content:center;border-radius:999px;background:#edf3ff;color:#4e70a7;font-size:9px;font-weight:800}
+[data-whale-chat-history-item][data-role=user]>span{background:#f1eefb;color:#7865a2}
+[data-whale-chat-history-item] p{min-width:0;margin:1px 0 0;overflow:hidden;font-size:10px;line-height:1.45;text-overflow:ellipsis;white-space:nowrap}
+[data-whale-chat-history-item] time,[data-whale-chat-memory-item] time{color:#9aa8bd;font-size:9px;white-space:nowrap}
+[data-whale-chat-memory-list]{display:grid;gap:7px;max-height:172px;overflow:auto;padding:1px 2px 2px}
+[data-whale-chat-memory-note]{padding:3px 4px 8px;text-align:left;color:#8294b0}
+[data-whale-chat-memory-item]{display:grid;grid-template-columns:12px minmax(0,1fr) auto;align-items:center;gap:7px;padding:7px 8px;border-radius:9px;background:#fff}
+[data-whale-chat-memory-item]>span{width:8px;height:8px;border-radius:50%;background:#6f91cb;box-shadow:0 0 0 3px #e5efff}
+[data-whale-chat-memory-item]>span[data-kind=personality]{background:#d39a62;box-shadow:0 0 0 3px #fff1df}
+[data-whale-chat-memory-item] strong,[data-whale-chat-memory-item] small{display:block}
+[data-whale-chat-memory-item] strong{color:#466497;font-size:10px;line-height:1.25}
+[data-whale-chat-memory-item] small{margin-top:2px;overflow:hidden;color:#8495b0;font-size:9px;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}
 [data-whale-chat-model]{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;padding:7px 12px 0;color:#7185aa;font-size:10px;font-weight:700}
 [data-whale-chat-model] select{box-sizing:border-box;width:100%;height:32px;padding:0 30px 0 10px;border:1px solid #c7d4e8;border-radius:10px;outline:0;background:#fff;color:#355487;font:11px "Microsoft YaHei UI","PingFang SC",sans-serif}
 [data-whale-chat-model] select:focus-visible{border-color:#5878b3;box-shadow:0 0 0 3px rgba(73,105,168,.13)}
@@ -565,4 +612,32 @@ export const WHALE_STYLE = `
 [data-whale-chat-entry] [data-whale-chat-send]:disabled{cursor:wait;opacity:.56;transform:none;box-shadow:none}
 [data-whale-chat-thinking]{display:block;font-size:14px;font-weight:800;letter-spacing:.12em;transform:translateY(-2px)}
 @media (max-width:430px){[data-whale-menu-toggle],[data-whale-menu-toggle][data-side=left]{left:calc(var(--menu-anchor-left) + var(--menu-anchor-width) - 114px)}[data-whale-chat-head]{gap:6px;padding-left:6px}[data-whale-chat-grip]{display:none}[data-whale-chat-avatar]{width:34px;height:34px;flex-basis:34px}[data-whale-chat-identity]{min-width:62px}[data-whale-chat-identity] small{display:none}[data-whale-chat-options] button{min-width:40px;padding:0 6px!important}[data-whale-chat-model]{grid-template-columns:1fr;gap:4px}[data-whale-chat-model]>span{display:none}}
+
+/* Interaction history reads like a small activity feed rather than a pair of
+   unrelated buttons. The timeline keeps the last few events scannable while
+   the two action rows remain immediately executable. */
+[data-whale-interaction-history]{position:relative;display:grid;margin:0 -4px 14px;border-top:1px solid #dfe7f2}
+[data-whale-interaction-history]::before{position:absolute;top:16px;bottom:16px;left:17px;width:1px;background:#d9e4f2;content:""}
+[data-whale-interaction-empty]{padding:14px 8px;color:#7a8eaf;font-size:11px;line-height:1.5;text-align:center}
+[data-whale-interaction-record]{position:relative;z-index:1;display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:9px;min-height:56px;padding:7px 7px;border-bottom:1px solid #e5ebf4;background:#f9fbff}
+[data-whale-interaction-record]>span:nth-child(2){min-width:0}
+[data-whale-interaction-record] strong,[data-whale-interaction-record] small{display:block}
+[data-whale-interaction-record] strong{color:#35558f;font-size:12px;line-height:1.25}
+[data-whale-interaction-record] small{margin-top:3px;overflow:hidden;color:#8293b0;font-size:10px;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}
+[data-whale-interaction-record] time{color:#8a9ab6;font-size:10px;white-space:nowrap}
+[data-whale-interaction-icon]{display:grid;width:30px;height:30px;place-items:center;border:1px solid #c9d8ed;border-radius:50%;background:#fff;color:#4d70aa}
+[data-whale-interaction-icon][data-kind=feed]{color:#7690bf;background:#f5f8fe}
+[data-whale-interaction-icon][data-kind=talk]{color:#7f6cae;background:#f7f3ff}
+[data-whale-interaction-icon][data-kind=show]{color:#c09057;background:#fff8ec}
+[data-whale-interaction-icon] svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.7}
+[data-whale-interaction-history-title]{margin:18px 0 7px;color:#536e9f;font-size:11px;font-weight:800;letter-spacing:.03em}
+[data-whale-interaction-actions]{display:grid;gap:7px}
+[data-whale-interaction-action]{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:9px;width:100%;min-height:56px;padding:8px 10px;border:1px solid #cbd8e9;border-radius:12px;background:#fff;color:#3f5d95;text-align:left;cursor:pointer;transition:border-color .16s ease,background .16s ease,transform .16s ease,box-shadow .16s ease}
+[data-whale-interaction-action] span:nth-child(2){min-width:0}
+[data-whale-interaction-action] strong,[data-whale-interaction-action] small{display:block}
+[data-whale-interaction-action] strong{color:#34558f;font-size:12px;line-height:1.25}
+[data-whale-interaction-action] small{margin-top:3px;color:#8293b0;font-size:10px;line-height:1.3}
+[data-whale-interaction-action] em{padding:3px 7px;border-radius:999px;background:#edf3ff;color:#5d78a8;font-size:9px;font-style:normal;white-space:nowrap}
+[data-whale-interaction-action]:hover,[data-whale-interaction-action]:focus-visible{border-color:#89a6d4;background:#f4f8ff;box-shadow:0 4px 12px rgba(45,82,145,.1);transform:translateY(-1px);outline:2px solid rgba(83,109,168,.14);outline-offset:1px}
+[data-whale-interaction-action]:active{transform:translateY(0);box-shadow:none}
 `

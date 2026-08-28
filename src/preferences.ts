@@ -2,6 +2,13 @@
 export type WhaleAnimationQuality = 'auto' | 'high' | 'economy'
 export type WhaleBillingPriceProfile = 'deepseek-v4-flash' | 'deepseek-v4-pro'
 
+export const WHALE_SCALE = Object.freeze({ min: .75, max: 1.4, step: .05 })
+
+export function clampWhaleScale(value: number): number {
+  if (!Number.isFinite(value)) return 1
+  return Math.min(WHALE_SCALE.max, Math.max(WHALE_SCALE.min, value))
+}
+
 export interface WhalePreferences {
   'general.enabled': boolean
   'general.visible': boolean

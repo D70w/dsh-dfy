@@ -6,10 +6,20 @@ import { DEFAULT_PREFERENCES } from '../preferences.ts'
 import type { WhaleActivityProjection } from '../activity/types.ts'
 import { toPetView } from '../domain/commands.ts'
 import { createPetSave } from '../domain/pet-save.ts'
-import { WhalePet, type WhalePetProps } from './WhalePet.tsx'
+import { WhalePet, effectivePetScale, type WhalePetProps } from './WhalePet.tsx'
 
 const container = document.createElement('div')
 let root: Root
+
+describe('WhalePet scale fitting', () => {
+  it('keeps the requested size on a roomy desktop', () => {
+    expect(effectivePetScale(1.4, { width: 1440, height: 900 })).toBe(1.4)
+  })
+
+  it('fits an enlarged pet inside a narrow viewport', () => {
+    expect(effectivePetScale(1.4, { width: 360, height: 640 })).toBeCloseTo(336 / 350)
+  })
+})
 
 function props(activity: WhaleActivityProjection | undefined): WhalePetProps {
   const sessionId = 'session-1' as never

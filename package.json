@@ -2,6 +2,24 @@
   "name": "dsh-dfy",
   "description": "A low-interruption Big Fat Fish companion plugin for the DeepSeek Harness web workspace",
   "version": "0.1.3",
+  "keywords": [
+    "deepseek",
+    "dsh",
+    "dsh-plugin",
+    "desktop-pet",
+    "live2d"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/D70w/dsh-dfy.git"
+  },
+  "homepage": "https://github.com/D70w/dsh-dfy#readme",
+  "bugs": {
+    "url": "https://github.com/D70w/dsh-dfy/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "packageManager": "pnpm@11.7.0",
   "engines": {

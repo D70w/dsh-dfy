@@ -1,7 +1,7 @@
 import type {
   PropsLocale, PropsRuntime, PropsStore,
 } from '@deepseek-ai/dsh-client-ui-slots'
-import type { WhalePreferences } from '../preferences.ts'
+import { WHALE_SCALE, type WhalePreferences } from '../preferences.ts'
 import type { createWhaleStore } from './store.ts'
 
 export type WhaleSettingsProps =
@@ -117,9 +117,9 @@ export function WhaleSettings({
         <Setting label={`${t('settings.scale')} · ${Math.round(value['animation.scale'] * 100)}%`}>
           <input
             type="range"
-            min="0.75"
-            max="1.4"
-            step="0.05"
+            min={WHALE_SCALE.min}
+            max={WHALE_SCALE.max}
+            step={WHALE_SCALE.step}
             value={value['animation.scale']}
             onChange={(event) => {
               actions.setPreference('animation.scale', Number(event.currentTarget.value))

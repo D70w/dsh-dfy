@@ -4,6 +4,7 @@ import {
   type IdlePerformance, type WhaleEmotionName,
 } from './emotions.ts'
 import { WHALE_IDLE_ASSET_URL } from '../asset-paths.ts'
+import { WHALE_SCALE, clampWhaleScale } from '../preferences.ts'
 import { STATIONARY_ACTIONS, type StationaryAction } from './stationary-actions.ts'
 
 export interface WhaleLlmConfig {
@@ -42,11 +43,13 @@ interface WhaleMenuPanelProps {
   autonomyEnabled: boolean
   positionLocked: boolean
   reducedMotion: boolean
+  scale: number
   onToggle(): void
   onClose(): void
   onDialogueOpen(): void
   onEmotion(name: WhaleEmotionName): void
   onIdlePerformance(performance: IdlePerformance): void
+  onRandomStationaryAction(): void
   onStationaryAction(action: StationaryAction): void
   onLlmChange(next: WhaleLlmConfig): void
   onSaveLlm(): void
@@ -56,6 +59,7 @@ interface WhaleMenuPanelProps {
   onShowBalance(): void
   onOpenLedger(): void
   onPreference(field: 'bubble' | 'autonomy' | 'position' | 'reduced', value: boolean): void
+  onScaleChange(value: number): void
   onPet(): void
   onFeed(): void
   onReset(): void
@@ -64,6 +68,21 @@ interface WhaleMenuPanelProps {
 }
 
 const VIEWPORT_MARGIN = 12
+
+type InteractionKind = 'pet' | 'feed' | 'perform'
+
+interface InteractionRecord {
+  id: number
+  kind: InteractionKind
+  at: number
+}
+
+function interactionTimeLabel(at: number, now = Date.now()): string {
+  const elapsed = Math.max(0, now - at)
+  if (elapsed < 60_000) return '刚刚'
+  if (elapsed < 3_600_000) return `${Math.max(1, Math.floor(elapsed / 60_000))}分钟前`
+  return new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(at)
+}
 
 function CloseIcon(): React.JSX.Element {
   return (
@@ -98,6 +117,7 @@ export function WhaleMenuPanel(props: WhaleMenuPanelProps): React.JSX.Element {
   const [balanceRefreshState, setBalanceRefreshState] = useState<'idle' | 'refreshing' | 'done'>('idle')
   const [offset, setOffset] = useState<PanelOffset>({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
+  const [interactionHistory, setInteractionHistory] = useState<InteractionRecord[]>([])
   const panelRef = useRef<HTMLElement>(null)
   const previousSide = useRef(props.side)
   const drag = useRef<{
@@ -157,6 +177,13 @@ export function WhaleMenuPanel(props: WhaleMenuPanelProps): React.JSX.Element {
     '--menu-x': `${offset.x}px`,
     '--menu-y': `${offset.y}px`,
   } as React.CSSProperties
+
+  const recordInteraction = (kind: InteractionKind): void => {
+    setInteractionHistory(current => [
+      { id: Date.now(), kind, at: Date.now() },
+      ...current,
+    ].slice(0, 5))
+  }
 
   return (
     <>
@@ -247,10 +274,42 @@ export function WhaleMenuPanel(props: WhaleMenuPanelProps): React.JSX.Element {
         </nav>
 
         <div data-whale-menu-view data-active={tab === 'interact' ? 'true' : 'false'}>
-          <h3>陪她玩一会儿</h3><p>这里只保留当前稳定可用的互动。</p>
-          <div data-whale-menu-actions data-compact="true">
-            <button type="button" onClick={props.onPet}>摸摸她</button>
-            <button type="button" onClick={props.onFeed}>给她白饭</button>
+          <h3>陪她玩一会儿</h3><p>选择一种互动，记录会自动排在下面。</p>
+          <div data-whale-interaction-actions>
+            <button data-whale-interaction-action type="button" onClick={() => { recordInteraction('pet'); props.onPet() }}>
+              <span data-whale-interaction-icon data-kind="pet" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7.4 12.3c-1.6-1.5-2.1-3.6-.9-4.8 1.2-1.2 3.2-.8 4.5.7L12 9.3l1-1.1c1.3-1.5 3.3-1.9 4.5-.7 1.2 1.2.7 3.3-.9 4.8L12 17.2l-4.6-4.9Z" /></svg></span>
+              <span><strong>摸摸她</strong><small>轻轻碰一下，看看她怎么回应</small></span><em>互动</em>
+            </button>
+            <button data-whale-interaction-action type="button" onClick={() => { recordInteraction('feed'); props.onFeed() }}>
+              <span data-whale-interaction-icon data-kind="feed" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 5.5h10v13H7zM9.5 8.5h5M9.5 11.5h5M9.5 14.5h3" /></svg></span>
+              <span><strong>给她白饭</strong><small>补充一点她最喜欢的白饭</small></span><em>投喂</em>
+            </button>
+            <button data-whale-interaction-action type="button" onClick={props.onDialogueOpen}>
+              <span data-whale-interaction-icon data-kind="talk" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 6.5h14v9H10l-4 3v-12Z" /></svg></span>
+              <span><strong>和她说话</strong><small>打开输入框，聊聊今天的事</small></span><em>对话</em>
+            </button>
+            <button data-whale-interaction-action type="button" onClick={() => { recordInteraction('perform'); props.onRandomStationaryAction() }}>
+              <span data-whale-interaction-icon data-kind="show" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 4 1.9 5.1L19 11l-5.1 1.9L12 18l-1.9-5.1L5 11l5.1-1.9L12 4Z" /></svg></span>
+              <span><strong>让她表演</strong><small>随机播放一段经典动作</small></span><em>随机</em>
+            </button>
+          </div>
+          <h4 data-whale-interaction-history-title>最近互动</h4>
+          <div data-whale-interaction-history aria-live="polite">
+            {interactionHistory.length === 0 ? (
+              <div data-whale-interaction-empty>还没有互动记录，先和她打个招呼吧。</div>
+            ) : interactionHistory.map(record => (
+              <div data-whale-interaction-record key={record.id}>
+                <span data-whale-interaction-icon data-kind={record.kind === 'perform' ? 'show' : record.kind} aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d={record.kind === 'pet'
+                    ? 'M7.4 12.3c-1.6-1.5-2.1-3.6-.9-4.8 1.2-1.2 3.2-.8 4.5.7L12 9.3l1-1.1c1.3-1.5 3.3-1.9 4.5-.7 1.2 1.2.7 3.3-.9 4.8L12 17.2l-4.6-4.9Z'
+                    : record.kind === 'feed'
+                      ? 'M7 5.5h10v13H7zM9.5 8.5h5M9.5 11.5h5M9.5 14.5h3'
+                      : 'm12 4 1.9 5.1L19 11l-5.1 1.9L12 18l-1.9-5.1L5 11l5.1-1.9L12 4Z'} /></svg>
+                </span>
+                <span><strong>{record.kind === 'pet' ? '摸摸她' : record.kind === 'feed' ? '给她白饭' : '随机演出'}</strong><small>{record.kind === 'pet' ? '她轻轻回弹了一下' : record.kind === 'feed' ? '白饭能量补充成功' : '她随机挑了一段拿手动作'}</small></span>
+                <time dateTime={new Date(record.at).toISOString()}>{interactionTimeLabel(record.at)}</time>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -343,6 +402,23 @@ export function WhaleMenuPanel(props: WhaleMenuPanelProps): React.JSX.Element {
 
         <div data-whale-menu-view data-active={tab === 'settings' ? 'true' : 'false'}>
           <h3>桌宠设置</h3><p>常用开关在这里，完整配置仍由 DSH 管理。</p>
+          <div data-whale-scale-control>
+            <div data-whale-scale-heading>
+              <label htmlFor="whale-pet-scale">桌宠大小</label>
+              <output htmlFor="whale-pet-scale">{Math.round(clampWhaleScale(props.scale) * 100)}%</output>
+            </div>
+            <input
+              id="whale-pet-scale"
+              type="range"
+              min={WHALE_SCALE.min}
+              max={WHALE_SCALE.max}
+              step={WHALE_SCALE.step}
+              value={clampWhaleScale(props.scale)}
+              aria-label="调整桌宠大小"
+              onChange={event => props.onScaleChange(Number(event.currentTarget.value))}
+            />
+            <div data-whale-scale-range aria-hidden="true"><span>小巧</span><span>标准</span><span>更大</span></div>
+          </div>
           <label data-whale-setting-row>显示头顶气泡<input type="checkbox" checked={props.bubbleEnabled} onChange={event => props.onPreference('bubble', event.currentTarget.checked)} /></label>
           <label data-whale-setting-row>自动漫游<input type="checkbox" checked={props.autonomyEnabled} onChange={event => props.onPreference('autonomy', event.currentTarget.checked)} /></label>
           <label data-whale-setting-row>固定当前位置<input type="checkbox" checked={props.positionLocked} onChange={event => props.onPreference('position', event.currentTarget.checked)} /></label>

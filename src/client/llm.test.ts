@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fetchLlmModels, parseStructuredLlmReply, persistLlmConfig, probeLlm, WHALE_LLM_SYSTEM_PROMPT } from './llm.ts'
+import { fetchLlmModels, llmContentText, parseStructuredLlmReply, persistLlmConfig, probeLlm, WHALE_LLM_SYSTEM_PROMPT } from './llm.ts'
 
 describe('parseStructuredLlmReply', () => {
   it('keeps the character persona and the complete emotion contract in the prompt', () => {
@@ -20,10 +20,22 @@ describe('parseStructuredLlmReply', () => {
       .toEqual({ reply: '吃饭啦', emotion: 'hungry' })
   })
 
-  it('rejects malformed JSON, missing replies, and unknown emotions', () => {
-    expect(parseStructuredLlmReply('just text')).toBeUndefined()
+  it('keeps plain text and ignores an unknown emotion instead of discarding the reply', () => {
+    expect(parseStructuredLlmReply('just text')).toEqual({ reply: 'just text' })
     expect(parseStructuredLlmReply('{"emotion":"shy"}')).toBeUndefined()
-    expect(parseStructuredLlmReply('{"reply":"嗯","emotion":"party"}')).toBeUndefined()
+    expect(parseStructuredLlmReply('{"reply":"嗯","emotion":"party"}')).toEqual({ reply: '嗯', emotion: undefined })
+  })
+
+  it('accepts a JSON reply surrounded by provider commentary', () => {
+    expect(parseStructuredLlmReply('好的，给你回复：\n```json\n{"reply":"吃饭啦","emotion":"hungry"}\n```\n希望你喜欢。'))
+      .toEqual({ reply: '吃饭啦', emotion: 'hungry' })
+  })
+
+  it('accepts common content block arrays from compatible gateways', () => {
+    const content = [{ type: 'text', text: '你好呀' }, { type: 'text', text: '，今天也要加油。' }]
+    expect(llmContentText(content)).toBe('你好呀，今天也要加油。')
+    expect(parseStructuredLlmReply([{ type: 'text', text: '{"reply":"收到啦"}' }]))
+      .toEqual({ reply: '收到啦', emotion: undefined })
   })
 
   it('allows a reply without an emotion', () => {
