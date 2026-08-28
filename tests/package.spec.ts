@@ -9,6 +9,7 @@ const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.
   files: string[]
   dependencies?: Record<string, string>
   peerDependencies?: Record<string, string>
+  peerDependenciesMeta?: Record<string, { optional?: boolean }>
   devDependencies?: Record<string, string>
 }
 
@@ -41,11 +42,15 @@ describe('DSH package contract', () => {
     expect(manifest.dependencies).toEqual({ zod: '^4.4.3' })
     expect(manifest.peerDependencies).toMatchObject({
       '@deepseek-ai/cordis': '^4.0.1',
-      '@deepseek-ai/dsh-client-runtime': '>=0.1.0-rc.5 <0.1.0-rc.8',
-      '@deepseek-ai/dsh-session-projection': '>=0.1.0-rc.5 <0.1.0-rc.8',
-      '@deepseek-ai/dsh-host-webserver': '>=0.1.0-rc.5 <0.1.0-rc.8',
-      '@deepseek-ai/dsh-storage-domain': '>=0.1.0-rc.5 <0.1.0-rc.8',
+      '@deepseek-ai/dsh-client-runtime': '>=0.1.0-rc.5 <0.2.0',
+      '@deepseek-ai/dsh-session-projection': '>=0.1.0-rc.5 <0.2.0',
+      '@deepseek-ai/dsh-host-webserver': '>=0.1.0-rc.5 <0.2.0',
+      '@deepseek-ai/dsh-storage-domain': '>=0.1.0-rc.5 <0.2.0',
     })
+    for (const name of Object.keys(manifest.peerDependencies ?? {})) {
+      if (!name.startsWith('@deepseek-ai/dsh-')) continue
+      expect(manifest.peerDependenciesMeta?.[name]?.optional).toBe(true)
+    }
     expect(manifest.files.some(file => file.endsWith('.map'))).toBe(false)
   })
 

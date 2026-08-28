@@ -26,7 +26,7 @@ with sync_playwright() as playwright:
     page = browser.new_page(viewport={"width": 1440, "height": 900})
     page_errors: list[str] = []
     page.on("pageerror", lambda error: page_errors.append(str(error)))
-    page.goto(f"{BASE_URL}/?whale-plugin=0.1.3-menu-adaptive", wait_until="networkidle")
+    page.goto(f"{BASE_URL}/?whale-plugin=0.1.4-latest-dsh", wait_until="networkidle")
     page.locator("[data-whale-pet-entry]").wait_for(state="attached")
 
     toggle = page.locator("[data-whale-menu-toggle]")
@@ -45,6 +45,22 @@ with sync_playwright() as playwright:
     assert "摸摸她" in menu_text and "给她白饭" in menu_text
     assert panel.locator("[data-whale-interaction-empty]").count() == 1
     assert panel.locator("[data-whale-interaction-action]").count() == 4
+
+    panel.get_by_role("tab", name="设置", exact=True).click()
+    scale = panel.locator("input[aria-label='调整桌宠大小']")
+    original_scale = scale.input_value()
+    stage = page.locator("[data-whale-pet-stage]")
+    scale.evaluate("element => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(element, '1'); element.dispatchEvent(new Event('input', { bubbles: true })); element.dispatchEvent(new Event('change', { bubbles: true })) }")
+    page.wait_for_timeout(120)
+    original_stage = stage.bounding_box()
+    assert original_stage is not None
+    scale.evaluate("element => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(element, '1.25'); element.dispatchEvent(new Event('input', { bubbles: true })); element.dispatchEvent(new Event('change', { bubbles: true })) }")
+    page.wait_for_timeout(120)
+    scaled_stage = stage.bounding_box()
+    assert scaled_stage is not None and scaled_stage["width"] > original_stage["width"] * 1.15
+    assert panel.locator("[data-whale-scale-heading] output").inner_text() == "125%"
+    scale.evaluate("(element, value) => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(element, value); element.dispatchEvent(new Event('input', { bubbles: true })); element.dispatchEvent(new Event('change', { bubbles: true })) }", original_scale)
+    panel.get_by_role("tab", name="互动", exact=True).click()
     panel.locator("[data-whale-interaction-action]").nth(3).click()
     page.wait_for_function("element => element.dataset.open === 'false'", arg=panel.element_handle())
     entry = page.locator("[data-whale-pet-entry]")
@@ -160,6 +176,7 @@ with sync_playwright() as playwright:
         "dragged": dragged,
         "narrow": narrow,
         "dialogueClosed": dialogue_closed,
+        "scaleControl": "125%",
         "clickEmotions": click_emotions,
         "pageErrors": page_errors,
     }, ensure_ascii=False, indent=2))
