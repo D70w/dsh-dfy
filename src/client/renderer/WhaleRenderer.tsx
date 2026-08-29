@@ -6,6 +6,7 @@ import {
 } from '../../asset-paths.ts'
 import type { AutonomyEpisode } from '../../autonomy.ts'
 import { phaseDuration } from '../../autonomy.ts'
+import type { WhaleToolKind, WhaleWorkReaction } from '../../activity/types.ts'
 import { fallbackStateFor, type WhaleAction } from '../../behavior.ts'
 import type { WhaleAnimationQuality } from '../../preferences.ts'
 import { WhaleAvatar } from '../WhaleAvatar.tsx'
@@ -115,10 +116,48 @@ function actionExpression(action: WhaleAction): ApprovedExpression {
   return 'neutral'
 }
 
+export function workReactionEmotion(reaction: WhaleWorkReaction): ApprovedEmotion | undefined {
+  if (reaction === 'completed') return 'workSuccess'
+  if (reaction === 'error') return 'workError'
+  return undefined
+}
+
 function actionGesture(action: WhaleAction): Exclude<ApprovedGesture, 'none'> | undefined {
   if (action === 'feeding') return 'nod'
+  if (action === 'working') return 'nod'
+  if (action === 'tool') return 'tilt'
+  if (action === 'smug') return 'wave'
   if (action === 'denying') return 'tilt'
   return undefined
+}
+
+export interface WorkToolMotion {
+  gesture: Exclude<ApprovedGesture, 'none'>
+  gestureSpeed: number
+  cadenceMs: number
+  emotion: ApprovedEmotion
+}
+
+export function workToolMotion(kind: WhaleToolKind): WorkToolMotion {
+  switch (kind) {
+    case 'read': return { gesture: 'nod', gestureSpeed: 0.76, cadenceMs: 5_200, emotion: 'determined' }
+    case 'search': return { gesture: 'tilt', gestureSpeed: 0.72, cadenceMs: 4_400, emotion: 'confused' }
+    case 'command': return { gesture: 'nod', gestureSpeed: 1.12, cadenceMs: 3_300, emotion: 'determined' }
+    case 'write': return { gesture: 'nod', gestureSpeed: 0.94, cadenceMs: 4_000, emotion: 'determined' }
+    case 'none':
+    case 'other': return { gesture: 'tilt', gestureSpeed: 0.88, cadenceMs: 3_800, emotion: 'determined' }
+  }
+}
+
+export function resultSafeGesture(
+  action: WhaleAction,
+  workReaction: WhaleWorkReaction,
+): Exclude<ApprovedGesture, 'none'> | undefined {
+  // The generic tilt gesture contains a curious smile, mouth opening and
+  // blush. Letting it continue into a failed work result made the apologetic
+  // face look like a smirk, so failure deliberately settles without it.
+  if (workReaction === 'error') return undefined
+  return actionGesture(action)
 }
 
 function stationaryVideo(action: WhaleAction): string | undefined {
@@ -131,9 +170,10 @@ export function resolveActionVideo(
   reducedMotion: boolean,
   action: WhaleAction,
   stationaryAction?: StationaryActionCommand,
+  suppressAutomaticVideo = false,
 ): string | undefined {
   return stationaryAction === undefined
-    ? reducedMotion ? undefined : stationaryVideo(action)
+    ? reducedMotion || suppressAutomaticVideo ? undefined : stationaryVideo(action)
       : whaleActionUrl(stationaryAction.file)
 }
 
@@ -188,6 +228,12 @@ export interface WhaleRendererProps {
     blushLevel: number
     blushHoldMs: number
   }>
+  /** Keep state-driven reactions on the realtime puppet; manual videos remain available. */
+  suppressAutomaticVideo?: boolean
+  /** Quiet, renderer-only result acting; deliberately separate from menu emotion FX. */
+  workReaction?: WhaleWorkReaction
+  /** Privacy-safe Host classification used to vary realtime work acting. */
+  workToolKind?: WhaleToolKind
   stationaryAction?: StationaryActionCommand
   onStationaryActionStart?(): void
   onStationaryActionEnd?(): void
@@ -199,7 +245,9 @@ export interface WhaleRendererProps {
  */
 export function WhaleRenderer({
   action, autonomy, reducedMotion, quality, secondaryMotion,
-  motionIntensity = 2, emotion, petReaction, stationaryAction, onStationaryActionStart, onStationaryActionEnd,
+  motionIntensity = 2, emotion, petReaction, suppressAutomaticVideo = false,
+  workReaction = 'none', workToolKind = 'none',
+  stationaryAction, onStationaryActionStart, onStationaryActionEnd,
 }: WhaleRendererProps): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const controllerRef = useRef<ApprovedIdleRigController>()
@@ -218,7 +266,7 @@ export function WhaleRenderer({
   // action selected explicitly from the menu must still play: otherwise the
   // click appears to do nothing and the selected performance is immediately
   // indistinguishable from idle.
-  const actionVideo = resolveActionVideo(reducedMotion, action, stationaryAction)
+  const actionVideo = resolveActionVideo(reducedMotion, action, stationaryAction, suppressAutomaticVideo)
   const videoSource = movement === undefined ? actionVideo : movementSource(movement)
   const performanceName = movement === undefined
     ? actionVideo === undefined ? 'idle-puppet' : `action-${stationaryAction?.action ?? action}`
@@ -239,10 +287,12 @@ export function WhaleRenderer({
       if (!mounted) { controller.dispose(); return }
       controllerRef.current = controller
       controller.setGrabbed(grabActive.current)
-      controller.setExpression(actionExpression(action))
+      controller.setExpression(workReaction === 'none' ? actionExpression(action) : 'neutral')
       controller.setSecondaryMotion(secondaryMotion && !reducedMotion)
       controller.setMotionIntensity(motionIntensity)
-      if (emotion !== undefined) controller.playEmotion(emotion.name, emotion.durationMs)
+      const resultEmotion = workReactionEmotion(workReaction)
+      if (resultEmotion !== undefined) controller.playEmotion(resultEmotion, workReaction === 'completed' ? 2_200 : 2_300)
+      else if (emotion !== undefined) controller.playEmotion(emotion.name, emotion.durationMs)
       if (petReaction !== undefined) {
         controller.triggerPetReaction(petReaction.xRatio)
         controller.setAffectionBlush(petReaction.blushLevel, petReaction.blushHoldMs)
@@ -266,11 +316,24 @@ export function WhaleRenderer({
   useEffect(() => {
     const controller = controllerRef.current
     if (controller === undefined) return
-    controller.setExpression(actionExpression(action))
+    controller.setExpression(workReaction === 'none' ? actionExpression(action) : 'neutral')
     controller.stopGesture()
-    const gesture = actionGesture(action)
+    const toolMotion = action === 'tool' ? workToolMotion(workToolKind) : undefined
+    const gesture = toolMotion?.gesture ?? resultSafeGesture(action, workReaction)
+    controller.setGestureSpeed(toolMotion?.gestureSpeed ?? (action === 'working' ? 0.72 : 1))
     if (gesture !== undefined && actionVideo === undefined) controller.playGesture(gesture)
-  }, [action, actionVideo])
+    if (gesture === undefined || actionVideo !== undefined || reducedMotion
+      || (action !== 'working' && action !== 'tool')) return undefined
+
+    // Active work is a held state, while the approved gestures are finite
+    // phrases. Replay them at different cadences so thinking reads as a slow,
+    // deliberate nod and tool work as a quicker inspection beat.
+    const interval = window.setInterval(() => {
+      controller.stopGesture()
+      controller.playGesture(gesture)
+    }, toolMotion?.cadenceMs ?? 5_600)
+    return () => window.clearInterval(interval)
+  }, [action, actionVideo, reducedMotion, status, workReaction, workToolKind])
 
   useEffect(() => { controllerRef.current?.setReducedMotion(reducedMotion) }, [reducedMotion])
   useEffect(() => { controllerRef.current?.setSecondaryMotion(secondaryMotion && !reducedMotion) }, [reducedMotion, secondaryMotion])
@@ -278,6 +341,12 @@ export function WhaleRenderer({
   useEffect(() => {
     if (emotion !== undefined) controllerRef.current?.playEmotion(emotion.name, emotion.durationMs)
   }, [emotion?.id])
+  useEffect(() => {
+    const resultEmotion = workReactionEmotion(workReaction)
+    if (resultEmotion !== undefined) {
+      controllerRef.current?.playEmotion(resultEmotion, workReaction === 'completed' ? 2_200 : 2_300)
+    }
+  }, [workReaction])
   useEffect(() => {
     if (petReaction === undefined) return
     controllerRef.current?.triggerPetReaction(petReaction.xRatio)
@@ -419,6 +488,10 @@ export function WhaleRenderer({
       data-whale-engine="approved-desktop-runtime"
       data-whale-animation-quality={profile.quality}
       data-whale-performance={performanceName}
+      data-whale-work-reaction={workReaction}
+      data-whale-tool-kind={workToolKind}
+      data-whale-result-emotion={workReactionEmotion(workReaction) ?? 'none'}
+      data-whale-result-gesture={resultSafeGesture(action, workReaction) ?? 'none'}
     >
       <span data-whale-rig-layer>
         <canvas

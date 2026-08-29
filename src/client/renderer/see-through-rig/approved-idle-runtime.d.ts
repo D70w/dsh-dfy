@@ -4,6 +4,7 @@ export type ApprovedEmotion =
   | 'neutral' | 'love' | 'shy' | 'angry' | 'surprise' | 'sad' | 'happy'
   | 'confused' | 'pout' | 'sleepy' | 'proud' | 'excited' | 'mischievous'
   | 'relieved' | 'determined' | 'nervous' | 'hungry'
+  | 'workSuccess' | 'workError'
 
 export interface ApprovedIdleRigOptions {
   assetBaseUrl: string
@@ -50,3 +51,11 @@ export function createSeeThroughIdleRig(
 ): Promise<ApprovedIdleRigController>
 
 export const seeThroughBoneOptions: ReadonlyArray<Readonly<{ id: string; label: string }>>
+
+export function resolveEmotionFaceLayerPlan(
+  emotionName: string,
+  pose: Readonly<{ active: boolean; weight: number }>,
+): Readonly<{
+  eye: 'neutral' | 'authored' | 'deformed' | 'squint'
+  mouth: 'neutral' | 'emotion'
+}>

@@ -1,7 +1,7 @@
 {
   "name": "dsh-dfy",
   "description": "A low-interruption Big Fat Fish companion plugin for the DeepSeek Harness web workspace",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "keywords": [
     "deepseek",
     "dsh",
@@ -76,6 +76,7 @@
     "cordis.patch.yml",
     "README.md",
     "README.en.md",
+    "docs/media/readme/**",
     "ASSETS_LICENSE.md",
     "character-packs/default-whale/runtime/production-v1/**",
     "character-packs/default-whale/SOURCE.md",

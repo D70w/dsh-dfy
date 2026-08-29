@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveActionVideo, resolveAnimationProfile, resolveGrabMotionInput, shouldPauseLive2d } from './WhaleRenderer.tsx'
+import { resolveActionVideo, resolveAnimationProfile, resolveGrabMotionInput, resultSafeGesture, shouldPauseLive2d, workReactionEmotion, workToolMotion } from './WhaleRenderer.tsx'
 
 describe('approved desktop runtime quality policy', () => {
   it('keeps capable desktop devices on the high-quality realtime renderer', () => {
@@ -20,6 +20,21 @@ describe('approved desktop runtime quality policy', () => {
 })
 
 describe('manual classic action playback', () => {
+  it('uses quiet renderer-only faces for DSH results', () => {
+    expect(workReactionEmotion('completed')).toBe('workSuccess')
+    expect(workReactionEmotion('error')).toBe('workError')
+    expect(workReactionEmotion('none')).toBeUndefined()
+    expect(resultSafeGesture('smug', 'completed')).toBe('wave')
+    expect(resultSafeGesture('denying', 'error')).toBeUndefined()
+  })
+
+  it('gives reading, searching and commands visibly different realtime acting', () => {
+    expect(workToolMotion('read')).toMatchObject({ gesture: 'nod', gestureSpeed: 0.76, emotion: 'determined' })
+    expect(workToolMotion('search')).toMatchObject({ gesture: 'tilt', gestureSpeed: 0.72, emotion: 'confused' })
+    expect(workToolMotion('command')).toMatchObject({ gesture: 'nod', gestureSpeed: 1.12, emotion: 'determined' })
+    expect(workToolMotion('read')).not.toEqual(workToolMotion('search'))
+  })
+
   it('keeps an explicitly selected video available with reduced motion enabled', () => {
     expect(resolveActionVideo(true, 'idle', { id: 1, action: 'curtsy', file: 'curtsy.webm' }))
       .toContain('/production-v1/actions/curtsy.webm')
@@ -27,6 +42,13 @@ describe('manual classic action playback', () => {
 
   it('still suppresses ambient video actions when reduced motion is enabled', () => {
     expect(resolveActionVideo(true, 'idle')).toBeUndefined()
+  })
+
+  it('keeps DSH result reactions on the realtime puppet while preserving manual videos', () => {
+    expect(resolveActionVideo(false, 'smug', undefined, true)).toBeUndefined()
+    expect(resolveActionVideo(false, 'smug')).toContain('/production-v1/actions/confident.webm')
+    expect(resolveActionVideo(false, 'smug', { id: 2, action: 'curtsy', file: 'curtsy.webm' }, true))
+      .toContain('/production-v1/actions/curtsy.webm')
   })
 
   it('keeps Live2D moving while video loads, then pauses only for active playback', () => {

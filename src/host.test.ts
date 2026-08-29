@@ -24,7 +24,7 @@ describe('whale-pet Host half', () => {
     const session = ctx.sessions.create()
 
     expect(ctx.sessionProjections.snapshot(session).values['whalePet.activity']).toEqual({
-      mode: 'idle', reaction: 'none', reactionSeq: -1,
+      mode: 'idle', toolKind: 'none', reaction: 'none', reactionSeq: -1,
     })
     session.append('turn/start', { turn: 1 })
     expect(ctx.sessionProjections.snapshot(session).values['whalePet.activity']?.mode).toBe('thinking')

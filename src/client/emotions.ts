@@ -1,6 +1,7 @@
 import type { ApprovedEmotion } from './renderer/see-through-rig/approved-idle-runtime.js'
 
-export type WhaleEmotionName = Exclude<ApprovedEmotion, 'neutral'>
+/** User-facing emotions; quiet work-result poses stay internal to the renderer. */
+export type WhaleEmotionName = Exclude<ApprovedEmotion, 'neutral' | 'workSuccess' | 'workError'>
 
 export interface EmotionProfile {
   label: string

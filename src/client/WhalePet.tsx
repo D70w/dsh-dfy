@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type {
   PropsLocale, PropsRuntime, PropsStore,
 } from '@deepseek-ai/dsh-client-ui-slots'
-import type { WhaleActivityProjection, WhaleWorkReaction } from '../activity/types.ts'
+import type { WhaleActivityProjection, WhaleToolKind, WhaleWorkMode, WhaleWorkReaction } from '../activity/types.ts'
 import { resolveBehavior, type WhaleInteraction } from '../behavior.ts'
 import { localDayKey } from '../domain/commands.ts'
 import { clampPosition, DEFAULT_POSITION, nudgePosition, type WhalePositionDirection } from './position.ts'
@@ -16,13 +16,16 @@ import { WhaleButterfly } from './WhaleButterfly.tsx'
 import { WhalePillow } from './WhalePillow.tsx'
 import { WhaleRiceBowl } from './WhaleRiceBowl.tsx'
 import { WhaleLedger } from './WhaleLedger.tsx'
-import { WhaleDebugPanel, whaleDebugEnabled } from './WhaleDebugPanel.tsx'
+import {
+  WhaleDebugPanel, whaleDebugEnabled, type WhaleDebugWorkState,
+} from './WhaleDebugPanel.tsx'
 import { relationshipProfile, relationshipReactionVariant } from '../relationship.ts'
 import { clampWhaleScale } from '../preferences.ts'
 import type { WhaleLocaleKey } from './locales.ts'
 import { billingSummaryForDay, createLocalBillingState, normalizeUsage, type SessionUsageSample } from './billing.ts'
 import { useOfficialBalance } from './use-official-balance.ts'
 import { WhaleEmotionFx, type WhaleEmotionCommand } from './WhaleEmotionFx.tsx'
+import { WhaleWorkFx } from './WhaleWorkFx.tsx'
 import {
   WhaleDialogue, type DialogueHistoryEntry, type DialogueMemoryEntry,
   type DialoguePlacement, type DialogueVariant, type WhaleDialogueState,
@@ -160,6 +163,7 @@ export function dialoguePlacement(
 function sameActivitySource(left: ActivitySource, right: ActivitySource): boolean {
   return left.sourceId === right.sourceId
     && left.value?.mode === right.value?.mode
+    && left.value?.toolKind === right.value?.toolKind
     && left.value?.reaction === right.value?.reaction
     && left.value?.reactionSeq === right.value?.reactionSeq
 }
@@ -175,7 +179,7 @@ export function WhalePet({
     sessionId: String(id),
     ...normalizeUsage(snapshot.byId[id]?.projectionValues?.tokenUsage),
   })), sameUsageSamples)
-  const activitySource = useSessions((snapshot): ActivitySource => {
+  const projectedActivitySource = useSessions((snapshot): ActivitySource => {
     const rows = snapshot.ids.map((id) => {
       const summary = snapshot.byId[id]
       return {
@@ -200,6 +204,8 @@ export function WhalePet({
       ?? rows.toSorted((left, right) => right.updatedAt - left.updatedAt)[0]
     return { sourceId: selected?.id, value: selected?.value }
   }, sameActivitySource)
+  const [debugActivitySource, setDebugActivitySource] = useState<ActivitySource>()
+  const activitySource = debugActivitySource ?? projectedActivitySource
   const [menuOpen, setMenuOpen] = useState(false)
   const [keyboardMenuOpen, setKeyboardMenuOpen] = useState(false)
   const [bubble, setBubble] = useState<string | null>(IDLE_LINES[0].text)
@@ -239,7 +245,15 @@ export function WhalePet({
   const petApi = usePetApi()
   const officialBalance = useOfficialBalance(preferences['balance.refreshMinutes'] ?? 10)
   const positionRef = useRef(currentPosition)
+  const activitySourceRef = useRef(activitySource)
   const seenReactions = useRef(new Map<string, number>())
+  const seenWorkModes = useRef(new Map<string, WhaleWorkMode>())
+  const seenToolKinds = useRef(new Map<string, WhaleToolKind>())
+  const workStartedAt = useRef(new Map<string, number>())
+  const workCueCounts = useRef(new Map<string, number>())
+  const workCueTimers = useRef(new Map<string, number>())
+  const debugWorkTimers = useRef<number[]>([])
+  const debugWorkSequence = useRef(0)
   const hotspotRef = useRef<HTMLButtonElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -257,6 +271,15 @@ export function WhalePet({
   const lastIdlePerformance = useRef<string>()
   const announcedRiceCatch = useRef<string>()
   const announcedContinuation = useRef<string>()
+
+  activitySourceRef.current = activitySource
+
+  useEffect(() => () => {
+    workCueTimers.current.forEach(timer => window.clearTimeout(timer))
+    workCueTimers.current.clear()
+    debugWorkTimers.current.forEach(timer => window.clearTimeout(timer))
+    debugWorkTimers.current = []
+  }, [])
 
   useEffect(() => {
     persistLlmConfig({
@@ -403,6 +426,103 @@ export function WhalePet({
     if (line.emotion !== undefined) playEmotion(line.emotion)
   }
 
+  useEffect(() => {
+    const { sourceId, value } = activitySource
+    if (sourceId === undefined || value === undefined) return
+
+    const previous = seenWorkModes.current.get(sourceId)
+    const toolKind = value.toolKind ?? 'none'
+    const previousToolKind = seenToolKinds.current.get(sourceId) ?? 'none'
+    seenWorkModes.current.set(sourceId, value.mode)
+    seenToolKinds.current.set(sourceId, toolKind)
+    // A brand-new Harness session can first appear after `turn/start`, so the
+    // first projected value is already thinking/tool rather than idle. Treat
+    // that as a real entry beat; only a first idle snapshot is a baseline.
+    if (previous === undefined && value.mode === 'idle') return
+    const previousMode = previous ?? 'idle'
+    if (previousMode === value.mode && previousToolKind === toolKind) return
+
+    const clearProgressTimer = (): void => {
+      const timer = workCueTimers.current.get(sourceId)
+      if (timer !== undefined) window.clearTimeout(timer)
+      workCueTimers.current.delete(sourceId)
+    }
+    const present = (
+      textKey: WhaleLocaleKey,
+      subtextKey: WhaleLocaleKey,
+      emotion: WhaleEmotionName,
+      durationMs: number,
+    ): void => {
+      if (!preferences['general.quietMode'] && preferences['bubble.enabled']) {
+        showDialogueLine({
+          text: t(textKey),
+          subtext: t(subtextKey),
+          speaker: '鲸鱼娘 · 工位状态',
+          emotion,
+        })
+      } else {
+        playEmotion(emotion, durationMs)
+      }
+    }
+
+    if (previousMode === 'idle' && (value.mode === 'thinking' || value.mode === 'tool')) {
+      clearProgressTimer()
+      workStartedAt.current.set(sourceId, Date.now())
+      workCueCounts.current.set(sourceId, 1)
+      present('reaction.workAccepted', 'reaction.workAcceptedSubtext', 'excited', 1_500)
+
+      const timer = window.setTimeout(() => {
+        workCueTimers.current.delete(sourceId)
+        const latest = activitySourceRef.current
+        const active = latest.sourceId === sourceId
+          && (latest.value?.mode === 'thinking' || latest.value?.mode === 'tool')
+        const cueCount = workCueCounts.current.get(sourceId) ?? 0
+        if (!active || cueCount >= 2) return
+        workCueCounts.current.set(sourceId, cueCount + 1)
+        present('reaction.workLong', 'reaction.workLongSubtext', 'determined', 3_600)
+      }, 14_000)
+      workCueTimers.current.set(sourceId, timer)
+      return
+    }
+
+    if (value.mode === 'tool') {
+      const cueCount = workCueCounts.current.get(sourceId) ?? 0
+      const presentation: Readonly<{
+        text: WhaleLocaleKey
+        subtext: WhaleLocaleKey
+        emotion: WhaleEmotionName
+        durationMs: number
+      }> = toolKind === 'read'
+        ? { text: 'reaction.workRead', subtext: 'reaction.workReadSubtext', emotion: 'determined', durationMs: 2_600 }
+        : toolKind === 'search'
+          ? { text: 'reaction.workSearch', subtext: 'reaction.workSearchSubtext', emotion: 'confused', durationMs: 2_800 }
+          : toolKind === 'command'
+            ? { text: 'reaction.workCommand', subtext: 'reaction.workCommandSubtext', emotion: 'determined', durationMs: 2_400 }
+            : toolKind === 'write'
+              ? { text: 'reaction.workWrite', subtext: 'reaction.workWriteSubtext', emotion: 'determined', durationMs: 2_600 }
+              : { text: 'reaction.workTool', subtext: 'reaction.workToolSubtext', emotion: 'determined', durationMs: 2_800 }
+      if (cueCount < 2) {
+        workCueCounts.current.set(sourceId, cueCount + 1)
+        present(presentation.text, presentation.subtext, presentation.emotion, presentation.durationMs)
+      } else {
+        playEmotion(presentation.emotion, presentation.durationMs)
+      }
+      return
+    }
+
+    if (previousMode === 'tool' && value.mode === 'thinking') {
+      playEmotion('determined', 2_400)
+      return
+    }
+
+    if (value.mode === 'idle') {
+      clearProgressTimer()
+      workStartedAt.current.delete(sourceId)
+      workCueCounts.current.delete(sourceId)
+      if (value.reaction === 'none') playEmotion('relieved', 1_800)
+    }
+  }, [activitySource, preferences, t])
+
   const runIdlePerformance = (
     performance: IdlePerformance,
     source: 'automatic' | 'manual',
@@ -495,13 +615,17 @@ export function WhalePet({
     const seen = seenReactions.current.get(sourceId)
     seenReactions.current.set(sourceId, value.reactionSeq)
     if (seen === undefined || value.reactionSeq <= seen || value.reaction === 'none') return
+    // Result acting owns the face. Remove particles and renderer commands from
+    // the preceding thinking/tool beat so focus stars or sweat cannot bleed
+    // into a success/error pose.
+    setEmotionCommand(undefined)
     setLiveReaction(value.reaction)
     if (!preferences['general.quietMode'] && preferences['bubble.enabled']) {
       const reaction = value.reaction === 'completed' ? 'completed' : 'error'
       const warm = relationshipReactionVariant(reaction, petApi.state) === 'warm'
       showDialogueLine({ text: t(reaction === 'completed'
         ? warm ? 'reaction.completedWarm' : 'reaction.completed'
-        : warm ? 'reaction.errorWarm' : 'reaction.error'), subtext: reaction === 'completed' ? '尾巴已经开始庆祝' : '她正在认真检查问题', emotion: reaction === 'completed' ? 'proud' : 'nervous' })
+        : warm ? 'reaction.errorWarm' : 'reaction.error'), subtext: reaction === 'completed' ? '轻轻挥手，等你确认结果' : '她低头检查了一遍问题' })
     }
   }, [activitySource, petApi.state, preferences, t])
 
@@ -853,6 +977,79 @@ export function WhalePet({
     playStationaryAction(pickStationaryAction(lastStationaryAction.current))
   }
 
+  const stopDebugWorkDemo = (): void => {
+    debugWorkTimers.current.forEach(timer => window.clearTimeout(timer))
+    debugWorkTimers.current = []
+    setDebugActivitySource(undefined)
+    setLiveReaction('none')
+  }
+
+  const runDebugWorkDemo = (result: 'completed' | 'error'): void => {
+    stopDebugWorkDemo()
+    autonomy.stopForPerformance()
+    setInteraction('none')
+    setStationaryAction(undefined)
+
+    const baseSequence = ++debugWorkSequence.current * 2
+    const sourceId = 'whale-debug-workflow'
+    setDebugActivitySource({
+      sourceId,
+      value: { mode: 'thinking', toolKind: 'none', reaction: 'none', reactionSeq: baseSequence },
+    })
+
+    debugWorkTimers.current = [
+      window.setTimeout(() => {
+        setDebugActivitySource({
+          sourceId,
+          value: { mode: 'tool', toolKind: 'other', reaction: 'none', reactionSeq: baseSequence },
+        })
+      }, 2_400),
+      window.setTimeout(() => {
+        setDebugActivitySource({
+          sourceId,
+          value: { mode: 'idle', toolKind: 'none', reaction: result, reactionSeq: baseSequence + 1 },
+        })
+      }, 4_800),
+      window.setTimeout(() => {
+        setDebugActivitySource(undefined)
+        debugWorkTimers.current = []
+      }, 8_000),
+    ]
+  }
+
+  const previewDebugWorkTool = (toolKind: Exclude<WhaleToolKind, 'none'>): void => {
+    stopDebugWorkDemo()
+    autonomy.stopForPerformance()
+    setInteraction('none')
+    setStationaryAction(undefined)
+    const reactionSeq = ++debugWorkSequence.current * 2
+    setDebugActivitySource({
+      sourceId: 'whale-debug-tool',
+      value: { mode: 'tool', toolKind, reaction: 'none', reactionSeq },
+    })
+    debugWorkTimers.current = [window.setTimeout(() => {
+      setDebugActivitySource(undefined)
+      debugWorkTimers.current = []
+    }, 5_000)]
+  }
+
+  const debugWorkState: WhaleDebugWorkState = debugActivitySource === undefined
+    ? 'live'
+    : debugActivitySource.value?.reaction === 'completed'
+      ? 'completed'
+    : debugActivitySource.value?.reaction === 'error'
+      ? 'error'
+      : debugActivitySource.value?.mode === 'tool'
+        ? debugActivitySource.value.toolKind === 'read'
+          || debugActivitySource.value.toolKind === 'search'
+          || debugActivitySource.value.toolKind === 'command'
+          || debugActivitySource.value.toolKind === 'write'
+          ? debugActivitySource.value.toolKind
+          : 'tool'
+      : debugActivitySource.value?.mode === 'idle'
+          ? 'live'
+          : debugActivitySource.value?.mode ?? 'live'
+
   const onHotspotKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>): void => {
     const directions: Partial<Record<React.KeyboardEvent<HTMLButtonElement>['key'], WhalePositionDirection>> = {
       ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
@@ -870,6 +1067,8 @@ export function WhalePet({
       data-reduced={reduceMotion ? 'true' : 'false'}
       data-whale-action={action}
       data-whale-activity={activitySource.value === undefined ? 'absent' : 'ready'}
+      data-whale-work-mode={activitySource.value?.mode ?? 'absent'}
+      data-whale-tool-kind={activitySource.value?.toolKind ?? 'none'}
       data-whale-save={petApi.status}
       data-whale-persistence={petApi.persistence}
       data-whale-save-revision={petApi.state?.revision ?? -1}
@@ -891,8 +1090,12 @@ export function WhalePet({
         <WhaleDebugPanel
           story={autonomy.episode?.story}
           phase={autonomy.episode?.phase}
+          workState={debugWorkState}
           start={autonomy.startPreviewStory}
           stop={autonomy.returnHome}
+          runWorkDemo={runDebugWorkDemo}
+          previewWorkTool={previewDebugWorkTool}
+          stopWorkDemo={stopDebugWorkDemo}
         />
       ) : null}
       <div
@@ -1048,6 +1251,7 @@ export function WhalePet({
           </div>
         ) : null}
         <WhaleEmotionFx command={emotionCommand} />
+        <WhaleWorkFx kind={activitySource.value?.mode === 'tool' ? activitySource.value.toolKind : 'none'} />
         <WhaleDialogue
           dialogue={{ ...dialogueMeta, text: bubble ?? IDLE_LINES[0].text }}
           // Keep the interaction surface clear while the pet is being held.
@@ -1107,6 +1311,9 @@ export function WhalePet({
             motionIntensity={2}
             emotion={emotionCommand}
             petReaction={petReaction}
+            suppressAutomaticVideo={liveReaction !== 'none'}
+            workReaction={liveReaction}
+            workToolKind={activitySource.value?.toolKind ?? 'none'}
             stationaryAction={stationaryAction}
             onStationaryActionStart={() => {
               const line = pendingStationaryLine.current

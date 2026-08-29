@@ -7,6 +7,10 @@ export const WHALE_STYLE = `
 [data-whale-debug-heading] strong{font-size:14px}
 [data-whale-debug-heading] span,[data-whale-debug-panel] small{color:var(--dsw-alias-label-secondary);font-size:10px}
 [data-whale-debug-actions]{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+[data-whale-debug-section]{margin-top:10px;padding-top:10px;border-top:1px solid var(--dsw-alias-border-l2)}
+[data-whale-debug-section-heading]{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+[data-whale-debug-section-heading] strong{font-size:12px}
+[data-whale-debug-section-heading] span{color:var(--dsw-alias-label-secondary);font-size:10px}
 [data-whale-debug-panel] button{min-height:31px;padding:5px 9px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:11px;cursor:pointer}
 [data-whale-debug-panel] button:hover,[data-whale-debug-panel] button:focus-visible,[data-whale-debug-panel] button[data-active=true]{background:var(--dsw-alias-interactive-bg-hover);outline:2px solid var(--dsw-alias-border-l3);outline-offset:1px}
 [data-whale-debug-panel] button[data-stop]{margin-left:auto}
@@ -244,6 +248,35 @@ export const WHALE_STYLE = `
 [data-whale-account-card]>button[data-state=done]{border-color:#91b9aa;background:#edf8f3;color:#36745f}
 
 [data-whale-emotion-fx]{position:absolute;z-index:22;inset:0;pointer-events:none;overflow:visible}
+[data-whale-work-fx]{position:absolute;z-index:23;inset:0;pointer-events:none;overflow:visible}
+.whale-work-object{position:absolute;display:grid;width:56px;height:56px;place-items:center;opacity:0;filter:drop-shadow(0 5px 7px rgba(35,63,124,.2));will-change:transform,opacity;animation:whale-work-object-in .42s cubic-bezier(.16,1,.3,1) forwards}
+.whale-work-icon{display:block;width:100%;height:100%;overflow:visible}
+.work-icon-shell{fill:#f7fbff;stroke:#456bb0;stroke-width:2.8;stroke-linejoin:round}
+.work-icon-page-back{fill:#dce9ff;stroke:#7c9bd3;stroke-width:2.2;stroke-linejoin:round;opacity:.82}
+.work-icon-fold{stroke:#7693ca;stroke-width:2.4;stroke-linejoin:round}
+.work-icon-line{stroke:#6c8bc5;stroke-width:2.8;stroke-linecap:round}
+.work-icon-accent{stroke:#3f66b1;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
+.work-icon-glint{stroke:#9edaf4;stroke-width:2.8;stroke-linecap:round}
+.work-icon-bar{stroke:#d1def6;stroke-width:2}
+.work-icon-status{fill:#8de0bd;stroke:#3d8f75;stroke-width:1.5}
+.work-icon-pencil{fill:#ffd36d;stroke:#466bb0;stroke-width:2.6;stroke-linejoin:round}
+.work-icon-pencil-edge{stroke:#e39c58;stroke-width:2.2;stroke-linecap:round}
+.work-icon-tip{fill:#fff4d7;stroke:#466bb0;stroke-width:2.2;stroke-linejoin:round}
+[data-tool-kind=search] .whale-work-icon{animation:whale-work-search-loop 2.5s ease-in-out .42s infinite}
+[data-tool-kind=read] .whale-work-icon{animation:whale-work-read-loop 2.9s ease-in-out .42s infinite}
+[data-tool-kind=command] .whale-work-icon{animation:whale-work-command-loop 1.8s ease-in-out .42s infinite}
+[data-tool-kind=write] .whale-work-icon{animation:whale-work-write-loop 2.2s ease-in-out .42s infinite}
+[data-tool-kind=search] .whale-work-object{left:70%;top:17%;animation-name:whale-work-search}
+[data-tool-kind=read] .whale-work-object{left:66%;top:13%;animation-name:whale-work-read}
+[data-tool-kind=command] .whale-work-object{left:68%;top:24%;animation-name:whale-work-command}
+[data-tool-kind=write] .whale-work-object{left:72%;top:25%;animation-name:whale-work-write}
+/* Keep the cue on the open side of the character so the bubble and object
+   read as one compact composition instead of colliding with each other. */
+[data-whale-pet-stage][data-whale-bubble-side=right] [data-tool-kind=search] .whale-work-object{left:18%}
+[data-whale-pet-stage][data-whale-bubble-side=right] [data-tool-kind=read] .whale-work-object{left:22%}
+[data-whale-pet-stage][data-whale-bubble-side=right] [data-tool-kind=command] .whale-work-object{left:20%}
+[data-whale-pet-stage][data-whale-bubble-side=right] [data-tool-kind=write] .whale-work-object{left:16%}
+@media (prefers-reduced-motion:reduce){.whale-work-object,.whale-work-icon{animation:none;opacity:.96}}
 .emotion-particle{position:absolute;left:var(--fx-x,50%);top:var(--fx-y,45%);display:grid;width:var(--fx-size,24px);height:var(--fx-size,24px);place-items:center;opacity:0;color:#ffe27a;font-style:normal;line-height:1;will-change:transform,opacity}
 .emotion-particle.heart,.emotion-particle.shy-heart{font-size:0;color:#ff6f9d;filter:drop-shadow(0 0 7px rgba(255,87,145,.72));animation:whale-heart-rise var(--fx-duration,1450ms) cubic-bezier(.18,.72,.2,1) forwards}
 .emotion-particle.heart::before,.emotion-particle.shy-heart::before{position:absolute;left:1px;top:1px;width:14px;height:14px;border-radius:50%;background:currentColor;box-shadow:9px 0 0 currentColor;content:""}
@@ -289,6 +322,15 @@ export const WHALE_STYLE = `
 .rice-bowl-wave{fill:none;stroke:#e7f1ff;stroke-width:2.4;stroke-linecap:round}
 .rice-bowl-foot{fill:#4c70bb;stroke:#31559f;stroke-width:2;stroke-linejoin:round}
 @keyframes whale-dialogue-pop{0%{opacity:0;transform:translateY(12px) scale(.72)}68%{transform:translateY(-2px) scale(1.035)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes whale-work-object-in{0%{opacity:0;transform:translateY(8px) scale(.72)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes whale-work-search{0%{opacity:0;transform:translate(5px,8px) rotate(-18deg) scale(.72)}24%{opacity:1;transform:translate(0,0) rotate(7deg) scale(1.04)}54%{transform:translate(-4px,-3px) rotate(-9deg) scale(1)}78%{transform:translate(3px,1px) rotate(6deg) scale(1.02)}100%{opacity:.96;transform:translate(0,0) rotate(0) scale(1)}}
+@keyframes whale-work-read{0%{opacity:0;transform:translateY(8px) rotate(-6deg) scale(.72)}24%{opacity:1;transform:translateY(0) rotate(2deg) scale(1.04)}52%{transform:translateY(-2px) rotate(-2deg) scale(1)}78%{transform:translateY(1px) rotate(1deg) scale(1.02)}100%{opacity:.96;transform:translateY(0) rotate(0) scale(1)}}
+@keyframes whale-work-command{0%{opacity:0;transform:translateY(10px) scale(.72)}20%{opacity:1;transform:translateY(0) scale(1.04)}42%{transform:translateY(-2px) scale(1)}70%{transform:translateY(1px) scale(1.015)}100%{opacity:.96;transform:translateY(0) scale(1)}}
+@keyframes whale-work-write{0%{opacity:0;transform:translate(5px,9px) rotate(12deg) scale(.72)}22%{opacity:1;transform:translate(0,0) rotate(-8deg) scale(1.04)}48%{transform:translate(-3px,-2px) rotate(4deg) scale(1)}75%{transform:translate(2px,1px) rotate(-3deg) scale(1.02)}100%{opacity:.96;transform:translate(0,0) rotate(0) scale(1)}}
+@keyframes whale-work-search-loop{0%,100%{transform:translate(0,0) rotate(-5deg)}50%{transform:translate(-3px,-2px) rotate(7deg)}}
+@keyframes whale-work-read-loop{0%,100%{transform:rotate(0) scaleY(1)}48%{transform:rotate(-2deg) scaleY(1.02)}72%{transform:rotate(2deg) scaleY(.98)}}
+@keyframes whale-work-command-loop{0%,100%{transform:translateY(0)}45%{transform:translateY(-2px)}60%{transform:translateY(0)}}
+@keyframes whale-work-write-loop{0%,100%{transform:translate(0,0) rotate(-2deg)}38%{transform:translate(-2px,-2px) rotate(4deg)}60%{transform:translate(1px,1px) rotate(-3deg)}}
 @keyframes whale-menu-view-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 @keyframes whale-heart-rise{0%{opacity:0;transform:translate(-50%,10px) scale(.25)}18%{opacity:1;transform:translate(-50%,0) scale(1.08)}100%{opacity:0;transform:translate(calc(-50% + var(--fx-drift,0px)),-92px) scale(.72) rotate(14deg)}}
 @keyframes whale-shy-pulse{0%{opacity:0;transform:translate(-50%,3px) scale(.35)}22%{opacity:1;transform:translate(-50%,0) scale(1.12)}70%{opacity:1;transform:translate(-50%,-5px) scale(.92)}100%{opacity:0;transform:translate(-50%,-20px) scale(.7)}}

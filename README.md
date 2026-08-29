@@ -138,7 +138,7 @@ npm install dsh-dfy
 corepack pnpm install
 corepack pnpm run build
 npm pack
-dsh plugin --profile web add ./dsh-dfy-0.1.5.tgz
+dsh plugin --profile web add ./dsh-dfy-0.1.6.tgz
 ```
 
 ## 和 DSH 如何协作

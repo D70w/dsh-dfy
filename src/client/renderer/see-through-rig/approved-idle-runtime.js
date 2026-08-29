@@ -697,7 +697,11 @@ const transientEmotionStyles = {
 	relieved: { headY: 2, headRotation: -2.8, headPitch: -.12, gazeX: -.06, gazeY: .12, blinkOpenness: .3, smile: .34, mouthOpen: 0, mouthOverride: 1, browY: 2, browLeftRotation: -1, browRightRotation: 1, blush: .08, waistRotation: 1.5, chestRotation: -2.6, shoulderLeftX: 4, shoulderLeftY: 8, shoulderRightX: -4, shoulderRightY: 8 },
 	determined: { headY: -4, headRotation: 0, headPitch: -.18, gazeX: 0, gazeY: -.2, blinkOpenness: .58, smile: -.02, mouthOpen: 0, mouthOverride: 1, browY: 4, browLeftRotation: 17, browRightRotation: -17, blush: .02, waistRotation: -2.4, chestRotation: 4.6, shoulderLeftX: -4, shoulderLeftY: -5, shoulderRightX: 4, shoulderRightY: -5 },
 	nervous: { headY: 4, headRotation: 4.8, headPitch: .16, gazeX: -.42, gazeY: -.2, blinkOpenness: 1, smile: -.2, mouthOpen: 0, mouthOverride: 1, browY: -10, browLeftRotation: -16, browRightRotation: 16, blush: .42, waistRotation: 2.8, chestRotation: -3.8, shoulderLeftX: 6, shoulderLeftY: -8, shoulderRightX: -6, shoulderRightY: -8 },
-	hungry: { headY: -2, headRotation: -2.2, headPitch: -.02, gazeX: .24, gazeY: -.05, blinkOpenness: 1, smile: .3, mouthOpen: .18, mouthOverride: 1, browY: -5, browLeftRotation: -2, browRightRotation: 2, blush: .18, waistRotation: -1.2, chestRotation: 1.8, shoulderLeftX: 2, shoulderLeftY: -2, shoulderRightX: -2, shoulderRightY: -2 }
+	hungry: { headY: -2, headRotation: -2.2, headPitch: -.02, gazeX: .24, gazeY: -.05, blinkOpenness: 1, smile: .3, mouthOpen: .18, mouthOverride: 1, browY: -5, browLeftRotation: -2, browRightRotation: 2, blush: .18, waistRotation: -1.2, chestRotation: 1.8, shoulderLeftX: 2, shoulderLeftY: -2, shoulderRightX: -2, shoulderRightY: -2 },
+	// Work results deliberately avoid the theatrical eye keyforms and particles
+	// used by menu emotions. Both poses keep symmetric eyes and a closed mouth.
+	workSuccess: { headY: -1.5, headRotation: -1.2, headPitch: -.04, gazeX: 0, gazeY: -.04, blinkOpenness: .94, smile: .22, mouthOpen: 0, mouthOverride: 1, browY: -1.5, browLeftRotation: -2, browRightRotation: 2, blush: .08, waistRotation: -.8, chestRotation: 1.2, shoulderLeftX: 1.5, shoulderLeftY: -2, shoulderRightX: -1.5, shoulderRightY: -2 },
+	workError: { headY: 2.5, headRotation: 1.2, headPitch: .12, gazeX: -.06, gazeY: .22, blinkOpenness: .92, smile: -.12, mouthOpen: 0, mouthOverride: 1, browY: -1, browLeftRotation: -7, browRightRotation: 7, blush: .02, waistRotation: .7, chestRotation: -1.1, shoulderLeftX: 2, shoulderLeftY: 3, shoulderRightX: -2, shoulderRightY: 3 }
 };
 function sampleTransientEmotion(clock, name, elapsed, duration) {
 	const style = transientEmotionStyles[name];
@@ -1433,6 +1437,29 @@ function drawEye(context, white, iris, lash, matrix, centerX, centerY, openness,
 	context.drawImage(lash.image, lash.x, lash.y, lash.width, lash.height);
 	context.restore();
 }
+function drawRoundedSquintEye(context, matrix, centerX, centerY, emotionName) {
+	context.save();
+	applyMatrix(context, matrix);
+	// Do not compress the pointed lash bitmap into a danfeng-eye silhouette.
+	// Sleepy and relieved use a rounded lid stroke instead.
+	const width = emotionName === "sleepy" ? 34 : 36;
+	const arch = emotionName === "sleepy" ? 4.5 : 3.2;
+	context.strokeStyle = "#35456f";
+	context.lineWidth = emotionName === "sleepy" ? 7 : 6.5;
+	context.lineCap = "round";
+	context.lineJoin = "round";
+	context.beginPath();
+	context.moveTo(centerX - width, centerY + 2);
+	context.quadraticCurveTo(centerX, centerY - arch, centerX + width, centerY + 2);
+	context.stroke();
+	context.globalAlpha = .34;
+	context.lineWidth = 2.2;
+	context.beginPath();
+	context.moveTo(centerX - width * .72, centerY + 6);
+	context.quadraticCurveTo(centerX, centerY + 8, centerX + width * .72, centerY + 6);
+	context.stroke();
+	context.restore();
+}
 function traceEmotionEyeOpening(context, centerX, centerY, openness, side, emotionName) {
 	const radiusX = 43;
 	const open = Math.max(.12, Math.min(1, openness));
@@ -1483,10 +1510,21 @@ const emotionEyeGeometry = {
 	mischievous: { whiteY: .7, irisY: .8, irisOffsetY: 1, corner: 2.2, upper: .58 },
 	relieved: { whiteY: .58, irisY: .68, irisOffsetY: 5, corner: 2.8, upper: .5 },
 	determined: { whiteY: .62, irisY: .72, irisOffsetY: -2, corner: 3.4, upper: .5 },
+	workSuccess: { whiteY: .9, irisY: .94, irisOffsetY: 1, corner: .58, upper: .88 },
+	workError: { whiteY: .88, irisY: .92, irisOffsetY: 5, corner: .72, upper: .86 },
 };
+const expressiveEmotionNames = new Set(["love", "shy", "angry", "surprise", "sad", "happy", "confused", "pout", "sleepy", "proud", "excited", "mischievous", "relieved", "determined", "nervous", "hungry", "workSuccess", "workError"]);
+function resolveEmotionFaceLayerPlan(emotionName, pose) {
+	const expressive = Boolean(pose.active && pose.weight > .001 && expressiveEmotionNames.has(emotionName));
+	return {
+		eye: !expressive ? "neutral" : emotionName === "workSuccess" || emotionName === "workError" ? "authored" : emotionName === "sleepy" || emotionName === "relieved" ? "squint" : "deformed",
+		mouth: expressive ? "emotion" : "neutral"
+	};
+}
 function sampleEmotionEyeMeshDeformation(x, y, centerX, centerY, openness, side, emotionName, pose, layer, gazeX, gazeY) {
 	const targetOpen = Math.max(.08, pose.blinkOpenness);
 	const blinkFactor = clamp01(openness / targetOpen);
+	const deformationWeight = clamp01(pose.weight);
 	const eyeGeometry = emotionEyeGeometry[emotionName] || {};
 	let baseScaleY = eyeGeometry.whiteY ?? .84;
 	if (emotionName === "angry") baseScaleY = .86;
@@ -1503,6 +1541,8 @@ function sampleEmotionEyeMeshDeformation(x, y, centerX, centerY, openness, side,
 	else if (emotionName === "determined") baseScaleY = .58;
 	else if (emotionName === "nervous") baseScaleY = side === "left" ? 1.22 : 1.12;
 	else if (emotionName === "hungry") baseScaleY = 1.09;
+	else if (emotionName === "workSuccess") baseScaleY = .9;
+	else if (emotionName === "workError") baseScaleY = .88;
 	if (layer === "iris" && eyeGeometry.irisY) baseScaleY = eyeGeometry.irisY;
 	else if (layer !== "iris" && eyeGeometry.whiteY) baseScaleY = eyeGeometry.whiteY;
 	const localX = (x - centerX) / 43;
@@ -1522,10 +1562,16 @@ function sampleEmotionEyeMeshDeformation(x, y, centerX, centerY, openness, side,
 	else if (emotionName === "mischievous") cornerY = side === "left" ? outerWeight * 3 : -innerWeight * 1.5;
 	else if (emotionName === "relieved") cornerY = outerWeight * 4.2 + innerWeight * 2.8;
 	else if (emotionName === "determined") cornerY = (innerWeight * 4.8 - outerWeight * 1.8) * (eyeGeometry.corner ?? 1);
+	else if (emotionName === "workSuccess") cornerY = outerWeight * .8 - innerWeight * .55;
+	else if (emotionName === "workError") cornerY = outerWeight * 1.35 - innerWeight * .35;
 	else cornerY = outerWeight * 2.5 + innerWeight * .5;
 	if (emotionName !== "angry" && emotionName !== "determined") cornerY *= eyeGeometry.corner ?? 1;
 	const layerScaleY = layer === "iris" ? Math.min(emotionName === "sad" ? 1.08 : 1.3, baseScaleY + .08) : baseScaleY;
-	const scaleY = Math.max(.06, layerScaleY * blinkFactor);
+	// Interpolate the geometry itself from the currently rendered neutral eye.
+	// Alpha-crossfading two complete eye stacks creates doubled irises/lashes and
+	// reads as stretching, especially during the short work-result reactions.
+	const targetScaleY = Math.max(.06, layerScaleY * blinkFactor);
+	const scaleY = Math.max(.035, openness + (targetScaleY - openness) * deformationWeight);
 	let scaleX = layer === "iris" ? 1 : emotionName === "angry" ? 1.035 : 1.015;
 	if (emotionName === "sad") scaleX = layer === "iris" ? 1.025 : 1.04;
 	if (emotionName === "pout" || emotionName === "excited") scaleX += layer === "iris" ? .055 : .035;
@@ -1533,27 +1579,42 @@ function sampleEmotionEyeMeshDeformation(x, y, centerX, centerY, openness, side,
 	if (emotionName === "surprise" || emotionName === "nervous" || emotionName === "hungry") scaleX += layer === "iris" ? .04 : .025;
 	if (emotionName === "relieved") scaleX += layer === "iris" ? -.015 : 0;
 	if (emotionName === "determined") scaleX += layer === "iris" ? .035 : .02;
+	scaleX = 1 + (scaleX - 1) * deformationWeight;
 	const cornerInfluence = layer === "iris" ? .35 : layer === "white" ? .72 : 1;
-	const irisOffsetY = layer === "iris" ? (eyeGeometry.irisOffsetY ?? 0) * pose.weight : 0;
-	const lidBias = layer === "lash" ? (eyeGeometry.upper ?? 1) * (side === "left" ? .8 : -.8) * pose.weight : 0;
+	const irisOffsetY = layer === "iris" ? (eyeGeometry.irisOffsetY ?? 0) * deformationWeight : 0;
+	const lidBias = layer === "lash" ? (eyeGeometry.upper ?? 1) * (side === "left" ? .8 : -.8) * deformationWeight : 0;
 	return {
 		x: (x - centerX) * (scaleX - 1) + (layer === "iris" ? gazeX * 6 : 0),
-		y: (y - centerY) * (scaleY - 1) + cornerY * cornerInfluence + (layer === "iris" ? gazeY * 5.2 + irisOffsetY : 0) + lidBias
+		y: (y - centerY) * (scaleY - 1) + cornerY * cornerInfluence * deformationWeight + (layer === "iris" ? gazeY * 5.2 + irisOffsetY : 0) + lidBias
 	};
 }
 function drawExpressiveEye(context, white, iris, lash, matrix, centerX, centerY, openness, gazeX, gazeY, side, emotionName, pose) {
-	const expressive = pose.active && ["love", "shy", "angry", "surprise", "sad", "happy", "confused", "pout", "sleepy", "proud", "excited", "mischievous", "relieved", "determined", "nervous", "hungry"].includes(emotionName);
-	const weight = expressive ? pose.weight : 0;
-	if (weight < .999) {
-		context.save();
-		context.globalAlpha *= 1 - weight;
+	const layerPlan = resolveEmotionFaceLayerPlan(emotionName, pose);
+	const weight = pose.weight;
+	if (layerPlan.eye === "neutral") {
 		drawEye(context, white, iris, lash, matrix, centerX, centerY, openness, gazeX, gazeY);
-		context.restore();
+		return;
 	}
-	if (weight <= .001) return;
+	if (layerPlan.eye === "authored") {
+		// Work results should look like the same character acknowledging an
+		// outcome, not like a separate theatrical keyform. Preserve the authored
+		// eye texture and express the state through gaze, openness and brows.
+		drawEye(context, white, iris, lash, matrix, centerX, centerY, openness, gazeX, gazeY);
+		return;
+	}
+	if (layerPlan.eye === "squint" && weight >= .45) {
+		drawRoundedSquintEye(context, matrix, centerX, centerY, emotionName);
+		return;
+	}
 	context.save();
-	context.globalAlpha *= weight;
 	if (emotionName === "love") {
+		// The love keyform is a closed-eye drawing rather than a textured mesh.
+		// Pick one representation per frame so it never overlaps the source eye.
+		if (weight < .5) {
+			context.restore();
+			drawEye(context, white, iris, lash, matrix, centerX, centerY, openness, gazeX, gazeY);
+			return;
+		}
 		applyMatrix(context, matrix);
 		const outerX = side === "left" ? centerX - 43 : centerX + 43;
 		const innerX = side === "left" ? centerX + 39 : centerX - 39;
@@ -1642,7 +1703,7 @@ function drawCheekBlush(context, matrix, centerX, centerY, strength) {
 	context.restore();
 }
 function drawEmotionBrows(context, matrix, emotionName, pose) {
-	if (!pose.active || pose.weight <= .001 || !["love", "shy", "angry", "surprise", "sad", "happy", "confused", "pout", "sleepy", "proud", "excited", "mischievous", "relieved", "determined", "nervous", "hungry"].includes(emotionName)) return;
+	if (!pose.active || pose.weight <= .001 || !["love", "shy", "angry", "surprise", "sad", "happy", "confused", "pout", "sleepy", "proud", "excited", "mischievous", "relieved", "determined", "nervous", "hungry", "workSuccess", "workError"].includes(emotionName)) return;
 	context.save();
 	applyMatrix(context, matrix);
 	context.globalAlpha = pose.weight;
@@ -1677,6 +1738,11 @@ function drawEmotionBrows(context, matrix, emotionName, pose) {
 		context.quadraticCurveTo(553, 300, 584, 311);
 		context.moveTo(666, 311);
 		context.quadraticCurveTo(697, 300, 729, 314);
+	} else if (emotionName === "workSuccess") {
+		context.moveTo(522, 314);
+		context.quadraticCurveTo(553, 306, 584, 312);
+		context.moveTo(666, 312);
+		context.quadraticCurveTo(697, 306, 729, 314);
 	} else if (emotionName === "confused") {
 		context.moveTo(522, 321);
 		context.quadraticCurveTo(553, 304, 584, 306);
@@ -1687,6 +1753,11 @@ function drawEmotionBrows(context, matrix, emotionName, pose) {
 		context.quadraticCurveTo(552, 316, 584, 301);
 		context.moveTo(666, 301);
 		context.quadraticCurveTo(698, 316, 730, 322);
+	} else if (emotionName === "workError") {
+		context.moveTo(522, 317);
+		context.quadraticCurveTo(553, 313, 584, 305);
+		context.moveTo(666, 305);
+		context.quadraticCurveTo(697, 313, 729, 317);
 	} else if (emotionName === "sleepy") {
 		context.moveTo(522, 316);
 		context.quadraticCurveTo(553, 315, 584, 316);
@@ -1770,16 +1841,13 @@ function drawAttachedTear(context, startX, startY, direction, progress, alpha) {
 	context.restore();
 }
 function drawEmotionFaceDetails(context, matrix, emotionName, pose) {
-	if (!pose.active || pose.weight <= .001 || !["love", "shy", "angry", "surprise", "sad", "happy", "confused", "pout", "sleepy", "proud", "excited", "mischievous", "relieved", "determined", "nervous", "hungry"].includes(emotionName)) return;
+	if (resolveEmotionFaceLayerPlan(emotionName, pose).mouth !== "emotion") return;
 	context.save();
 	applyMatrix(context, matrix);
-	context.globalAlpha = pose.weight;
-	// Cover only the neutral cat-mouth pixels.  The patch stays well inside
-	// the face color and never touches the chin or hair silhouette.
-	context.fillStyle = "#ffe8df";
-	context.beginPath();
-	context.ellipse(624.5, 441, 28, 14, 0, 0, Math.PI * 2);
-	context.fill();
+	// Expressive states own the mouth layer exclusively. The neutral raster is
+	// not drawn beneath this function, so no skin-colored cover patch (or its
+	// mismatched edge) is needed and the raster's lower shadow cannot leak out.
+	context.globalAlpha = emotionName === "workSuccess" || emotionName === "workError" ? 1 : pose.weight;
 	context.strokeStyle = "#56384a";
 	context.fillStyle = "#56384a";
 	context.lineWidth = 4.2;
@@ -1820,6 +1888,12 @@ function drawEmotionFaceDetails(context, matrix, emotionName, pose) {
 		context.ellipse(624.5, 454.5, emotionName === "excited" ? 11 : 9, 4.5, 0, 0, Math.PI * 2);
 		context.fill();
 		mouthFilled = true;
+	} else if (emotionName === "workSuccess") {
+		context.moveTo(613, 443);
+		context.quadraticCurveTo(624.5, 451, 636, 443);
+	} else if (emotionName === "workError") {
+		context.moveTo(614, 449);
+		context.quadraticCurveTo(624.5, 441, 635, 449);
 	} else if (emotionName === "confused") {
 		context.moveTo(615, 442);
 		context.quadraticCurveTo(620, 437, 625, 443);
@@ -2616,15 +2690,16 @@ async function createSeeThroughIdleRig(canvas, options) {
 				drawEmotionEyeAccents(context, featureMatrixAt(624.5, 386), transientEmotion, emotionPose, renderedBlink);
 				context.save();
 				applyMatrix(context, featureMatrixAt(624.5, 440.5));
+				const emotionOwnsMouth = resolveEmotionFaceLayerPlan(transientEmotion, emotionPose).mouth === "emotion";
 				const combinedSmile = gesturePose.smile + emotionPose.smile;
-				const combinedMouthOpen = Math.max(gesturePose.mouthOpen, emotionPose.mouthOpen);
+				const combinedMouthOpen = emotionOwnsMouth ? 0 : Math.max(gesturePose.mouthOpen, emotionPose.mouthOpen);
 				const gestureMouthScaleX = 1 + combinedSmile * .1 + petReaction.smile * .08;
 				const gestureMouthScaleY = 1 + combinedSmile * .72 + petReaction.smile * .22;
 				context.translate(624.5, 440.5);
 				context.scale(expressionStyle.mouthScaleX * gestureMouthScaleX, expressionStyle.mouthScaleY * gestureMouthScaleY);
 				context.translate(-624.5, -440.5);
-				context.globalAlpha = (1 - combinedMouthOpen) * (1 - emotionPose.mouthOverride);
-				context.drawImage(parts.mouth.image, parts.mouth.x, parts.mouth.y, parts.mouth.width, parts.mouth.height);
+				context.globalAlpha = emotionOwnsMouth ? 0 : 1 - combinedMouthOpen;
+				if (!emotionOwnsMouth) context.drawImage(parts.mouth.image, parts.mouth.x, parts.mouth.y, parts.mouth.width, parts.mouth.height);
 				context.globalAlpha = 1;
 				if (combinedMouthOpen > 0) {
 					context.save();
@@ -2903,4 +2978,4 @@ const seeThroughBoneOptions = Object.entries(boneLabels).map(([id, label]) => ({
 
 //#endregion
 
-export { createSeeThroughIdleRig, seeThroughBoneOptions }
+export { createSeeThroughIdleRig, resolveEmotionFaceLayerPlan, seeThroughBoneOptions }

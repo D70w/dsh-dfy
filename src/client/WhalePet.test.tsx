@@ -88,6 +88,7 @@ describe('WhalePet activity presentation', () => {
       root.render(<WhalePet {...props({ mode: 'idle', reaction: 'error', reactionSeq: 8 })} />)
     })
     expect(container.querySelector('[data-whale-pet-entry]')?.getAttribute('data-whale-action')).toBe('denying')
+    expect(container.querySelector('[data-whale-renderer]')?.getAttribute('data-whale-result-emotion')).toBe('workError')
     expect(container.querySelector('[data-whale-pet-bubble]')?.textContent).toBe('reaction.error')
 
     await act(async () => { vi.advanceTimersByTime(2800) })
@@ -100,12 +101,60 @@ describe('WhalePet activity presentation', () => {
     })
     expect(container.querySelector('[data-whale-pet-entry]')?.getAttribute('data-whale-action')).toBe('working')
     expect(container.querySelector('[data-whale-pet-avatar]')?.getAttribute('data-state')).toBe('working')
+    expect(container.querySelector('[data-whale-pet-bubble]')?.textContent).toBe('reaction.workAccepted')
 
     await act(async () => {
-      root.render(<WhalePet {...props({ mode: 'tool', reaction: 'none', reactionSeq: -1 })} />)
+      root.render(<WhalePet {...props({ mode: 'tool', toolKind: 'other', reaction: 'none', reactionSeq: -1 })} />)
     })
     expect(container.querySelector('[data-whale-pet-entry]')?.getAttribute('data-whale-action')).toBe('tool')
     expect(container.querySelector('[data-whale-pet-avatar]')?.getAttribute('data-state')).toBe('working')
+  })
+
+  it('acts out a complete Harness work transition with throttled status dialogue', async () => {
+    await act(async () => {
+      root.render(<WhalePet {...props({ mode: 'idle', reaction: 'none', reactionSeq: -1 })} />)
+    })
+
+    await act(async () => {
+      root.render(<WhalePet {...props({ mode: 'thinking', reaction: 'none', reactionSeq: -1 })} />)
+    })
+    expect(container.querySelector('[data-whale-pet-entry]')?.getAttribute('data-whale-action')).toBe('working')
+    expect(container.querySelector('[data-whale-pet-entry]')?.getAttribute('data-whale-work-mode')).toBe('thinking')
+    expect(container.querySelector('[data-whale-emotion-fx]')?.getAttribute('data-emotion')).toBe('excited')
+    expect(container.querySelector('[data-whale-pet-bubble]')?.textContent).toBe('reaction.workAccepted')
+
+    await act(async () => {
+      root.render(<WhalePet {...props({ mode: 'tool', toolKind: 'other', reaction: 'none', reactionSeq: -1 })} />)
+    })
+    expect(container.querySelector('[data-whale-pet-entry]')?.getAttribute('data-whale-action')).toBe('tool')
+    expect(container.querySelector('[data-whale-emotion-fx]')?.getAttribute('data-emotion')).toBe('determined')
+    expect(container.querySelector('[data-whale-pet-bubble]')?.textContent).toBe('reaction.workTool')
+
+    await act(async () => {
+      root.render(<WhalePet {...props({ mode: 'idle', reaction: 'completed', reactionSeq: 1 })} />)
+    })
+    expect(container.querySelector('[data-whale-pet-entry]')?.getAttribute('data-whale-action')).toBe('smug')
+    expect(container.querySelector('[data-whale-renderer]')?.getAttribute('data-whale-result-emotion')).toBe('workSuccess')
+    expect(container.querySelector('[data-whale-emotion-fx]')).toBeNull()
+    expect(container.querySelector('[data-whale-pet-bubble]')?.textContent).toBe('reaction.completed')
+  })
+
+  it('distinguishes file reading from searching while work remains in tool mode', async () => {
+    await act(async () => {
+      root.render(<WhalePet {...props({ mode: 'thinking', toolKind: 'none', reaction: 'none', reactionSeq: -1 })} />)
+    })
+    await act(async () => {
+      root.render(<WhalePet {...props({ mode: 'tool', toolKind: 'read', reaction: 'none', reactionSeq: -1 })} />)
+    })
+    expect(container.querySelector('[data-whale-pet-entry]')?.getAttribute('data-whale-tool-kind')).toBe('read')
+    expect(container.querySelector('[data-whale-renderer]')?.getAttribute('data-whale-tool-kind')).toBe('read')
+    expect(container.querySelector('[data-whale-pet-bubble]')?.textContent).toBe('reaction.workRead')
+
+    await act(async () => {
+      root.render(<WhalePet {...props({ mode: 'tool', toolKind: 'search', reaction: 'none', reactionSeq: -1 })} />)
+    })
+    expect(container.querySelector('[data-whale-pet-entry]')?.getAttribute('data-whale-tool-kind')).toBe('search')
+    expect(container.querySelector('[data-whale-emotion-fx]')?.getAttribute('data-emotion')).toBe('confused')
   })
 
   it('plays a non-blocking facial and body performance after a short idle wait', async () => {
