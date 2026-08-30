@@ -249,7 +249,9 @@ export const WHALE_STYLE = `
 
 [data-whale-emotion-fx]{position:absolute;z-index:22;inset:0;pointer-events:none;overflow:visible}
 [data-whale-work-fx]{position:absolute;z-index:23;inset:0;pointer-events:none;overflow:visible}
-.whale-work-object{position:absolute;display:grid;width:56px;height:56px;place-items:center;opacity:0;filter:drop-shadow(0 5px 7px rgba(35,63,124,.2));will-change:transform,opacity;animation:whale-work-object-in .42s cubic-bezier(.16,1,.3,1) forwards}
+.whale-work-object{position:absolute;display:grid;width:60px;height:60px;place-items:center;opacity:0;filter:drop-shadow(0 5px 7px rgba(35,63,124,.2));will-change:transform,opacity;animation:whale-work-object-in .42s cubic-bezier(.16,1,.3,1) forwards}
+.whale-work-object::before{position:absolute;inset:4px;border:1px solid rgba(137,174,226,.34);border-radius:50%;background:radial-gradient(circle,rgba(194,226,255,.28),rgba(194,226,255,0) 68%);content:"";opacity:.65;animation:whale-work-aura 2.4s ease-in-out .42s infinite}
+.whale-work-object::after{position:absolute;left:14px;right:14px;bottom:-5px;height:7px;border-radius:50%;background:rgba(45,75,137,.18);content:"";filter:blur(2px);transform:scaleX(.8);animation:whale-work-shadow 2.4s ease-in-out .42s infinite}
 .whale-work-icon{display:block;width:100%;height:100%;overflow:visible}
 .work-icon-shell{fill:#f7fbff;stroke:#456bb0;stroke-width:2.8;stroke-linejoin:round}
 .work-icon-lens{fill:rgba(174,224,255,.52);stroke:#8ec8ec;stroke-width:1.8}
@@ -278,6 +280,10 @@ export const WHALE_STYLE = `
 [data-tool-kind=read] .whale-work-icon{animation:whale-work-read-loop 2.9s ease-in-out .42s infinite}
 [data-tool-kind=command] .whale-work-icon{animation:whale-work-command-loop 1.8s ease-in-out .42s infinite}
 [data-tool-kind=write] .whale-work-icon{animation:whale-work-write-loop 2.2s ease-in-out .42s infinite}
+[data-tool-kind=search] .whale-work-object::before{border-color:rgba(85,190,229,.46);background:radial-gradient(circle,rgba(132,218,245,.32),rgba(132,218,245,0) 68%)}
+[data-tool-kind=read] .whale-work-object::before{border-color:rgba(151,135,220,.4);background:radial-gradient(circle,rgba(211,201,255,.3),rgba(211,201,255,0) 68%)}
+[data-tool-kind=command] .whale-work-object::before{border-color:rgba(88,195,159,.42);background:radial-gradient(circle,rgba(167,242,214,.27),rgba(167,242,214,0) 68%)}
+[data-tool-kind=write] .whale-work-object::before{border-color:rgba(225,171,87,.42);background:radial-gradient(circle,rgba(255,225,151,.28),rgba(255,225,151,0) 68%)}
 [data-tool-kind=search] .whale-work-object{left:70%;top:17%;animation-name:whale-work-search}
 [data-tool-kind=read] .whale-work-object{left:66%;top:13%;animation-name:whale-work-read}
 [data-tool-kind=command] .whale-work-object{left:68%;top:24%;animation-name:whale-work-command}
@@ -343,6 +349,8 @@ export const WHALE_STYLE = `
 .rice-bowl-foot{fill:#4c70bb;stroke:#31559f;stroke-width:2;stroke-linejoin:round}
 @keyframes whale-dialogue-pop{0%{opacity:0;transform:translateY(12px) scale(.72)}68%{transform:translateY(-2px) scale(1.035)}100%{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes whale-work-object-in{0%{opacity:0;transform:translateY(8px) scale(.72)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes whale-work-aura{0%,100%{opacity:.42;transform:scale(.9)}50%{opacity:.82;transform:scale(1.08)}}
+@keyframes whale-work-shadow{0%,100%{opacity:.45;transform:scaleX(.76)}50%{opacity:.7;transform:scaleX(1)}}
 @keyframes whale-work-search{0%{opacity:0;transform:translate(5px,8px) rotate(-18deg) scale(.72)}24%{opacity:1;transform:translate(0,0) rotate(7deg) scale(1.04)}54%{transform:translate(-4px,-3px) rotate(-9deg) scale(1)}78%{transform:translate(3px,1px) rotate(6deg) scale(1.02)}100%{opacity:.96;transform:translate(0,0) rotate(0) scale(1)}}
 @keyframes whale-work-read{0%{opacity:0;transform:translateY(8px) rotate(-6deg) scale(.72)}24%{opacity:1;transform:translateY(0) rotate(2deg) scale(1.04)}52%{transform:translateY(-2px) rotate(-2deg) scale(1)}78%{transform:translateY(1px) rotate(1deg) scale(1.02)}100%{opacity:.96;transform:translateY(0) rotate(0) scale(1)}}
 @keyframes whale-work-command{0%{opacity:0;transform:translateY(10px) scale(.72)}20%{opacity:1;transform:translateY(0) scale(1.04)}42%{transform:translateY(-2px) scale(1)}70%{transform:translateY(1px) scale(1.015)}100%{opacity:.96;transform:translateY(0) scale(1)}}
