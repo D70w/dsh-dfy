@@ -56,6 +56,6 @@ export function resolveEmotionFaceLayerPlan(
   emotionName: string,
   pose: Readonly<{ active: boolean; weight: number }>,
 ): Readonly<{
-  eye: 'neutral' | 'authored' | 'deformed' | 'squint'
+  eye: 'neutral' | 'authored' | 'deformed' | 'squint' | 'soft'
   mouth: 'neutral' | 'emotion'
 }>

@@ -25,6 +25,11 @@ describe('resolveEmotionFaceLayerPlan', () => {
     expect(resolveEmotionFaceLayerPlan('relieved', { active: true, weight: 1 }).eye).toBe('squint')
   })
 
+  it('uses a rounded eye mask for shy and angry states', () => {
+    expect(resolveEmotionFaceLayerPlan('shy', { active: true, weight: 1 }).eye).toBe('soft')
+    expect(resolveEmotionFaceLayerPlan('angry', { active: true, weight: 1 }).eye).toBe('soft')
+  })
+
   it('returns both neutral layers outside an active expression', () => {
     expect(resolveEmotionFaceLayerPlan('workSuccess', { active: false, weight: 0 })).toEqual({
       eye: 'neutral',

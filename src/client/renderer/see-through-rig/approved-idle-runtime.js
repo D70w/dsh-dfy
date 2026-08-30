@@ -1460,6 +1460,40 @@ function drawRoundedSquintEye(context, matrix, centerX, centerY, emotionName) {
 	context.stroke();
 	context.restore();
 }
+function drawSoftEmotionEye(context, white, iris, matrix, centerX, centerY, openness, gazeX, gazeY, side, emotionName) {
+	context.save();
+	applyMatrix(context, matrix);
+	// Shy and angry eyes stay open and rounded. Reusing the pointed lash PNG
+	// under a strong Y deformation is what produced the narrow danfeng-eye
+	// silhouette in earlier passes, so these two keyforms own a clean eye mask.
+	const open = Math.max(.44, Math.min(1, openness));
+	traceEmotionEyeOpening(context, centerX, centerY, open, side, emotionName);
+	context.fillStyle = "#f8fbff";
+	context.fill();
+	context.strokeStyle = "#35456f";
+	context.lineWidth = emotionName === "angry" ? 5.4 : 4.8;
+	context.lineCap = "round";
+	context.lineJoin = "round";
+	context.stroke();
+	context.save();
+	traceEmotionEyeOpening(context, centerX, centerY, open, side, emotionName);
+	context.clip();
+	context.translate(gazeX * 6, gazeY * 5.2);
+	context.drawImage(iris.image, iris.x, iris.y, iris.width, iris.height);
+	context.restore();
+	// A restrained upper-lid accent carries the emotion without adding a second
+	// complete eye stack or exposing the pointed source lash texture.
+	context.strokeStyle = emotionName === "angry" ? "#3e2948" : "#4b3750";
+	context.lineWidth = emotionName === "angry" ? 5.8 : 4.6;
+	context.beginPath();
+	const left = centerX - 39;
+	const right = centerX + 39;
+	const lift = emotionName === "angry" ? -8 : -5;
+	context.moveTo(left, centerY + 1);
+	context.quadraticCurveTo(centerX, centerY + lift, right, centerY + 1);
+	context.stroke();
+	context.restore();
+}
 function traceEmotionEyeOpening(context, centerX, centerY, openness, side, emotionName) {
 	const radiusX = 43;
 	const open = Math.max(.12, Math.min(1, openness));
@@ -1517,7 +1551,7 @@ const expressiveEmotionNames = new Set(["love", "shy", "angry", "surprise", "sad
 function resolveEmotionFaceLayerPlan(emotionName, pose) {
 	const expressive = Boolean(pose.active && pose.weight > .001 && expressiveEmotionNames.has(emotionName));
 	return {
-		eye: !expressive ? "neutral" : emotionName === "workSuccess" || emotionName === "workError" ? "authored" : emotionName === "sleepy" || emotionName === "relieved" ? "squint" : "deformed",
+		eye: !expressive ? "neutral" : emotionName === "workSuccess" || emotionName === "workError" ? "authored" : emotionName === "sleepy" || emotionName === "relieved" ? "squint" : emotionName === "shy" || emotionName === "angry" ? "soft" : "deformed",
 		mouth: expressive ? "emotion" : "neutral"
 	};
 }
@@ -1604,6 +1638,10 @@ function drawExpressiveEye(context, white, iris, lash, matrix, centerX, centerY,
 	}
 	if (layerPlan.eye === "squint" && weight >= .45) {
 		drawRoundedSquintEye(context, matrix, centerX, centerY, emotionName);
+		return;
+	}
+	if (layerPlan.eye === "soft" && weight >= .35) {
+		drawSoftEmotionEye(context, white, iris, matrix, centerX, centerY, openness, gazeX, gazeY, side, emotionName);
 		return;
 	}
 	context.save();
