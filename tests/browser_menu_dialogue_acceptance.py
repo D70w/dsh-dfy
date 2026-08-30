@@ -26,7 +26,7 @@ with sync_playwright() as playwright:
     page = browser.new_page(viewport={"width": 1440, "height": 900})
     page_errors: list[str] = []
     page.on("pageerror", lambda error: page_errors.append(str(error)))
-    page.goto(f"{BASE_URL}/?whale-plugin=0.1.4-latest-dsh", wait_until="networkidle")
+    page.goto(f"{BASE_URL}/?whale-plugin=0.1.4-latest-dsh&whaleDebug=1", wait_until="networkidle")
     page.locator("[data-whale-pet-entry]").wait_for(state="attached")
 
     toggle = page.locator("[data-whale-menu-toggle]")
@@ -149,6 +149,26 @@ with sync_playwright() as playwright:
     assert dialogue.get_attribute("data-visible") == "false"
     assert page.locator("[data-whale-chat-composer]").get_attribute("data-open") == "false"
     dialogue_closed = True
+
+    # Each real-time tool state must have a legible object cue, not only a
+    # facial emotion. The debug controls exercise the same Browser projection
+    # path used by a live DSH tool/call event.
+    for selector, kind in (
+        ("[data-whale-debug-tool-read]", "read"),
+        ("[data-whale-debug-tool-search]", "search"),
+        ("[data-whale-debug-tool-command]", "command"),
+        ("[data-whale-debug-tool-write]", "write"),
+    ):
+        page.locator(selector).click(force=True)
+        page.wait_for_function(
+            "kind => document.querySelector('[data-whale-pet-entry]')?.dataset.whaleToolKind === kind",
+            arg=kind,
+        )
+        work_fx = page.locator(f"[data-whale-work-fx][data-tool-kind='{kind}']")
+        work_fx.wait_for(state="attached")
+        object_box = work_fx.locator("[data-work-object]").bounding_box()
+        assert object_box is not None and object_box["width"] >= 30
+        assert inside_viewport(object_box, 1440, 900)
 
     page.set_viewport_size({"width": 620, "height": 700})
     page.reload(wait_until="networkidle")
