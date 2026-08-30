@@ -5,23 +5,18 @@ import { describe, expect, it } from 'vitest'
 import { WhaleEmotionFx } from './WhaleEmotionFx.tsx'
 
 describe('hungry emotion effect', () => {
-  it('renders an authored rice bowl with rice grains and steam', () => {
+  it('renders an authored rice tray with rice grains, steam and chopsticks', () => {
     const container = document.createElement('div')
     const root = createRoot(container)
     act(() => {
       root.render(<WhaleEmotionFx command={{ id: 7, name: 'hungry', durationMs: 3000 }} />)
     })
 
+    expect(container.querySelector('[data-whale-hungry-tray]')).not.toBeNull()
     expect(container.querySelector('[data-whale-rice-bowl]')).not.toBeNull()
     expect(container.querySelectorAll('.rice-grains ellipse')).toHaveLength(5)
     expect(container.querySelectorAll('.rice-steam path')).toHaveLength(3)
-    expect(container.querySelectorAll('.rice-thought')).toHaveLength(2)
-    const cluster = container.querySelector<HTMLElement>('.rice-dream-cluster')
-    expect(cluster?.style.getPropertyValue('--fx-x')).toBe('72%')
-    expect(cluster?.style.getPropertyValue('--fx-y')).toBe('15%')
-    expect(cluster?.querySelector('.rice-thought-small')).not.toBeNull()
-    expect(cluster?.querySelector('.rice-thought-medium')).not.toBeNull()
-    expect(cluster?.querySelector('.rice-dream')).not.toBeNull()
+    expect(container.querySelector('.hungry-tray-chopsticks')).not.toBeNull()
 
     act(() => root.unmount())
   })
@@ -71,6 +66,13 @@ describe('emotion-specific visual language', () => {
     const container = document.createElement('div')
     const root = createRoot(container)
     const cases = [
+      ['love', '[data-whale-love-envelope]'],
+      ['shy', '[data-whale-shy-fan]'],
+      ['angry', '[data-whale-angry-burst]'],
+      ['confused', '[data-whale-confused-card]'],
+      ['sleepy', '[data-whale-sleepy-moon]'],
+      ['nervous', '[data-whale-nervous-checklist]'],
+      ['hungry', '[data-whale-hungry-tray]'],
       ['sad', '[data-whale-sad-cloud]'],
       ['happy', '[data-whale-happy-sun]'],
       ['proud', '[data-whale-proud-crown]'],
@@ -116,6 +118,28 @@ describe('emotion-specific visual language', () => {
         root.render(<WhaleEmotionFx command={{ id: 22, name, durationMs: 2800 }} />)
       })
       expect(container.querySelector(selector)).not.toBeNull()
+    }
+    act(() => root.unmount())
+  })
+
+  it('builds the third prop group without changing the authored face', () => {
+    const container = document.createElement('div')
+    const root = createRoot(container)
+    const cases = [
+      ['love', '.love-envelope-seal'],
+      ['shy', '.shy-fan-heart'],
+      ['angry', '.angry-burst-shards'],
+      ['confused', '.confused-card-question'],
+      ['sleepy', '.sleepy-moon-zzz'],
+      ['nervous', '.nervous-checklist-sweat'],
+      ['hungry', '.hungry-tray-chopsticks'],
+    ] as const
+    for (const [name, selector] of cases) {
+      act(() => {
+        root.render(<WhaleEmotionFx command={{ id: 23, name, durationMs: 2800 }} />)
+      })
+      expect(container.querySelector(selector)).not.toBeNull()
+      expect(container.querySelector('[data-whale-emotion-fx]')).not.toBeNull()
     }
     act(() => root.unmount())
   })

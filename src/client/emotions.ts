@@ -44,7 +44,7 @@ export const EMOTION_PROFILES: Readonly<Record<WhaleEmotionName, EmotionProfile>
   relieved: { label: '安心', durationMs: 3600, className: 'relief', count: 1 },
   determined: { label: '认真', durationMs: 3200, className: 'focus', count: 1 },
   nervous: { label: '紧张', durationMs: 3000, className: 'sweat', count: 3 },
-  hungry: { label: '馋嘴', durationMs: 3000, className: 'rice-dream', count: 3 },
+  hungry: { label: '馋嘴', durationMs: 3000, className: 'rice-dream', count: 0 },
 })
 
 const EMOTION_LINES: Readonly<Record<WhaleEmotionName, readonly DialogueLine[]>> = {

@@ -236,12 +236,114 @@ function ExcitedGiftIcon({ id }: { id: number }): React.JSX.Element {
   )
 }
 
+function AngryBurstIcon(): React.JSX.Element {
+  return (
+    <svg className="emotion-scene-icon angry-burst-icon" data-whale-angry-burst viewBox="0 0 112 104" aria-hidden="true">
+      <g className="angry-burst-shards" fill="#e52338" stroke="#211a27" strokeWidth="6" strokeLinejoin="round">
+        <path d="M18 31 32 17l24 23-12 12-11-11-7 7Z" />
+        <path d="m76 17 15 14-24 23-12-12 11-11-7-7Z" />
+        <path d="m18 75 14-15 24 24-12 12-11-11-7 7Z" />
+        <path d="m76 91-15-14 24-24 12 12-11 11 7 7Z" />
+      </g>
+      <path d="M47 47 57 57M57 47 47 57" stroke="#fff0e9" strokeWidth="3.2" strokeLinecap="round" opacity=".9" />
+      <path className="angry-burst-steam" d="M89 10c8 5 7 12 1 16M101 20c6 5 4 11-2 14" />
+    </svg>
+  )
+}
+
+function LoveEnvelopeIcon({ id }: { id: number }): React.JSX.Element {
+  const gradientId = `whale-love-envelope-${id}`
+  return (
+    <svg className="emotion-scene-icon love-envelope-icon" data-whale-love-envelope viewBox="0 0 116 94" aria-hidden="true">
+      <defs><linearGradient id={gradientId} x1="21" y1="30" x2="92" y2="82" gradientUnits="userSpaceOnUse"><stop stopColor="#fff6fb" /><stop offset=".58" stopColor="#ffc4da" /><stop offset="1" stopColor="#e783ad" /></linearGradient></defs>
+      <ellipse className="love-envelope-shadow" cx="57" cy="84" rx="39" ry="6" />
+      <path className="love-envelope-back" fill={`url(#${gradientId})`} d="M17 25h80v53H17z" />
+      <path className="love-envelope-flap" d="m17 26 40 32 40-32" />
+      <path className="love-envelope-fold" d="m18 76 29-25M96 76 67 51" />
+      <path className="love-envelope-seal" d="m57 42 5 8 9 1-7 6 2 9-9-4-9 4 2-9-7-6 9-1 5-8Z" />
+      <path className="love-envelope-glint" d="m88 13 2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6Z" />
+    </svg>
+  )
+}
+
+function ShyFanIcon({ id }: { id: number }): React.JSX.Element {
+  const gradientId = `whale-shy-fan-${id}`
+  return (
+    <svg className="emotion-scene-icon shy-fan-icon" data-whale-shy-fan viewBox="0 0 112 96" aria-hidden="true">
+      <defs><linearGradient id={gradientId} x1="20" y1="30" x2="92" y2="74" gradientUnits="userSpaceOnUse"><stop stopColor="#fff5fb" /><stop offset=".6" stopColor="#f4b8d7" /><stop offset="1" stopColor="#c779ae" /></linearGradient></defs>
+      <ellipse className="shy-fan-shadow" cx="57" cy="85" rx="36" ry="5" />
+      <path className="shy-fan-ribs" d="M56 77 19 27c18-10 39-13 59-4 15 7 22 17 24 26L56 77Z" fill={`url(#${gradientId})`} />
+      <path className="shy-fan-rib" d="M56 77 19 27M56 77l1-55M56 77l22-48M56 77l46-28" />
+      <path className="shy-fan-handle" d="m53 72 10 13" />
+      <path className="shy-fan-heart" d="m83 17 4 6 7 1-5 5 1 7-7-3-7 3 1-7-5-5 7-1 4-6Z" />
+    </svg>
+  )
+}
+
+function ConfusedQuestionCardIcon({ id }: { id: number }): React.JSX.Element {
+  const gradientId = `whale-confused-card-${id}`
+  return (
+    <svg className="emotion-scene-icon confused-card-icon" data-whale-confused-card viewBox="0 0 112 98" aria-hidden="true">
+      <defs><linearGradient id={gradientId} x1="23" y1="18" x2="88" y2="82" gradientUnits="userSpaceOnUse"><stop stopColor="#fafdff" /><stop offset=".58" stopColor="#d9e8ff" /><stop offset="1" stopColor="#9eb9e7" /></linearGradient></defs>
+      <ellipse className="confused-card-shadow" cx="58" cy="87" rx="34" ry="5" />
+      <g className="confused-card-paper" transform="rotate(-8 55 50)"><rect x="20" y="12" width="70" height="70" rx="9" fill={`url(#${gradientId})`} /><path d="M31 27h38" /><path d="M31 69h24" /></g>
+      <path className="confused-card-question" d="M48 39c1-9 15-12 21-4 5 7-1 12-7 16-4 3-5 5-5 9M57 70h.1" />
+      <path className="confused-card-glint" d="m91 19 2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6Z" />
+    </svg>
+  )
+}
+
+function SleepyMoonIcon({ id }: { id: number }): React.JSX.Element {
+  const gradientId = `whale-sleepy-moon-${id}`
+  return (
+    <svg className="emotion-scene-icon sleepy-moon-icon" data-whale-sleepy-moon viewBox="0 0 116 88" aria-hidden="true">
+      <defs><linearGradient id={gradientId} x1="26" y1="14" x2="77" y2="69" gradientUnits="userSpaceOnUse"><stop stopColor="#fff7bd" /><stop offset=".62" stopColor="#ffd76d" /><stop offset="1" stopColor="#efaa4b" /></linearGradient></defs>
+      <ellipse className="sleepy-moon-shadow" cx="55" cy="77" rx="34" ry="5" />
+      <path className="sleepy-moon-body" fill={`url(#${gradientId})`} d="M76 18c-8 2-15 10-15 20 0 14 11 25 25 25 4 0 8-1 11-3-5 10-15 16-27 16-17 0-31-13-31-30S52 15 69 15c3 0 5 1 7 3Z" />
+      <path className="sleepy-moon-star" d="m29 16 3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8Z" />
+      <path className="sleepy-moon-zzz" d="M78 20h20l-20 17h20M83 45h13l-13 12h13" />
+    </svg>
+  )
+}
+
+function NervousChecklistIcon({ id }: { id: number }): React.JSX.Element {
+  const gradientId = `whale-nervous-checklist-${id}`
+  return (
+    <svg className="emotion-scene-icon nervous-checklist-icon" data-whale-nervous-checklist viewBox="0 0 114 96" aria-hidden="true">
+      <defs><linearGradient id={gradientId} x1="24" y1="18" x2="85" y2="82" gradientUnits="userSpaceOnUse"><stop stopColor="#ffffff" /><stop offset=".62" stopColor="#dce8fa" /><stop offset="1" stopColor="#a3b8dc" /></linearGradient></defs>
+      <ellipse className="nervous-checklist-shadow" cx="57" cy="85" rx="36" ry="5" />
+      <g className="nervous-checklist-board"><rect x="22" y="15" width="70" height="68" rx="9" fill={`url(#${gradientId})`} /><rect x="42" y="9" width="30" height="13" rx="6" fill="#8fa5cf" /><path d="m32 37 5 5 8-10M32 56l5 5 8-10M32 73l5 5 8-10" /><path d="M52 38h27M52 57h23M52 75h18" /></g>
+      <path className="nervous-checklist-sweat" d="M98 24c-8 10-9 15-3 18 6 2 11-3 9-9-1-3-3-6-6-9Z" />
+      <path className="nervous-checklist-alert" d="M92 53v14M92 73h.1" />
+    </svg>
+  )
+}
+
+function HungryRiceTrayIcon({ id }: { id: number }): React.JSX.Element {
+  return (
+    <svg className="emotion-scene-icon hungry-tray-icon" data-whale-hungry-tray viewBox="0 0 120 100" aria-hidden="true">
+      <ellipse className="hungry-tray-shadow" cx="59" cy="89" rx="40" ry="6" />
+      <g transform="translate(12 6) scale(.96)"><RiceBowlIcon id={id} /></g>
+      <path className="hungry-tray-chopsticks" d="m90 22 19 36M96 19l18 36" />
+      <path className="hungry-tray-glint" d="m96 9 2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6Z" />
+    </svg>
+  )
+}
+
 const SCENE_PROP_EMOTIONS = new Set<WhaleEmotionName>([
+  'love', 'shy', 'angry', 'confused', 'sleepy', 'nervous', 'hungry',
   'sad', 'happy', 'proud', 'determined', 'relieved', 'pout', 'surprise', 'mischievous', 'excited',
 ])
 
 function scenePropIcon(command: WhaleEmotionCommand): React.JSX.Element | null {
   switch (command.name) {
+    case 'love': return <LoveEnvelopeIcon id={command.id} />
+    case 'shy': return <ShyFanIcon id={command.id} />
+    case 'angry': return <AngryBurstIcon />
+    case 'confused': return <ConfusedQuestionCardIcon id={command.id} />
+    case 'sleepy': return <SleepyMoonIcon id={command.id} />
+    case 'nervous': return <NervousChecklistIcon id={command.id} />
+    case 'hungry': return <HungryRiceTrayIcon id={command.id} />
     case 'sad': return <SadRainCloudIcon id={command.id} />
     case 'happy': return <HappySunIcon id={command.id} />
     case 'proud': return <ProudCrownIcon id={command.id} />
@@ -258,6 +360,13 @@ function scenePropIcon(command: WhaleEmotionCommand): React.JSX.Element | null {
 function EmotionSceneProp({ command }: { command: WhaleEmotionCommand }): React.JSX.Element | null {
   if (!SCENE_PROP_EMOTIONS.has(command.name)) return null
   const placementByEmotion = {
+    love: { x: '74%', y: '13%', width: 82, height: 68 },
+    shy: { x: '72%', y: '20%', width: 76, height: 66 },
+    angry: { x: '74%', y: '14%', width: 78, height: 72 },
+    confused: { x: '74%', y: '16%', width: 76, height: 68 },
+    sleepy: { x: '73%', y: '12%', width: 82, height: 64 },
+    nervous: { x: '73%', y: '22%', width: 80, height: 68 },
+    hungry: { x: '71%', y: '16%', width: 92, height: 76 },
     sad: { x: '77%', y: '15%', width: 96, height: 80 },
     happy: { x: '75%', y: '17%', width: 68, height: 68 },
     proud: { x: '74%', y: '14%', width: 80, height: 62 },
@@ -336,22 +445,6 @@ export function WhaleEmotionFx({ command }: { command: WhaleEmotionCommand | und
   if (command === undefined) return null
   const profile = EMOTION_PROFILES[command.name]
   const originX = Math.max(.18, Math.min(.82, command.originX ?? .5))
-  if (command.name === 'hungry') {
-    const style = {
-      '--fx-x': '72%',
-      '--fx-y': '15%',
-      '--fx-duration': `${Math.max(900, command.durationMs)}ms`,
-    } as React.CSSProperties
-    return (
-      <span key={command.id} data-whale-emotion-fx data-emotion={command.name} aria-hidden="true">
-        <i className="emotion-particle rice-dream-cluster" style={style}>
-          <span className="rice-thought rice-thought-small" />
-          <span className="rice-thought rice-thought-medium" />
-          <span className="rice-dream"><RiceBowlIcon id={command.id} /></span>
-        </i>
-      </span>
-    )
-  }
   return (
     <span key={command.id} data-whale-emotion-fx data-emotion={command.name} aria-hidden="true">
       <EmotionSceneProp command={command} />
