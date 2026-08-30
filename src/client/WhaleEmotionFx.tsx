@@ -66,13 +66,15 @@ function placement(name: WhaleEmotionName, index: number, count: number, originX
   if (name === 'angry') {
     x = 67 + index * 2
     y = 16 + index % 2 * 5
-    className = index === 0 ? 'anger' : 'anger-steam'
+    className = index === 0 ? 'anger-mark' : 'anger-steam'
   } else if (name === 'surprise') {
     x = 64 - index * 4
     y = 17 + index * 7
   } else if (name === 'confused') {
     x = 64 + index * 7
     y = 21 - index * 6
+    className = index === 0 ? 'question' : 'thought-dot'
+    size = index === 0 ? 31 : 11 - index
   } else if (name === 'sleepy') {
     x = 64 + index * 7
     y = 22 - index * 6
@@ -92,6 +94,7 @@ function placement(name: WhaleEmotionName, index: number, count: number, originX
   } else if (name === 'relieved') {
     x = 50 + side * 11
     y = 31 + index * 4
+    className = index === 0 ? 'relief' : 'relief-spark'
   } else if (name === 'determined') {
     x = 62 + index * 5
     y = 22 + index % 2 * 5

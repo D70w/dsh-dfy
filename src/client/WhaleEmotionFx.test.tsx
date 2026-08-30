@@ -36,3 +36,32 @@ describe('hungry emotion effect', () => {
     act(() => root.unmount())
   })
 })
+
+describe('emotion-specific visual language', () => {
+  it('uses a drawn anger mark instead of a platform emoji', () => {
+    const container = document.createElement('div')
+    const root = createRoot(container)
+    act(() => {
+      root.render(<WhaleEmotionFx command={{ id: 9, name: 'angry', durationMs: 2800 }} />)
+    })
+    expect(container.querySelector('.anger-mark')).not.toBeNull()
+    expect(container.querySelector('.anger')).toBeNull()
+    expect(container.textContent).not.toContain('💢')
+    act(() => root.unmount())
+  })
+
+  it('gives confused and relieved states distinct secondary marks', () => {
+    const container = document.createElement('div')
+    const root = createRoot(container)
+    act(() => {
+      root.render(<WhaleEmotionFx command={{ id: 10, name: 'confused', durationMs: 2800 }} />)
+    })
+    expect(container.querySelectorAll('.question')).toHaveLength(1)
+    expect(container.querySelectorAll('.thought-dot')).toHaveLength(2)
+    act(() => {
+      root.render(<WhaleEmotionFx command={{ id: 11, name: 'relieved', durationMs: 3600 }} />)
+    })
+    expect(container.querySelector('.relief-spark')).not.toBeNull()
+    act(() => root.unmount())
+  })
+})
