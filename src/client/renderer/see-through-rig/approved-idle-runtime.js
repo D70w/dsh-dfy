@@ -201,7 +201,10 @@ const waveFrontPalmPlacement = {
 const gestureDurations = {
 	wave: 1600,
 	nod: 1800,
-	tilt: 2100
+	tilt: 2100,
+	inspect: 2300,
+	type: 1800,
+	write: 2100
 };
 const PET_REACTION_DURATION = 760;
 const expressionStyles = {
@@ -882,6 +885,102 @@ function sampleGesture(gesture, progress, amplitude) {
 		pose.browLeftRotation = chinDown * 1.1 * amplitude;
 		pose.browRightRotation = -chinDown * 1.1 * amplitude;
 		pose.browY = chinDown * 1.65 * amplitude;
+	} else if (gesture === "inspect") {
+		const prepare = pulse(t, 0, .08, .18);
+		const lean = phase(t, .1, .29) * (1 - phase(t, .72, .91));
+		const scan = Math.sin((t - .24) * Math.PI * 3.4) * lean;
+		const returnOvershoot = pulse(t, .84, .94, 1);
+		pose.pelvisX = (-lean * 1.2 + returnOvershoot * .35) * amplitude;
+		pose.pelvisRotation = (-lean * .3 + returnOvershoot * .12) * amplitude;
+		pose.waistRotation = (-lean * .75 + returnOvershoot * .28) * amplitude;
+		pose.chestRotation = (-lean * 1.55 + returnOvershoot * .55) * amplitude;
+		pose.headX = (prepare * 1.2 + lean * 3.6 - returnOvershoot * 1.1) * amplitude;
+		pose.headY = (-prepare * .6 + lean * 1.3 - returnOvershoot * .4) * amplitude;
+		pose.headRotation = (prepare * 1.8 + lean * 5.2 - returnOvershoot * 1.4) * amplitude;
+		pose.headPitch = (-lean * .12 + returnOvershoot * .025) * amplitude;
+		pose.shoulderLeftX = -lean * 1.8 * amplitude;
+		pose.shoulderLeftY = lean * 1.2 * amplitude;
+		pose.shoulderRightX = lean * 2.4 * amplitude;
+		pose.shoulderRightY = -lean * 1.8 * amplitude;
+		pose.armLeftUpper = (lean * 2.1 - returnOvershoot * .35) * amplitude;
+		pose.armLeftForearm = (-lean * 1.2 + scan * 2.2) * amplitude;
+		pose.handLeft = scan * 1.4 * amplitude;
+		pose.armRightUpper = (-lean * 4.2 + returnOvershoot * .55) * amplitude;
+		pose.armRightForearm = (lean * 3.4 + scan * 5.2) * amplitude;
+		pose.handRight = scan * 2.2 * amplitude;
+		pose.legLeftUpper = (lean * .6 - returnOvershoot * .2) * amplitude;
+		pose.legRightUpper = (-lean * .8 + returnOvershoot * .28) * amplitude;
+		pose.skirtSway = (lean * 2.6 - returnOvershoot * .9) * amplitude;
+		pose.gazeX = (.34 * lean - returnOvershoot * .05) * amplitude;
+		pose.gazeY = (-.08 * lean) * amplitude;
+		pose.blinkOpenness = 1 - pulse(t, .3, .36, .43) * .34 * amplitude;
+		pose.browLeftRotation = -2.5 * lean * amplitude;
+		pose.browRightRotation = 1.2 * lean * amplitude;
+		pose.browY = -1.1 * lean * amplitude;
+		pose.elbowMorph = clamp01(lean * .8 * amplitude);
+		pose.cuffMorph = clamp01((lean * .64 + Math.abs(scan) * .36) * amplitude);
+	} else if (gesture === "type") {
+		const prepare = pulse(t, 0, .08, .16);
+		const tapWindow = phase(t, .14, .28) * (1 - phase(t, .78, .94));
+		const tap = Math.sin((t - .18) * Math.PI * 7.5) * tapWindow;
+		const returnOvershoot = pulse(t, .86, .95, 1);
+		pose.pelvisY = (-prepare * .2 + returnOvershoot * .25) * amplitude;
+		pose.waistRotation = (prepare * .1 - returnOvershoot * .18) * amplitude;
+		pose.chestRotation = (-prepare * .28 + returnOvershoot * .3) * amplitude;
+		pose.headY = (-prepare * .8 - tapWindow * .55 + returnOvershoot * .8) * amplitude;
+		pose.headRotation = (tap * .35 - returnOvershoot * .2) * amplitude;
+		pose.headPitch = tapWindow * .08 * amplitude;
+		pose.shoulderLeftX = (-tap * .9 - tapWindow * 1.2) * amplitude;
+		pose.shoulderLeftY = -tapWindow * 1.8 * amplitude;
+		pose.shoulderRightX = (tap * .8 + tapWindow * 1.2) * amplitude;
+		pose.shoulderRightY = -tapWindow * 1.8 * amplitude;
+		pose.armLeftUpper = (-tapWindow * 5.5 + tap * .7) * amplitude;
+		pose.armLeftForearm = (tap * 4.8 - tapWindow * 2.2) * amplitude;
+		pose.handLeft = tap * 2.2 * amplitude;
+		pose.armRightUpper = (tapWindow * 5.5 - tap * .7) * amplitude;
+		pose.armRightForearm = (-tap * 5.2 - tapWindow * 1.8) * amplitude;
+		pose.handRight = -tap * 2.4 * amplitude;
+		pose.legLeftUpper = tapWindow * .18 * amplitude;
+		pose.legRightUpper = -tapWindow * .16 * amplitude;
+		pose.skirtSway = tap * .55 * amplitude;
+		pose.gazeY = tapWindow * .08 * amplitude;
+		pose.blinkOpenness = 1 - pulse(t, .08, .13, .19) * .18 * amplitude;
+		pose.browY = -tapWindow * .75 * amplitude;
+		pose.elbowMorph = clamp01((tapWindow * .72 + Math.abs(tap) * .28) * amplitude);
+		pose.cuffMorph = clamp01((tapWindow * .66 + Math.abs(tap) * .34) * amplitude);
+	} else if (gesture === "write") {
+		const prepare = pulse(t, 0, .09, .18);
+		const lean = phase(t, .12, .31) * (1 - phase(t, .74, .91));
+		const stroke = Math.sin((t - .22) * Math.PI * 4.8) * lean;
+		const returnOvershoot = pulse(t, .84, .94, 1);
+		pose.pelvisX = (-lean * .9 + returnOvershoot * .35) * amplitude;
+		pose.pelvisRotation = (lean * .25 - returnOvershoot * .12) * amplitude;
+		pose.waistRotation = (-lean * .55 + returnOvershoot * .22) * amplitude;
+		pose.chestRotation = (-lean * 1.35 + returnOvershoot * .5) * amplitude;
+		pose.headX = (prepare * .8 - lean * 1.6 + returnOvershoot * .7) * amplitude;
+		pose.headY = (-prepare * .5 + lean * 1.1 - returnOvershoot * .35) * amplitude;
+		pose.headRotation = (lean * 1.8 - returnOvershoot * .65) * amplitude;
+		pose.headPitch = (lean * .17 - returnOvershoot * .025) * amplitude;
+		pose.shoulderLeftX = -lean * 1.4 * amplitude;
+		pose.shoulderLeftY = lean * 1.1 * amplitude;
+		pose.shoulderRightX = lean * 2.8 * amplitude;
+		pose.shoulderRightY = -lean * 2.4 * amplitude;
+		pose.armLeftUpper = (lean * 1.2 - returnOvershoot * .3) * amplitude;
+		pose.armLeftForearm = (-lean * .5 + stroke * 1.2) * amplitude;
+		pose.armRightUpper = (-lean * 6.5 + returnOvershoot * .45) * amplitude;
+		pose.armRightForearm = (lean * 7.6 + stroke * 6.4) * amplitude;
+		pose.handRight = stroke * 3.1 * amplitude;
+		pose.legLeftUpper = (lean * .45 - returnOvershoot * .16) * amplitude;
+		pose.legRightUpper = (-lean * .6 + returnOvershoot * .22) * amplitude;
+		pose.skirtSway = (lean * 2.1 - returnOvershoot * .75) * amplitude;
+		pose.gazeX = .16 * lean * amplitude;
+		pose.gazeY = .2 * lean * amplitude;
+		pose.blinkOpenness = 1 - pulse(t, .42, .48, .55) * .22 * amplitude;
+		pose.browLeftRotation = -1.2 * lean * amplitude;
+		pose.browRightRotation = 1.8 * lean * amplitude;
+		pose.browY = .65 * lean * amplitude;
+		pose.elbowMorph = clamp01((lean * .84 + Math.abs(stroke) * .16) * amplitude);
+		pose.cuffMorph = clamp01((lean * .74 + Math.abs(stroke) * .26) * amplitude);
 	} else {
 		const prepare = pulse(t, 0, .095, .19);
 		const headTilt = phase(t, .105, .33) * (1 - phase(t, .73, .91));

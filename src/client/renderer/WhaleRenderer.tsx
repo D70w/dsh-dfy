@@ -141,9 +141,9 @@ export interface WorkToolMotion {
 export function workToolMotion(kind: WhaleToolKind): WorkToolMotion {
   switch (kind) {
     case 'read': return { gesture: 'nod', gestureSpeed: 0.76, cadenceMs: 5_200, emotion: 'determined' }
-    case 'search': return { gesture: 'tilt', gestureSpeed: 0.72, cadenceMs: 4_400, emotion: 'confused' }
-    case 'command': return { gesture: 'nod', gestureSpeed: 1.12, cadenceMs: 3_300, emotion: 'determined' }
-    case 'write': return { gesture: 'nod', gestureSpeed: 0.94, cadenceMs: 4_000, emotion: 'determined' }
+    case 'search': return { gesture: 'inspect', gestureSpeed: 0.72, cadenceMs: 4_400, emotion: 'confused' }
+    case 'command': return { gesture: 'type', gestureSpeed: 1.12, cadenceMs: 3_300, emotion: 'determined' }
+    case 'write': return { gesture: 'write', gestureSpeed: 0.94, cadenceMs: 4_000, emotion: 'determined' }
     case 'none':
     case 'other': return { gesture: 'tilt', gestureSpeed: 0.88, cadenceMs: 3_800, emotion: 'determined' }
   }

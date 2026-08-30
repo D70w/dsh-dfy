@@ -1,5 +1,5 @@
 export type ApprovedExpression = 'neutral' | 'smug' | 'happy'
-export type ApprovedGesture = 'none' | 'wave' | 'nod' | 'tilt'
+export type ApprovedGesture = 'none' | 'wave' | 'nod' | 'tilt' | 'inspect' | 'type' | 'write'
 export type ApprovedEmotion =
   | 'neutral' | 'love' | 'shy' | 'angry' | 'surprise' | 'sad' | 'happy'
   | 'confused' | 'pout' | 'sleepy' | 'proud' | 'excited' | 'mischievous'

@@ -30,8 +30,9 @@ describe('manual classic action playback', () => {
 
   it('gives reading, searching and commands visibly different realtime acting', () => {
     expect(workToolMotion('read')).toMatchObject({ gesture: 'nod', gestureSpeed: 0.76, emotion: 'determined' })
-    expect(workToolMotion('search')).toMatchObject({ gesture: 'tilt', gestureSpeed: 0.72, emotion: 'confused' })
-    expect(workToolMotion('command')).toMatchObject({ gesture: 'nod', gestureSpeed: 1.12, emotion: 'determined' })
+    expect(workToolMotion('search')).toMatchObject({ gesture: 'inspect', gestureSpeed: 0.72, emotion: 'confused' })
+    expect(workToolMotion('command')).toMatchObject({ gesture: 'type', gestureSpeed: 1.12, emotion: 'determined' })
+    expect(workToolMotion('write')).toMatchObject({ gesture: 'write', gestureSpeed: 0.94, emotion: 'determined' })
     expect(workToolMotion('read')).not.toEqual(workToolMotion('search'))
   })
 
