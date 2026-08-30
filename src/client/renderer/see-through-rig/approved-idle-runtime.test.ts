@@ -13,21 +13,27 @@ describe('resolveEmotionFaceLayerPlan', () => {
     })
   })
 
-  it('uses exactly one deformed eye stack and one emotion mouth for regular expressions', () => {
+  it('uses an authored rounded closed-eye drawing for happy, relieved, and sleepy', () => {
     expect(resolveEmotionFaceLayerPlan('happy', { active: true, weight: 0.5 })).toEqual({
-      eye: 'deformed',
+      eye: 'squint',
       mouth: 'emotion',
     })
-  })
-
-  it('uses rounded lid strokes for sleepy and relieved eyes', () => {
     expect(resolveEmotionFaceLayerPlan('sleepy', { active: true, weight: 1 }).eye).toBe('squint')
     expect(resolveEmotionFaceLayerPlan('relieved', { active: true, weight: 1 }).eye).toBe('squint')
   })
 
-  it('uses a rounded eye mask for shy and angry states', () => {
-    expect(resolveEmotionFaceLayerPlan('shy', { active: true, weight: 1 }).eye).toBe('soft')
-    expect(resolveEmotionFaceLayerPlan('angry', { active: true, weight: 1 }).eye).toBe('soft')
+  it('keeps every other user-facing emotion open with the same stable rounded eye mask', () => {
+    const openEyeEmotions = [
+      'love', 'shy', 'angry', 'surprise', 'sad', 'confused', 'pout', 'proud',
+      'excited', 'mischievous', 'determined', 'nervous', 'hungry',
+    ]
+
+    for (const emotion of openEyeEmotions) {
+      expect(resolveEmotionFaceLayerPlan(emotion, { active: true, weight: 1 })).toEqual({
+        eye: 'soft',
+        mouth: 'emotion',
+      })
+    }
   })
 
   it('returns both neutral layers outside an active expression', () => {
