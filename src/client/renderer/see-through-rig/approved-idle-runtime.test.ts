@@ -22,7 +22,7 @@ describe('resolveEmotionFaceLayerPlan', () => {
     expect(resolveEmotionFaceLayerPlan('relieved', { active: true, weight: 1 }).eye).toBe('squint')
   })
 
-  it('keeps every other user-facing emotion open with the same stable rounded eye mask', () => {
+  it('keeps every other user-facing emotion on the original authored eye assets', () => {
     const openEyeEmotions = [
       'love', 'shy', 'angry', 'surprise', 'sad', 'confused', 'pout', 'proud',
       'excited', 'mischievous', 'determined', 'nervous', 'hungry',
@@ -30,7 +30,7 @@ describe('resolveEmotionFaceLayerPlan', () => {
 
     for (const emotion of openEyeEmotions) {
       expect(resolveEmotionFaceLayerPlan(emotion, { active: true, weight: 1 })).toEqual({
-        eye: 'soft',
+        eye: 'authored',
         mouth: 'emotion',
       })
     }

@@ -1669,7 +1669,7 @@ const expressiveEmotionNames = new Set(["love", "shy", "angry", "surprise", "sad
 function resolveEmotionFaceLayerPlan(emotionName, pose) {
 	const expressive = Boolean(pose.active && pose.weight > .001 && expressiveEmotionNames.has(emotionName));
 	return {
-		eye: !expressive ? "neutral" : emotionName === "workSuccess" || emotionName === "workError" ? "authored" : emotionName === "happy" || emotionName === "sleepy" || emotionName === "relieved" ? "squint" : "soft",
+		eye: !expressive ? "neutral" : emotionName === "happy" || emotionName === "sleepy" || emotionName === "relieved" ? "squint" : "authored",
 		mouth: expressive ? "emotion" : "neutral"
 	};
 }
@@ -1748,10 +1748,12 @@ function drawExpressiveEye(context, white, iris, lash, matrix, centerX, centerY,
 		return;
 	}
 	if (layerPlan.eye === "authored") {
-		// Work results should look like the same character acknowledging an
-		// outcome, not like a separate theatrical keyform. Preserve the authored
-		// eye texture and express the state through gaze, openness and brows.
-		drawEye(context, white, iris, lash, matrix, centerX, centerY, openness, gazeX, gazeY);
+		// Preserve the exact source eye-white, iris and lash stack. Emotion pose
+		// openness used to squash this stack as low as 58%, changing the approved
+		// eye design. Divide that authored pose contribution back out while keeping
+		// real blink/gesture closure and gaze movement intact.
+		const authoredOpenness = clamp01(openness / Math.max(.08, pose.blinkOpenness));
+		drawEye(context, white, iris, lash, matrix, centerX, centerY, authoredOpenness, gazeX, gazeY);
 		return;
 	}
 	if (layerPlan.eye === "squint" && weight >= .45) {
@@ -1797,6 +1799,9 @@ function drawExpressiveEye(context, white, iris, lash, matrix, centerX, centerY,
 }
 function drawEmotionEyeAccents(context, matrix, emotionName, pose, openness) {
 	if (!pose.active || pose.weight <= .001) return;
+	// Authored open eyes already contain their final lashes, outline and iris
+	// highlights. Drawing another accent on top changes the source design.
+	if (resolveEmotionFaceLayerPlan(emotionName, pose).eye === "authored") return;
 	context.save();
 	applyMatrix(context, matrix);
 	context.globalAlpha = pose.weight * .82;
