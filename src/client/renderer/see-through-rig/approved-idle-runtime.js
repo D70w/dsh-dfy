@@ -718,7 +718,11 @@ const emotionActingTimings = {
 	love: { gaze: [0, 100], brow: [70, 230], lash: [120, 300], mouth: [180, 360], blush: [90, 420] },
 	excited: { gaze: [0, 60], brow: [35, 150], lash: [80, 210], mouth: [120, 280], blush: [170, 340] },
 	surprise: { gaze: [0, 45], brow: [20, 95], lash: [45, 130], mouth: [70, 160], blush: [140, 260] },
-	hungry: { gaze: [0, 80], brow: [60, 190], lash: [100, 245], mouth: [170, 340], blush: [180, 370] }
+	hungry: { gaze: [0, 80], brow: [60, 190], lash: [100, 245], mouth: [170, 340], blush: [180, 370] },
+	happy: { gaze: [0, 70], brow: [45, 160], lash: [100, 260], mouth: [130, 280], blush: [170, 340] },
+	pout: { gaze: [0, 120], brow: [75, 250], lash: [150, 360], mouth: [210, 420], blush: [160, 410] },
+	sleepy: { gaze: [0, 180], brow: [120, 330], lash: [200, 520], mouth: [330, 600], blush: [300, 620] },
+	relieved: { gaze: [0, 140], brow: [90, 270], lash: [170, 420], mouth: [270, 500], blush: [330, 600] }
 };
 function resolveEmotionActingWeights(name, elapsed, duration) {
 	if (!Number.isFinite(elapsed) || !Number.isFinite(duration) || duration <= 0 || elapsed < 0 || elapsed >= duration + 460) return { gaze: 0, brow: 0, lash: 0, mouth: 0, blush: 0 };
@@ -772,11 +776,14 @@ function sampleTransientEmotion(clock, name, elapsed, duration) {
 	for (const key of ["smile", "mouthOpen", "mouthOverride"]) scaled[key] = (style[key] ?? 0) * acting.mouth;
 	scaled.blush = (style.blush ?? 0) * acting.blush;
 	if (name === "relieved") {
-		// A visible sigh: chest rises first, then shoulders and head settle.
-		scaled.headY += Math.sin(normalized * Math.PI) * -2.6 * weight;
-		scaled.chestRotation += Math.sin(normalized * Math.PI) * 2.2 * weight;
-		scaled.shoulderLeftY += Math.sin(normalized * Math.PI) * 3.5 * weight;
-		scaled.shoulderRightY += Math.sin(normalized * Math.PI) * 3.5 * weight;
+		// A readable sigh: a short inhale lifts the chest before the shoulders
+		// release. This keeps relief distinct from sleepy's continuous droop.
+		const inhale = pulse(normalized, .015, .14, .3) * weight;
+		const release = smoothstep(.2, .56, normalized) * weight;
+		scaled.headY += inhale * -2.2 + release * 1.15;
+		scaled.chestRotation += inhale * 2.6 - release * .9;
+		scaled.shoulderLeftY += release * 2.8;
+		scaled.shoulderRightY += release * 2.8;
 	} else if (name === "determined") {
 		// Anticipation, then a firm locked hold; no floaty idle-like sway.
 		const lock = smoothstep(.08, .34, normalized);
@@ -818,6 +825,29 @@ function sampleTransientEmotion(clock, name, elapsed, duration) {
 		scaled.chestRotation += lean * 1.1;
 		scaled.shoulderLeftX += lean * .7;
 		scaled.shoulderRightX -= lean * .7;
+	} else if (name === "happy") {
+		const firstBounce = pulse(normalized, .015, .11, .25);
+		const secondBounce = pulse(normalized, .28, .4, .56) * .42;
+		const bounce = (firstBounce + secondBounce) * weight;
+		scaled.headY -= bounce * 2.6;
+		scaled.chestRotation += bounce * 1.1;
+		scaled.shoulderLeftY -= bounce * 1.9;
+		scaled.shoulderRightY -= bounce * 1.9;
+	} else if (name === "pout") {
+		const sink = smoothstep(.08, .42, normalized) * weight;
+		scaled.headY += sink * 2.1;
+		scaled.headPitch += sink * .06;
+		scaled.shoulderLeftY += sink * 1.6;
+		scaled.shoulderRightY += sink * 1.6;
+		scaled.tear = (style.tear ?? 0) * phase(elapsed, 260, 700) * weight;
+	} else if (name === "sleepy") {
+		const drowse = smoothstep(.06, .52, normalized) * weight;
+		const slowNod = Math.sin(normalized * Math.PI) * drowse;
+		scaled.headY += drowse * 2.5 + slowNod * .7;
+		scaled.headRotation += drowse * -1.1;
+		scaled.chestRotation -= drowse * .8;
+		scaled.shoulderLeftY += drowse * 1.8;
+		scaled.shoulderRightY += drowse * 1.8;
 	}
 	const isSad = name === "sad";
 	const tearPool = isSad ? phase(elapsed, 220, 620) * weight : 0;
@@ -834,6 +864,7 @@ function sampleTransientEmotion(clock, name, elapsed, duration) {
 	else if (name === "excited") eyeBlinkBeat -= pulse(normalized, .055, .105, .18) * .3 * acting.lash;
 	else if (name === "surprise") eyeBlinkBeat -= pulse(normalized, .005, .035, .075) * .34 * acting.lash;
 	else if (name === "hungry") eyeBlinkBeat -= pulse(normalized, .15, .24, .36) * .3 * acting.lash;
+	else if (name === "pout") eyeBlinkBeat -= pulse(normalized, .16, .27, .41) * .42 * acting.lash;
 	let eyeBlinkBeatLeft = eyeBlinkBeat;
 	let eyeBlinkBeatRight = eyeBlinkBeat;
 	if (name === "mischievous") eyeBlinkBeatLeft -= pulse(normalized, .08, .16, .28) * .28 * acting.lash;
@@ -1633,7 +1664,7 @@ function drawEye(context, white, iris, lash, matrix, centerX, centerY, openness,
 	context.drawImage(lash.image, lash.x, lash.y, lash.width, lash.height);
 	context.restore();
 }
-const localizedAuthoredLashEmotions = new Set(["angry", "sad", "shy", "proud", "mischievous", "determined", "love", "excited", "surprise", "hungry"]);
+const localizedAuthoredLashEmotions = new Set(["angry", "sad", "shy", "proud", "mischievous", "determined", "love", "excited", "surprise", "hungry", "pout"]);
 function sampleAuthoredLashDeformation(u, v, side, emotionName, weight) {
 	const horizontal = (clamp01(u) - .5) * 2;
 	const innerAxis = side === "left" ? horizontal : -horizontal;
@@ -1653,6 +1684,7 @@ function sampleAuthoredLashDeformation(u, v, side, emotionName, weight) {
 	else if (emotionName === "excited") y = -(centerWeight * .48 + outerWeight * .18) * amount;
 	else if (emotionName === "surprise") y = -centerWeight * .68 * amount;
 	else if (emotionName === "hungry") y = centerWeight * .32 * amount;
+	else if (emotionName === "pout") y = outerWeight * .8 * amount;
 	return { x: 0, y };
 }
 function drawAuthoredEmotionEye(context, white, iris, lash, matrix, centerX, centerY, openness, gazeX, gazeY, side, emotionName, pose) {
@@ -1805,12 +1837,17 @@ const emotionEyeGeometry = {
 	workError: { whiteY: .88, irisY: .92, irisOffsetY: 5, corner: .72, upper: .86 },
 };
 const expressiveEmotionNames = new Set(["love", "shy", "angry", "surprise", "sad", "happy", "confused", "pout", "sleepy", "proud", "excited", "mischievous", "relieved", "determined", "nervous", "hungry", "workSuccess", "workError"]);
+const roundedSquintEmotionNames = new Set(["happy", "sleepy", "relieved"]);
 function resolveEmotionFaceLayerPlan(emotionName, pose) {
 	const expressive = Boolean(pose.active && pose.weight > .001 && expressiveEmotionNames.has(emotionName));
 	return {
-		eye: !expressive ? "neutral" : emotionName === "happy" || emotionName === "sleepy" || emotionName === "relieved" ? "squint" : "authored",
+		eye: !expressive ? "neutral" : roundedSquintEmotionNames.has(emotionName) ? "squint" : "authored",
 		mouth: expressive ? "emotion" : "neutral"
 	};
+}
+function resolveSquintEyeClosure(emotionName, lashWeight) {
+	if (!roundedSquintEmotionNames.has(emotionName)) return 0;
+	return smoothstep(.16, .55, clamp01(lashWeight));
 }
 function sampleEmotionEyeMeshDeformation(x, y, centerX, centerY, openness, side, emotionName, pose, layer, gazeX, gazeY) {
 	const targetOpen = Math.max(.08, pose.blinkOpenness);
@@ -1894,8 +1931,15 @@ function drawExpressiveEye(context, white, iris, lash, matrix, centerX, centerY,
 		drawAuthoredEmotionEye(context, white, iris, lash, matrix, centerX, centerY, openness, gazeX, gazeY, side, emotionName, pose);
 		return;
 	}
-	if (layerPlan.eye === "squint" && weight >= .45) {
-		drawRoundedSquintEye(context, matrix, centerX, centerY, emotionName);
+	if (layerPlan.eye === "squint") {
+		const closure = resolveSquintEyeClosure(emotionName, pose.lashWeight ?? weight);
+		if (closure < .96) {
+			const neutralOpenness = clamp01(openness / Math.max(.08, pose.blinkOpenness));
+			const transitionOpenness = Math.min(neutralOpenness, 1 - closure * .94);
+			drawEye(context, white, iris, lash, matrix, centerX, centerY, transitionOpenness, gazeX, gazeY);
+		} else {
+			drawRoundedSquintEye(context, matrix, centerX, centerY, emotionName);
+		}
 		return;
 	}
 	if (layerPlan.eye === "soft" && weight >= .35) {
@@ -3272,4 +3316,4 @@ const seeThroughBoneOptions = Object.entries(boneLabels).map(([id, label]) => ({
 
 //#endregion
 
-export { createSeeThroughIdleRig, resolveEmotionActingWeights, resolveEmotionFaceLayerPlan, sampleAuthoredLashDeformation, seeThroughBoneOptions }
+export { createSeeThroughIdleRig, resolveEmotionActingWeights, resolveEmotionFaceLayerPlan, resolveSquintEyeClosure, sampleAuthoredLashDeformation, seeThroughBoneOptions }

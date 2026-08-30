@@ -73,3 +73,8 @@ export function resolveEmotionActingWeights(
   elapsedMs: number,
   durationMs: number,
 ): Readonly<{ gaze: number; brow: number; lash: number; mouth: number; blush: number }>
+
+export function resolveSquintEyeClosure(
+  emotionName: string,
+  lashWeight: number,
+): number

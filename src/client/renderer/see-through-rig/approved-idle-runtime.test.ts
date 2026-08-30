@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { resolveEmotionActingWeights, resolveEmotionFaceLayerPlan, sampleAuthoredLashDeformation } from './approved-idle-runtime.js'
+import {
+  resolveEmotionActingWeights, resolveEmotionFaceLayerPlan, resolveSquintEyeClosure,
+  sampleAuthoredLashDeformation,
+} from './approved-idle-runtime.js'
 
 describe('resolveEmotionFaceLayerPlan', () => {
   it('keeps work result eyes authored and gives the emotion exclusive mouth ownership', () => {
@@ -48,7 +51,7 @@ describe('sampleAuthoredLashDeformation', () => {
   it('keeps localized eyelid changes bounded to three design pixels', () => {
     const emotions = [
       'angry', 'sad', 'shy', 'proud', 'mischievous', 'determined',
-      'love', 'excited', 'surprise', 'hungry',
+      'love', 'excited', 'surprise', 'hungry', 'pout',
     ]
     for (const emotion of emotions) {
       for (const side of ['left', 'right'] as const) {
@@ -138,5 +141,23 @@ describe('resolveEmotionActingWeights', () => {
     expect(surprise.mouth).toBeGreaterThan(love.mouth)
     expect(hungry.mouth).toBe(0)
     expect(love.blush).toBeLessThan(1)
+  })
+
+  it('stages happy quickly while sleepy and relieved close more slowly', () => {
+    const happy = resolveEmotionActingWeights('happy', 220, 2_400)
+    const sleepy = resolveEmotionActingWeights('sleepy', 220, 3_400)
+    const relieved = resolveEmotionActingWeights('relieved', 220, 3_600)
+    expect(happy.lash).toBeGreaterThan(sleepy.lash)
+    expect(happy.mouth).toBeGreaterThan(relieved.mouth)
+    expect(sleepy.mouth).toBe(0)
+  })
+})
+
+describe('resolveSquintEyeClosure', () => {
+  it('closes the source eye before swapping to a rounded closed-eye drawing', () => {
+    expect(resolveSquintEyeClosure('happy', 0)).toBe(0)
+    expect(resolveSquintEyeClosure('happy', .3)).toBeGreaterThan(0)
+    expect(resolveSquintEyeClosure('happy', .55)).toBe(1)
+    expect(resolveSquintEyeClosure('pout', 1)).toBe(0)
   })
 })
