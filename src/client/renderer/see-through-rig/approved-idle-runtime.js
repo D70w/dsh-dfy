@@ -714,7 +714,11 @@ const emotionActingTimings = {
 	confused: { gaze: [0, 95], brow: [80, 245], lash: [125, 305], mouth: [195, 390], blush: [220, 430] },
 	mischievous: { gaze: [0, 85], brow: [55, 205], lash: [105, 275], mouth: [155, 335], blush: [180, 370] },
 	determined: { gaze: [0, 70], brow: [45, 155], lash: [85, 220], mouth: [145, 300], blush: [210, 400] },
-	nervous: { gaze: [0, 80], brow: [50, 190], lash: [95, 260], mouth: [170, 355], blush: [105, 310] }
+	nervous: { gaze: [0, 80], brow: [50, 190], lash: [95, 260], mouth: [170, 355], blush: [105, 310] },
+	love: { gaze: [0, 100], brow: [70, 230], lash: [120, 300], mouth: [180, 360], blush: [90, 420] },
+	excited: { gaze: [0, 60], brow: [35, 150], lash: [80, 210], mouth: [120, 280], blush: [170, 340] },
+	surprise: { gaze: [0, 45], brow: [20, 95], lash: [45, 130], mouth: [70, 160], blush: [140, 260] },
+	hungry: { gaze: [0, 80], brow: [60, 190], lash: [100, 245], mouth: [170, 340], blush: [180, 370] }
 };
 function resolveEmotionActingWeights(name, elapsed, duration) {
 	if (!Number.isFinite(elapsed) || !Number.isFinite(duration) || duration <= 0 || elapsed < 0 || elapsed >= duration + 460) return { gaze: 0, brow: 0, lash: 0, mouth: 0, blush: 0 };
@@ -753,6 +757,16 @@ function sampleTransientEmotion(clock, name, elapsed, duration) {
 		const uncertainLook = Math.sin(elapsed * .0062 + .8) * .075 * acting.gaze;
 		scaled.gazeX += uncertainLook;
 		scaled.gazeY += Math.cos(elapsed * .0047 + .2) * .035 * acting.gaze;
+	} else if (name === "love") {
+		const eyeContact = smoothstep(.02, .2, normalized);
+		scaled.gazeX *= eyeContact;
+		scaled.gazeY *= eyeContact;
+	} else if (name === "hungry") {
+		// Lock onto the rice prop before the mouth and drool appear. The tiny
+		// follow-through is slow enough to read as tracking, never eye jitter.
+		const riceLock = smoothstep(.015, .18, normalized);
+		scaled.gazeX *= riceLock;
+		scaled.gazeY = ((style.gazeY ?? 0) - smoothstep(.18, .52, normalized) * .055) * acting.gaze;
 	}
 	for (const key of ["browY", "browLeftRotation", "browRightRotation"]) scaled[key] = (style[key] ?? 0) * acting.brow;
 	for (const key of ["smile", "mouthOpen", "mouthOverride"]) scaled[key] = (style[key] ?? 0) * acting.mouth;
@@ -778,6 +792,32 @@ function sampleTransientEmotion(clock, name, elapsed, duration) {
 		scaled.shoulderRightX -= nervousTremor * .72 * weight;
 		scaled.shoulderLeftY += Math.abs(nervousTremorY) * .72 * weight;
 		scaled.shoulderRightY += Math.abs(nervousTremorY) * .46 * weight;
+	} else if (name === "love") {
+		const soften = Math.sin(normalized * Math.PI) * weight;
+		scaled.headY += soften * 1.15;
+		scaled.headRotation += soften * -.55;
+		scaled.shoulderLeftY += soften * 1.1;
+		scaled.shoulderRightY += soften * 1.1;
+	} else if (name === "excited") {
+		const firstLift = pulse(normalized, .015, .1, .24);
+		const secondLift = pulse(normalized, .27, .39, .55) * .58;
+		const lift = (firstLift + secondLift) * weight;
+		scaled.headY -= lift * 3.2;
+		scaled.chestRotation += lift * 1.35;
+		scaled.shoulderLeftY -= lift * 2.6;
+		scaled.shoulderRightY -= lift * 2.6;
+	} else if (name === "surprise") {
+		const recoil = pulse(normalized, .005, .065, .2) * weight;
+		scaled.headY -= recoil * 4.2;
+		scaled.headPitch -= recoil * .09;
+		scaled.shoulderLeftY -= recoil * 3;
+		scaled.shoulderRightY -= recoil * 3;
+	} else if (name === "hungry") {
+		const lean = smoothstep(.06, .34, normalized) * weight;
+		scaled.headRotation += lean * -1.15;
+		scaled.chestRotation += lean * 1.1;
+		scaled.shoulderLeftX += lean * .7;
+		scaled.shoulderRightX -= lean * .7;
 	}
 	const isSad = name === "sad";
 	const tearPool = isSad ? phase(elapsed, 220, 620) * weight : 0;
@@ -790,6 +830,10 @@ function sampleTransientEmotion(clock, name, elapsed, duration) {
 	else if (name === "proud") eyeBlinkBeat -= pulse(normalized, .07, .13, .22) * .42 * acting.lash;
 	else if (name === "confused") eyeBlinkBeat -= pulse(normalized, .11, .17, .25) * .34 * acting.lash;
 	else if (name === "nervous") eyeBlinkBeat -= Math.max(pulse(normalized, .04, .085, .14), pulse(normalized, .16, .205, .27)) * .58 * acting.lash;
+	else if (name === "love") eyeBlinkBeat -= pulse(normalized, .1, .2, .34) * .46 * acting.lash;
+	else if (name === "excited") eyeBlinkBeat -= pulse(normalized, .055, .105, .18) * .3 * acting.lash;
+	else if (name === "surprise") eyeBlinkBeat -= pulse(normalized, .005, .035, .075) * .34 * acting.lash;
+	else if (name === "hungry") eyeBlinkBeat -= pulse(normalized, .15, .24, .36) * .3 * acting.lash;
 	let eyeBlinkBeatLeft = eyeBlinkBeat;
 	let eyeBlinkBeatRight = eyeBlinkBeat;
 	if (name === "mischievous") eyeBlinkBeatLeft -= pulse(normalized, .08, .16, .28) * .28 * acting.lash;
@@ -1589,7 +1633,7 @@ function drawEye(context, white, iris, lash, matrix, centerX, centerY, openness,
 	context.drawImage(lash.image, lash.x, lash.y, lash.width, lash.height);
 	context.restore();
 }
-const localizedAuthoredLashEmotions = new Set(["angry", "sad", "shy", "proud", "mischievous", "determined"]);
+const localizedAuthoredLashEmotions = new Set(["angry", "sad", "shy", "proud", "mischievous", "determined", "love", "excited", "surprise", "hungry"]);
 function sampleAuthoredLashDeformation(u, v, side, emotionName, weight) {
 	const horizontal = (clamp01(u) - .5) * 2;
 	const innerAxis = side === "left" ? horizontal : -horizontal;
@@ -1605,6 +1649,10 @@ function sampleAuthoredLashDeformation(u, v, side, emotionName, weight) {
 	else if (emotionName === "proud") y = centerWeight * (side === "left" ? 2.2 : .45) * amount;
 	else if (emotionName === "mischievous") y = centerWeight * (side === "left" ? 1.85 : .3) * amount;
 	else if (emotionName === "determined") y = (innerWeight * 2.4 - outerWeight * .15) * amount;
+	else if (emotionName === "love") y = centerWeight * .55 * amount;
+	else if (emotionName === "excited") y = -(centerWeight * .48 + outerWeight * .18) * amount;
+	else if (emotionName === "surprise") y = -centerWeight * .68 * amount;
+	else if (emotionName === "hungry") y = centerWeight * .32 * amount;
 	return { x: 0, y };
 }
 function drawAuthoredEmotionEye(context, white, iris, lash, matrix, centerX, centerY, openness, gazeX, gazeY, side, emotionName, pose) {

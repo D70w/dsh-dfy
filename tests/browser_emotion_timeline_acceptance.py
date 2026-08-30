@@ -22,6 +22,12 @@ EMOTION_GROUPS = {
         ("mischievous", "坏笑", 2_700),
         ("determined", "认真", 3_200),
     ),
+    "3": (
+        ("love", "喜欢", 2_400),
+        ("excited", "期待", 2_400),
+        ("surprise", "惊讶", 1_500),
+        ("hungry", "馋嘴", 3_000),
+    ),
 }
 EMOTIONS = EMOTION_GROUPS.get(EMOTION_GROUP, EMOTION_GROUPS["1"])
 PHASES = ("视线预备", "眉眼进入", "完整保持", "恢复默认")

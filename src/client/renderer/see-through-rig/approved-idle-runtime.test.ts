@@ -46,7 +46,10 @@ describe('resolveEmotionFaceLayerPlan', () => {
 
 describe('sampleAuthoredLashDeformation', () => {
   it('keeps localized eyelid changes bounded to three design pixels', () => {
-    const emotions = ['angry', 'sad', 'shy', 'proud', 'mischievous', 'determined']
+    const emotions = [
+      'angry', 'sad', 'shy', 'proud', 'mischievous', 'determined',
+      'love', 'excited', 'surprise', 'hungry',
+    ]
     for (const emotion of emotions) {
       for (const side of ['left', 'right'] as const) {
         for (let row = 0; row <= 10; row += 1) {
@@ -79,6 +82,17 @@ describe('sampleAuthoredLashDeformation', () => {
     expect(mischievousLeft).toBeGreaterThan(mischievousRight)
     expect(sampleAuthoredLashDeformation(1, 0, 'left', 'determined', 1).y).toBeGreaterThan(2)
     expect(sampleAuthoredLashDeformation(0, 0, 'right', 'determined', 1).y).toBeGreaterThan(2)
+  })
+
+  it('keeps the third expression group subtle while giving it distinct lid attitudes', () => {
+    const love = sampleAuthoredLashDeformation(.5, 0, 'left', 'love', 1).y
+    const excited = sampleAuthoredLashDeformation(.5, 0, 'left', 'excited', 1).y
+    const surprise = sampleAuthoredLashDeformation(.5, 0, 'left', 'surprise', 1).y
+    const hungry = sampleAuthoredLashDeformation(.5, 0, 'left', 'hungry', 1).y
+    expect(love).toBeGreaterThan(hungry)
+    expect(excited).toBeLessThan(0)
+    expect(surprise).toBeLessThan(excited)
+    expect(Math.max(Math.abs(love), Math.abs(excited), Math.abs(surprise), Math.abs(hungry))).toBeLessThan(1)
   })
 })
 
@@ -114,5 +128,15 @@ describe('resolveEmotionActingWeights', () => {
     expect(confused.gaze).toBe(1)
     expect(confused.brow).toBeLessThan(determined.brow)
     expect(determined.lash).toBeGreaterThan(nervous.lash)
+  })
+
+  it('makes surprise immediate while love and hungry build more gently', () => {
+    const love = resolveEmotionActingWeights('love', 80, 2_400)
+    const surprise = resolveEmotionActingWeights('surprise', 80, 1_500)
+    const hungry = resolveEmotionActingWeights('hungry', 80, 3_000)
+    expect(surprise.brow).toBeGreaterThan(.95)
+    expect(surprise.mouth).toBeGreaterThan(love.mouth)
+    expect(hungry.mouth).toBe(0)
+    expect(love.blush).toBeLessThan(1)
   })
 })
