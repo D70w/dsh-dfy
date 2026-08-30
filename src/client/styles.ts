@@ -283,8 +283,9 @@ export const WHALE_STYLE = `
 .emotion-particle.heart::after,.emotion-particle.shy-heart::after{position:absolute;left:5px;top:6px;width:16px;height:16px;border-radius:2px;background:currentColor;content:"";transform:rotate(45deg)}
 .emotion-particle.shy-heart{width:18px;height:17px;color:#ff9fbb;animation-name:whale-shy-pulse}
 .emotion-particle.anger-mark{width:44px;height:44px;color:#ef3145;font-size:0;filter:drop-shadow(0 3px 4px rgba(73,5,19,.32));animation:whale-anger-pop var(--fx-duration,1150ms) cubic-bezier(.2,.9,.18,1) forwards}
-.emotion-particle.anger-mark::before{position:absolute;inset:4px;background:linear-gradient(145deg,#ff7180 0 18%,#ef3145 55%,#c82140 100%);clip-path:polygon(50% 0,61% 30%,91% 9%,75% 40%,100% 50%,73% 61%,92% 91%,61% 74%,50% 100%,39% 73%,8% 91%,27% 61%,0 50%,28% 39%,9% 9%,40% 29%);content:""}
-.emotion-particle.anger-mark::after{position:absolute;left:15px;top:15px;width:14px;height:14px;border:2px solid rgba(255,236,226,.94);border-radius:50%;content:""}
+.emotion-particle.anger-mark::before,.emotion-particle.anger-mark::after{display:none}
+.anger-mark-icon{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 2px 1px rgba(255,255,255,.18))}
+.anger-mark-icon g{transform-origin:50% 50%;animation:whale-anger-mark-pulse 1.1s ease-in-out infinite alternate}
 .emotion-particle.anger-steam{font-size:0;border-radius:50% 50% 45% 55%;background:#ffabb8;box-shadow:-10px 6px 0 -5px #ffabb8,10px 5px 0 -4px #ffabb8;filter:drop-shadow(0 2px 2px rgba(110,36,54,.35));animation:whale-anger-steam var(--fx-duration,1700ms) ease-out forwards}
 .emotion-particle.surprise{font-size:0;filter:drop-shadow(0 0 8px rgba(255,220,90,.82));animation:whale-surprise-pop var(--fx-duration,1050ms) cubic-bezier(.16,1,.3,1) forwards}
 .emotion-particle.surprise::before{width:6px;height:16px;border-radius:4px;background:currentColor;box-shadow:0 21px 0 -1px currentColor;content:""}
@@ -342,6 +343,7 @@ export const WHALE_STYLE = `
 @keyframes whale-heart-rise{0%{opacity:0;transform:translate(-50%,10px) scale(.25)}18%{opacity:1;transform:translate(-50%,0) scale(1.08)}100%{opacity:0;transform:translate(calc(-50% + var(--fx-drift,0px)),-92px) scale(.72) rotate(14deg)}}
 @keyframes whale-shy-pulse{0%{opacity:0;transform:translate(-50%,3px) scale(.35)}22%{opacity:1;transform:translate(-50%,0) scale(1.12)}70%{opacity:1;transform:translate(-50%,-5px) scale(.92)}100%{opacity:0;transform:translate(-50%,-20px) scale(.7)}}
 @keyframes whale-anger-pop{0%{opacity:0;transform:translate(-50%,8px) scale(.25) rotate(-12deg)}16%{opacity:1;transform:translate(-50%,0) scale(1.16) rotate(5deg)}70%{opacity:1;transform:translate(-50%,-2px) scale(1)}100%{opacity:0;transform:translate(-50%,-12px) scale(.9)}}
+@keyframes whale-anger-mark-pulse{from{transform:rotate(-3deg) scale(.96)}to{transform:rotate(3deg) scale(1.03)}}
 @keyframes whale-anger-steam{0%{opacity:0;transform:translate(-50%,14px) scale(.35)}20%{opacity:1;transform:translate(-50%,0) scale(1.04)}72%{opacity:.96;transform:translate(calc(-50% + var(--fx-drift,0px)),-30px) scale(1.12)}100%{opacity:0;transform:translate(calc(-50% + var(--fx-drift,0px)),-54px) scale(.88)}}
 @keyframes whale-surprise-pop{0%{opacity:0;transform:translate(-50%,12px) scale(.15)}24%{opacity:1;transform:translate(-50%,-4px) scale(1.25)}100%{opacity:0;transform:translate(-50%,-24px) scale(.82)}}
 @keyframes whale-tear-fall{0%{opacity:0;transform:translate(-50%,-8px) scale(.45)}18%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(calc(-50% + var(--fx-drift,0px)),54px) scale(.72)}}

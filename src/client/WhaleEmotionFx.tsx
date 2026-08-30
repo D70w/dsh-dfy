@@ -17,6 +17,20 @@ interface ParticlePlacement {
   symbol: string
 }
 
+function AngerMarkIcon(): React.JSX.Element {
+  return (
+    <svg className="anger-mark-icon" data-whale-anger-mark viewBox="0 0 100 100" aria-hidden="true">
+      <g fill="#e52338" stroke="#211a27" strokeWidth="7" strokeLinejoin="round">
+        <path d="M17 30 30 17l22 22-11 11-10-10-6 6Z" />
+        <path d="m70 17 13 13-22 22-11-11 10-10-6-6Z" />
+        <path d="m17 70 13-13 22 22-11 11-10-10-6 6Z" />
+        <path d="m70 83-13-13 22-22 11 11-10 10 6 6Z" />
+      </g>
+      <path d="M45 45 55 55M55 45 45 55" stroke="#fff0e9" strokeWidth="3.5" strokeLinecap="round" opacity=".9" />
+    </svg>
+  )
+}
+
 function RiceBowlIcon({ id }: { id: number }): React.JSX.Element {
   const bowlGradientId = `whale-rice-bowl-${id}`
   return (
@@ -140,7 +154,7 @@ export function WhaleEmotionFx({ command }: { command: WhaleEmotionCommand | und
         } as React.CSSProperties
         return (
           <i key={`${command.id}-${index}`} className={`emotion-particle ${item.className}`} style={style}>
-            {item.className === 'rice-dream' ? <RiceBowlIcon id={command.id} /> : item.symbol}
+            {item.className === 'rice-dream' ? <RiceBowlIcon id={command.id} /> : item.className === 'anger-mark' ? <AngerMarkIcon /> : item.symbol}
           </i>
         )
       })}
