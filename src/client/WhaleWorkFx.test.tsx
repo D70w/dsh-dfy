@@ -25,6 +25,6 @@ describe('work-state object cues', () => {
   ] as const)('renders a distinct %s object cue', (kind, objectKind) => {
     const root = renderWorkFx(kind)
     expect(root.querySelector(`[data-whale-work-fx][data-tool-kind="${kind}"]`)).not.toBeNull()
-    expect(root.querySelector(`[data-work-object="${objectKind}"] svg`)).not.toBeNull()
+    expect(root.querySelector(`[data-work-object="${objectKind}"] svg[data-work-detail="${kind}"]`)).not.toBeNull()
   })
 })

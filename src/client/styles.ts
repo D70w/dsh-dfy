@@ -252,16 +252,28 @@ export const WHALE_STYLE = `
 .whale-work-object{position:absolute;display:grid;width:56px;height:56px;place-items:center;opacity:0;filter:drop-shadow(0 5px 7px rgba(35,63,124,.2));will-change:transform,opacity;animation:whale-work-object-in .42s cubic-bezier(.16,1,.3,1) forwards}
 .whale-work-icon{display:block;width:100%;height:100%;overflow:visible}
 .work-icon-shell{fill:#f7fbff;stroke:#456bb0;stroke-width:2.8;stroke-linejoin:round}
+.work-icon-lens{fill:rgba(174,224,255,.52);stroke:#8ec8ec;stroke-width:1.8}
 .work-icon-page-back{fill:#dce9ff;stroke:#7c9bd3;stroke-width:2.2;stroke-linejoin:round;opacity:.82}
 .work-icon-fold{stroke:#7693ca;stroke-width:2.4;stroke-linejoin:round}
 .work-icon-line{stroke:#6c8bc5;stroke-width:2.8;stroke-linecap:round}
+.work-icon-spine{stroke:#b1c8ed;stroke-width:2;stroke-linecap:round;opacity:.9}
+.work-icon-bookmark{fill:#ffb2c9;stroke:#b85b83;stroke-width:1.7;stroke-linejoin:round}
+.work-icon-page-glint{stroke:#fff;stroke-width:2.4;stroke-linecap:round;opacity:.92}
 .work-icon-accent{stroke:#3f66b1;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
 .work-icon-glint{stroke:#9edaf4;stroke-width:2.8;stroke-linecap:round}
+.work-icon-scan{stroke:#4c9bc7;stroke-width:2.2;stroke-linecap:round;opacity:.85}
+.work-icon-scan-dot{fill:#fff;stroke:#4c9bc7;stroke-width:1.5}
 .work-icon-bar{stroke:#d1def6;stroke-width:2}
 .work-icon-status{fill:#8de0bd;stroke:#3d8f75;stroke-width:1.5}
+.work-icon-status-alt{fill:#ffd37c;stroke:#ba7c35}
+.work-icon-output{stroke:#83a1d3;stroke-width:2;stroke-linecap:round;opacity:.95}
+.work-icon-cursor{stroke:#9de7ca;stroke-width:2.8;stroke-linecap:round;animation:whale-work-cursor-blink 1s steps(1,end) infinite}
+.work-icon-paper{fill:#fffdf8;stroke:#6d8ac2;stroke-width:2.2;stroke-linejoin:round}
+.work-icon-paper-fold{fill:#e5efff;stroke:#7894c7;stroke-width:1.8;stroke-linejoin:round}
 .work-icon-pencil{fill:#ffd36d;stroke:#466bb0;stroke-width:2.6;stroke-linejoin:round}
 .work-icon-pencil-edge{stroke:#e39c58;stroke-width:2.2;stroke-linecap:round}
 .work-icon-tip{fill:#fff4d7;stroke:#466bb0;stroke-width:2.2;stroke-linejoin:round}
+.work-icon-ink{stroke:#78a3de;stroke-width:2.4;stroke-linecap:round;stroke-dasharray:4 4;animation:whale-work-ink-dash 1.2s linear infinite}
 [data-tool-kind=search] .whale-work-icon{animation:whale-work-search-loop 2.5s ease-in-out .42s infinite}
 [data-tool-kind=read] .whale-work-icon{animation:whale-work-read-loop 2.9s ease-in-out .42s infinite}
 [data-tool-kind=command] .whale-work-icon{animation:whale-work-command-loop 1.8s ease-in-out .42s infinite}
@@ -339,6 +351,8 @@ export const WHALE_STYLE = `
 @keyframes whale-work-read-loop{0%,100%{transform:rotate(0) scaleY(1)}48%{transform:rotate(-2deg) scaleY(1.02)}72%{transform:rotate(2deg) scaleY(.98)}}
 @keyframes whale-work-command-loop{0%,100%{transform:translateY(0)}45%{transform:translateY(-2px)}60%{transform:translateY(0)}}
 @keyframes whale-work-write-loop{0%,100%{transform:translate(0,0) rotate(-2deg)}38%{transform:translate(-2px,-2px) rotate(4deg)}60%{transform:translate(1px,1px) rotate(-3deg)}}
+@keyframes whale-work-cursor-blink{0%,45%{opacity:1}46%,100%{opacity:.18}}
+@keyframes whale-work-ink-dash{from{stroke-dashoffset:0}to{stroke-dashoffset:-8}}
 @keyframes whale-menu-view-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 @keyframes whale-heart-rise{0%{opacity:0;transform:translate(-50%,10px) scale(.25)}18%{opacity:1;transform:translate(-50%,0) scale(1.08)}100%{opacity:0;transform:translate(calc(-50% + var(--fx-drift,0px)),-92px) scale(.72) rotate(14deg)}}
 @keyframes whale-shy-pulse{0%{opacity:0;transform:translate(-50%,3px) scale(.35)}22%{opacity:1;transform:translate(-50%,0) scale(1.12)}70%{opacity:1;transform:translate(-50%,-5px) scale(.92)}100%{opacity:0;transform:translate(-50%,-20px) scale(.7)}}
