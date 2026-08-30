@@ -297,7 +297,11 @@ export const WHALE_STYLE = `
 .emotion-particle.sweat-trail::before{transform:rotate(42deg) scale(.62)}
 .emotion-particle.sparkle,.emotion-particle.proud,.emotion-particle.excited,.emotion-particle.mischief,.emotion-particle.focus{font-size:0;color:#fff0a8;filter:drop-shadow(0 0 9px rgba(255,220,91,.9));animation:whale-sparkle-float var(--fx-duration,1450ms) ease-out forwards}
 .emotion-particle.sparkle::before,.emotion-particle.proud::before,.emotion-particle.excited::before,.emotion-particle.mischief::before,.emotion-particle.focus::before{width:21px;height:21px;background:currentColor;clip-path:polygon(50% 0,61% 37%,100% 50%,61% 63%,50% 100%,39% 63%,0 50%,39% 37%);content:""}
-.emotion-particle.mischief{color:#b997ff}.emotion-particle.focus{color:#ffdc75}.emotion-particle.proud{color:#ffd56f}.emotion-particle.excited{color:#fff07b}
+.emotion-particle.sparkle::after{width:5px;height:5px;border-radius:50%;background:#fff;box-shadow:15px 7px 0 -1px rgba(255,255,255,.82);content:""}
+.emotion-particle.proud{color:#ffd56f}.emotion-particle.proud::after{width:12px;height:12px;border:2px solid currentColor;border-radius:3px;content:"";transform:rotate(45deg)}
+.emotion-particle.excited{color:#fff07b}.emotion-particle.excited::after{width:30px;height:2px;border-top:2px solid currentColor;border-bottom:2px solid rgba(255,240,123,.7);content:"";transform:translateX(-4px) rotate(-18deg)}
+.emotion-particle.mischief{color:#b997ff}.emotion-particle.mischief::after{width:18px;height:9px;border:2px solid currentColor;border-color:currentColor transparent transparent;border-radius:50%;content:"";transform:translate(2px,7px) rotate(-18deg)}
+.emotion-particle.focus{color:#ffdc75}.emotion-particle.focus::after{width:12px;height:12px;border:2px solid currentColor;border-radius:50%;box-shadow:inset 0 0 0 3px rgba(255,255,255,.45);content:""}
 .emotion-particle.question{font-family:Georgia,serif;font-size:var(--fx-size,28px);font-weight:900;color:#79bcff;text-shadow:0 2px 0 #254286,0 0 8px rgba(91,177,255,.78);animation:whale-question-bob var(--fx-duration,1900ms) ease-in-out forwards}
 .emotion-particle.question::before{content:"?"}
 .emotion-particle.thought-dot{width:var(--fx-size,11px);height:var(--fx-size,11px);border:2px solid #7895d2;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(54,91,160,.2);animation:whale-thought-dot var(--fx-duration,1350ms) ease-out forwards}
