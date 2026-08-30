@@ -7,10 +7,11 @@ import { WhaleWorkFx } from './WhaleWorkFx.tsx'
 function renderWorkFx(
   kind: Parameters<typeof WhaleWorkFx>[0]['kind'],
   reaction?: Parameters<typeof WhaleWorkFx>[0]['reaction'],
+  thinkingStage?: Parameters<typeof WhaleWorkFx>[0]['thinkingStage'],
 ): HTMLDivElement {
   const container = document.createElement('div')
   const root = createRoot(container)
-  act(() => root.render(<WhaleWorkFx kind={kind} reaction={reaction} />))
+  act(() => root.render(<WhaleWorkFx kind={kind} reaction={reaction} thinkingStage={thinkingStage} />))
   return container
 }
 
@@ -47,5 +48,15 @@ describe('work-state object cues', () => {
     expect(result).not.toBeNull()
     expect(result?.querySelector(iconSelector)).not.toBeNull()
     expect(result?.querySelector(detailSelector)).not.toBeNull()
+  })
+
+  it.each([
+    ['waiting', '[data-work-detail="thinking-wait"]'],
+    ['analyzing', '[data-work-detail="thinking-analyze"]'],
+    ['organizing', '[data-work-detail="thinking-notes"]'],
+  ] as const)('renders a distinct %s thinking object', (stage, iconSelector) => {
+    const root = renderWorkFx('none', 'none', stage)
+    expect(root.querySelector(`[data-whale-work-fx][data-thinking-stage="${stage}"]`)).not.toBeNull()
+    expect(root.querySelector(iconSelector)).not.toBeNull()
   })
 })

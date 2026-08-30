@@ -25,7 +25,7 @@ import type { WhaleLocaleKey } from './locales.ts'
 import { billingSummaryForDay, createLocalBillingState, normalizeUsage, type SessionUsageSample } from './billing.ts'
 import { useOfficialBalance } from './use-official-balance.ts'
 import { WhaleEmotionFx, type WhaleEmotionCommand } from './WhaleEmotionFx.tsx'
-import { WhaleWorkFx } from './WhaleWorkFx.tsx'
+import { WhaleWorkFx, type WhaleThinkingStage } from './WhaleWorkFx.tsx'
 import {
   WhaleDialogue, type DialogueHistoryEntry, type DialogueMemoryEntry,
   type DialoguePlacement, type DialogueVariant, type WhaleDialogueState,
@@ -240,6 +240,7 @@ export function WhalePet({
   })
   const [interaction, setInteraction] = useState<WhaleInteraction>('none')
   const [liveReaction, setLiveReaction] = useState<WhaleWorkReaction>('none')
+  const [thinkingStage, setThinkingStage] = useState<WhaleThinkingStage>('idle')
   const [focusWithin, setFocusWithin] = useState(false)
   const [ledgerOpen, setLedgerOpen] = useState(false)
   const petApi = usePetApi()
@@ -608,6 +609,18 @@ export function WhalePet({
     const timer = window.setTimeout(() => setLiveReaction('none'), 2800)
     return () => window.clearTimeout(timer)
   }, [liveReaction])
+
+  useEffect(() => {
+    const stageTimers: number[] = []
+    if (activitySource.value?.mode !== 'thinking') {
+      setThinkingStage('idle')
+      return () => stageTimers.forEach(timer => window.clearTimeout(timer))
+    }
+    setThinkingStage('waiting')
+    stageTimers.push(window.setTimeout(() => setThinkingStage('analyzing'), 1_800))
+    stageTimers.push(window.setTimeout(() => setThinkingStage('organizing'), 6_500))
+    return () => stageTimers.forEach(timer => window.clearTimeout(timer))
+  }, [activitySource.sourceId, activitySource.value?.mode])
 
   useEffect(() => {
     const { sourceId, value } = activitySource
@@ -1003,17 +1016,17 @@ export function WhalePet({
           sourceId,
           value: { mode: 'tool', toolKind: 'other', reaction: 'none', reactionSeq: baseSequence },
         })
-      }, 2_400),
+      }, 9_000),
       window.setTimeout(() => {
         setDebugActivitySource({
           sourceId,
           value: { mode: 'idle', toolKind: 'none', reaction: result, reactionSeq: baseSequence + 1 },
         })
-      }, 4_800),
+      }, 12_000),
       window.setTimeout(() => {
         setDebugActivitySource(undefined)
         debugWorkTimers.current = []
-      }, 8_000),
+      }, 15_000),
     ]
   }
 
@@ -1254,6 +1267,7 @@ export function WhalePet({
         <WhaleWorkFx
           kind={activitySource.value?.mode === 'tool' ? activitySource.value.toolKind : 'none'}
           reaction={liveReaction}
+          thinkingStage={activitySource.value?.mode === 'thinking' ? thinkingStage : 'idle'}
         />
         <WhaleDialogue
           dialogue={{ ...dialogueMeta, text: bubble ?? IDLE_LINES[0].text }}

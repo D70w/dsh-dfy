@@ -1,19 +1,22 @@
 import type React from 'react'
-import type { WhaleToolKind } from '../activity/types.ts'
-import type { WhaleWorkReaction } from '../activity/types.ts'
+import type { WhaleToolKind, WhaleWorkReaction } from '../activity/types.ts'
+
+export type WhaleThinkingStage = 'idle' | 'waiting' | 'analyzing' | 'organizing'
 
 /**
  * Small, language-independent props for work-state cues.  The face still
  * carries the emotion; these objects make the action immediately legible even
  * when the character is viewed at a small size.
  */
-export function WhaleWorkFx({ kind, reaction = 'none' }: { kind: WhaleToolKind | undefined; reaction?: WhaleWorkReaction }): React.JSX.Element | null {
+export function WhaleWorkFx({ kind, reaction = 'none', thinkingStage = 'idle' }: { kind: WhaleToolKind | undefined; reaction?: WhaleWorkReaction; thinkingStage?: WhaleThinkingStage }): React.JSX.Element | null {
   const hasTool = kind !== undefined && kind !== 'none' && kind !== 'other'
   const hasResult = reaction === 'completed' || reaction === 'error'
-  if (!hasTool && !hasResult) return null
+  const hasThinking = thinkingStage !== 'idle'
+  if (!hasTool && !hasResult && !hasThinking) return null
 
   return (
-    <span key={`${kind ?? 'none'}-${reaction}`} data-whale-work-fx data-tool-kind={kind ?? 'none'} data-work-reaction={reaction} aria-hidden="true">
+    <span key={`${kind ?? 'none'}-${reaction}-${thinkingStage}`} data-whale-work-fx data-tool-kind={kind ?? 'none'} data-work-reaction={reaction} data-thinking-stage={thinkingStage} aria-hidden="true">
+      {hasThinking ? <span className={`whale-thinking-object whale-thinking-object-${thinkingStage}`} data-thinking-object={thinkingStage}>{thinkingStage === 'waiting' ? <ThinkingWaitIcon /> : thinkingStage === 'analyzing' ? <ThinkingAnalyzeIcon /> : <ThinkingNotesIcon />}</span> : null}
       {hasTool ? (
         <span className="whale-work-object" data-work-object={kind}>
           {kind === 'search' ? <SearchIcon /> : null}
@@ -24,6 +27,44 @@ export function WhaleWorkFx({ kind, reaction = 'none' }: { kind: WhaleToolKind |
       ) : null}
       {hasResult ? <span className={`whale-result-object whale-result-object-${reaction}`} data-work-result={reaction}>{reaction === 'completed' ? <SuccessSealIcon /> : <ErrorRepairKitIcon />}</span> : null}
     </span>
+  )
+}
+
+function ThinkingWaitIcon(): React.JSX.Element {
+  return (
+    <svg className="whale-work-icon whale-thinking-icon" data-work-detail="thinking-wait" viewBox="0 0 96 96" fill="none">
+      <path className="thinking-wait-tag" d="M20 20h43l14 14v42H20z" />
+      <path className="thinking-wait-fold" d="M63 20v15h14" />
+      <circle className="thinking-wait-dot" cx="38" cy="54" r="4" /><circle className="thinking-wait-dot" cx="50" cy="54" r="4" /><circle className="thinking-wait-dot" cx="62" cy="54" r="4" />
+      <path className="thinking-wait-line" d="M34 67h33" />
+      <path className="thinking-wait-glint" d="m80 16 2 7 7 2-7 2-2 7-2-7-7-2 7-2 2-7Z" />
+    </svg>
+  )
+}
+
+function ThinkingAnalyzeIcon(): React.JSX.Element {
+  return (
+    <svg className="whale-work-icon whale-thinking-icon" data-work-detail="thinking-analyze" viewBox="0 0 96 96" fill="none">
+      <rect className="thinking-analyze-board" x="13" y="17" width="48" height="57" rx="7" />
+      <path className="thinking-analyze-line" d="M23 33h27M23 43h17M23 53h22M23 63h13" />
+      <circle className="thinking-analyze-lens" cx="62" cy="57" r="18" />
+      <path className="thinking-analyze-handle" d="m75 70 13 13" />
+      <path className="thinking-analyze-scan" d="M51 57h22" />
+      <path className="thinking-analyze-glint" d="m79 15 2 7 7 2-7 2-2 7-2-7-7-2 7-2 2-7Z" />
+    </svg>
+  )
+}
+
+function ThinkingNotesIcon(): React.JSX.Element {
+  return (
+    <svg className="whale-work-icon whale-thinking-icon" data-work-detail="thinking-notes" viewBox="0 0 96 96" fill="none">
+      <rect className="thinking-notes-back" x="22" y="21" width="51" height="55" rx="6" transform="rotate(-7 22 21)" />
+      <rect className="thinking-notes-front" x="25" y="27" width="53" height="53" rx="6" />
+      <path className="thinking-notes-line" d="M35 42h31M35 52h25M35 62h29" />
+      <path className="thinking-notes-clip" d="M41 27v-7c0-7 13-7 13 0v7" />
+      <path className="thinking-notes-check" d="m64 71 4 4 8-10" />
+      <path className="thinking-notes-glint" d="m82 13 2 7 7 2-7 2-2 7-2-7-7-2 7-2 2-7Z" />
+    </svg>
   )
 }
 

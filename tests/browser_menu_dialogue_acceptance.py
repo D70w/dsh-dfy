@@ -176,8 +176,18 @@ with sync_playwright() as playwright:
         ("[data-whale-debug-work-error]", "error"),
     ):
         page.locator(selector).click(force=True)
+        if reaction == "completed":
+            thinking = page.locator("[data-whale-work-fx][data-thinking-stage='waiting']")
+            thinking.wait_for(state="attached", timeout=3_000)
+            page.screenshot(path=str(ARTIFACT_DIR / "dsh-dfy-thinking-waiting.png"), full_page=True)
+            page.wait_for_timeout(2_100)
+            assert page.locator("[data-whale-work-fx][data-thinking-stage='analyzing']").count() == 1
+            page.screenshot(path=str(ARTIFACT_DIR / "dsh-dfy-thinking-analyzing.png"), full_page=True)
+            page.wait_for_timeout(4_900)
+            assert page.locator("[data-whale-work-fx][data-thinking-stage='organizing']").count() == 1
+            page.screenshot(path=str(ARTIFACT_DIR / "dsh-dfy-thinking-organizing.png"), full_page=True)
         result_fx = page.locator(f"[data-whale-work-fx][data-work-reaction='{reaction}']")
-        result_fx.wait_for(state="attached", timeout=8_000)
+        result_fx.wait_for(state="attached", timeout=14_000)
         result_object = result_fx.locator(f"[data-work-result='{reaction}']")
         result_object.wait_for(state="attached")
         result_box = result_object.bounding_box()
