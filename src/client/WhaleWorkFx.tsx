@@ -1,23 +1,53 @@
 import type React from 'react'
 import type { WhaleToolKind } from '../activity/types.ts'
+import type { WhaleWorkReaction } from '../activity/types.ts'
 
 /**
  * Small, language-independent props for work-state cues.  The face still
  * carries the emotion; these objects make the action immediately legible even
  * when the character is viewed at a small size.
  */
-export function WhaleWorkFx({ kind }: { kind: WhaleToolKind | undefined }): React.JSX.Element | null {
-  if (kind === undefined || kind === 'none' || kind === 'other') return null
+export function WhaleWorkFx({ kind, reaction = 'none' }: { kind: WhaleToolKind | undefined; reaction?: WhaleWorkReaction }): React.JSX.Element | null {
+  const hasTool = kind !== undefined && kind !== 'none' && kind !== 'other'
+  const hasResult = reaction === 'completed' || reaction === 'error'
+  if (!hasTool && !hasResult) return null
 
   return (
-    <span key={kind} data-whale-work-fx data-tool-kind={kind} aria-hidden="true">
-      <span className="whale-work-object" data-work-object={kind}>
-        {kind === 'search' ? <SearchIcon /> : null}
-        {kind === 'read' ? <ReadIcon /> : null}
-        {kind === 'command' ? <CommandIcon /> : null}
-        {kind === 'write' ? <WriteIcon /> : null}
-      </span>
+    <span key={`${kind ?? 'none'}-${reaction}`} data-whale-work-fx data-tool-kind={kind ?? 'none'} data-work-reaction={reaction} aria-hidden="true">
+      {hasTool ? (
+        <span className="whale-work-object" data-work-object={kind}>
+          {kind === 'search' ? <SearchIcon /> : null}
+          {kind === 'read' ? <ReadIcon /> : null}
+          {kind === 'command' ? <CommandIcon /> : null}
+          {kind === 'write' ? <WriteIcon /> : null}
+        </span>
+      ) : null}
+      {hasResult ? <span className={`whale-result-object whale-result-object-${reaction}`} data-work-result={reaction}>{reaction === 'completed' ? <SuccessSealIcon /> : <ErrorRepairKitIcon />}</span> : null}
     </span>
+  )
+}
+
+function SuccessSealIcon(): React.JSX.Element {
+  return (
+    <svg className="whale-work-icon whale-result-icon" data-work-detail="success" viewBox="0 0 96 96" fill="none">
+      <path className="result-success-ribbon" d="m28 63-7 24 19-9 10 15 7-27M68 63l7 24-19-9-10 15-7-27" />
+      <circle className="result-success-seal" cx="48" cy="43" r="29" />
+      <path className="result-success-check" d="m32 43 10 10 22-23" />
+      <path className="result-success-glint" d="m78 14 2 7 7 2-7 2-2 7-2-7-7-2 7-2 2-7Z" />
+    </svg>
+  )
+}
+
+function ErrorRepairKitIcon(): React.JSX.Element {
+  return (
+    <svg className="whale-work-icon whale-result-icon" data-work-detail="error" viewBox="0 0 96 96" fill="none">
+      <path className="result-error-handle" d="M35 39V29c0-7 6-11 13-11h0c7 0 13 4 13 11v10" />
+      <rect className="result-error-toolbox" x="16" y="36" width="64" height="43" rx="8" />
+      <path className="result-error-latch" d="M16 51h64M43 43h10v8H43z" />
+      <path className="result-error-wrench" d="M68 43c-5-4-12-1-13 5l5 5-18 18c-2 2-2 5 0 7 2 2 5 2 7 0l18-18 5 5c6-2 9-9 5-14l-5 4-6-6Z" />
+      <path className="result-error-spark" d="m78 12 2 7 7 2-7 2-2 7-2-7-7-2 7-2 2-7Z" />
+      <path className="result-error-glint" d="M26 45c1-6 5-11 10-14" />
+    </svg>
   )
 }
 

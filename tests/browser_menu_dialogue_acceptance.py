@@ -170,6 +170,23 @@ with sync_playwright() as playwright:
         assert object_box is not None and object_box["width"] >= 30
         assert inside_viewport(object_box, 1440, 900)
 
+    result_props: list[str] = []
+    for selector, reaction in (
+        ("[data-whale-debug-work-success]", "completed"),
+        ("[data-whale-debug-work-error]", "error"),
+    ):
+        page.locator(selector).click(force=True)
+        result_fx = page.locator(f"[data-whale-work-fx][data-work-reaction='{reaction}']")
+        result_fx.wait_for(state="attached", timeout=8_000)
+        result_object = result_fx.locator(f"[data-work-result='{reaction}']")
+        result_object.wait_for(state="attached")
+        result_box = result_object.bounding_box()
+        assert result_box is not None and result_box["width"] >= 50
+        assert inside_viewport(result_box, 1440, 900)
+        result_props.append(reaction)
+        page.screenshot(path=str(ARTIFACT_DIR / f"dsh-dfy-work-result-{reaction}.png"), full_page=True)
+        page.wait_for_timeout(3_200)
+
     page.set_viewport_size({"width": 620, "height": 700})
     page.reload(wait_until="networkidle")
     toggle = page.locator("[data-whale-menu-toggle]")
@@ -189,6 +206,7 @@ with sync_playwright() as playwright:
         page.wait_for_timeout(80)
         click_emotions.append(page.locator("[data-whale-emotion-fx]").get_attribute("data-emotion") or "none")
     assert "none" not in click_emotions
+    assert result_props == ["completed", "error"]
     assert all(left != right for left, right in zip(click_emotions, click_emotions[1:]))
 
     print(json.dumps({

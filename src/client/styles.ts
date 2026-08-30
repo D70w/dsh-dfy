@@ -339,13 +339,19 @@ export const WHALE_STYLE = `
 [data-tool-kind=read] .whale-work-object{left:66%;top:13%;animation-name:whale-work-read}
 [data-tool-kind=command] .whale-work-object{left:68%;top:24%;animation-name:whale-work-command}
 [data-tool-kind=write] .whale-work-object{left:72%;top:25%;animation-name:whale-work-write}
+[data-whale-work-fx][data-work-reaction=completed] .whale-result-object,[data-whale-work-fx][data-work-reaction=error] .whale-result-object{position:absolute;display:grid;width:78px;height:78px;place-items:center;opacity:0;filter:drop-shadow(0 6px 7px rgba(35,63,124,.2));will-change:transform,opacity}
+[data-whale-work-fx][data-work-reaction=completed] .whale-result-object{left:73%;top:13%;animation:whale-result-success-in 2.8s cubic-bezier(.16,1,.3,1) forwards}
+[data-whale-work-fx][data-work-reaction=error] .whale-result-object{left:73%;top:16%;animation:whale-result-error-in 2.8s cubic-bezier(.16,1,.3,1) forwards}
+.whale-result-icon{width:100%;height:100%;overflow:visible}.result-success-seal{fill:#d8f5e7;stroke:#4a9e7a;stroke-width:3}.result-success-ribbon{fill:#74c6a4;stroke:#3b8669;stroke-width:3;stroke-linejoin:round}.result-success-check{fill:none;stroke:#2f8c67;stroke-width:6;stroke-linecap:round;stroke-linejoin:round;transform-box:fill-box;transform-origin:center;animation:whale-result-check 1.1s ease-out .26s both}.result-success-glint{fill:#fff3ad;transform-box:fill-box;transform-origin:center;animation:whale-result-glint 1.2s ease-in-out .2s infinite alternate}
+.result-error-toolbox{fill:#e2efff;stroke:#5f86c4;stroke-width:3}.result-error-handle{fill:none;stroke:#5f86c4;stroke-width:5;stroke-linecap:round}.result-error-latch{fill:none;stroke:#9bb6e2;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.result-error-wrench{fill:#f2a56f;stroke:#aa7441;stroke-width:2.5;stroke-linejoin:round}.result-error-spark{fill:#ffd984;stroke:#aa7441;stroke-width:2;transform-box:fill-box;transform-origin:center;animation:whale-result-glint 1.2s ease-in-out .2s infinite alternate}.result-error-glint{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;opacity:.9}
 /* Keep the cue on the open side of the character so the bubble and object
    read as one compact composition instead of colliding with each other. */
 [data-whale-pet-stage][data-whale-bubble-side=right] [data-tool-kind=search] .whale-work-object{left:18%}
 [data-whale-pet-stage][data-whale-bubble-side=right] [data-tool-kind=read] .whale-work-object{left:22%}
 [data-whale-pet-stage][data-whale-bubble-side=right] [data-tool-kind=command] .whale-work-object{left:20%}
 [data-whale-pet-stage][data-whale-bubble-side=right] [data-tool-kind=write] .whale-work-object{left:16%}
-@media (prefers-reduced-motion:reduce){.whale-work-object,.whale-work-icon{animation:none;opacity:.96}}
+[data-whale-pet-stage][data-whale-bubble-side=right] [data-whale-work-fx][data-work-reaction=completed] .whale-result-object,[data-whale-pet-stage][data-whale-bubble-side=right] [data-whale-work-fx][data-work-reaction=error] .whale-result-object{left:19%}
+@media (prefers-reduced-motion:reduce){.whale-work-object,.whale-work-icon,.whale-result-object{animation:none;opacity:.96}}
 .emotion-particle{position:absolute;left:var(--fx-x,50%);top:var(--fx-y,45%);display:grid;width:var(--fx-size,24px);height:var(--fx-size,24px);place-items:center;opacity:0;color:#ffe27a;font-style:normal;line-height:1;will-change:transform,opacity}
 .emotion-particle.heart,.emotion-particle.shy-heart{font-size:0;color:#ff6f9d;filter:drop-shadow(0 0 7px rgba(255,87,145,.72));animation:whale-heart-rise var(--fx-duration,1450ms) cubic-bezier(.18,.72,.2,1) forwards}
 .emotion-particle.heart::before,.emotion-particle.shy-heart::before{position:absolute;left:1px;top:1px;width:14px;height:14px;border-radius:50%;background:currentColor;box-shadow:9px 0 0 currentColor;content:""}
@@ -417,6 +423,10 @@ export const WHALE_STYLE = `
 @keyframes whale-work-page-turn{0%,100%{opacity:.35;transform:translateY(0)}48%{opacity:.9;transform:translateY(-1px)}72%{opacity:.55;transform:translateY(1px)}}
 @keyframes whale-work-network-pulse{0%,100%{opacity:.34;transform:scale(.8)}46%{opacity:1;transform:scale(1.15)}}
 @keyframes whale-work-stroke-dash{from{stroke-dashoffset:0}to{stroke-dashoffset:-18}}
+@keyframes whale-result-success-in{0%{opacity:0;transform:translate(-50%,10px) scale(.62) rotate(-8deg)}18%{opacity:1;transform:translate(-50%,-2px) scale(1.08) rotate(4deg)}36%{transform:translate(-50%,0) scale(1) rotate(-1deg)}78%{opacity:1;transform:translate(-50%,-3px) scale(1.02) rotate(1deg)}100%{opacity:0;transform:translate(-50%,-15px) scale(.88) rotate(5deg)}}
+@keyframes whale-result-error-in{0%{opacity:0;transform:translate(-50%,9px) scale(.62) rotate(10deg)}18%{opacity:1;transform:translate(-50%,-1px) scale(1.06) rotate(-5deg)}40%{transform:translate(-50%,0) scale(1) rotate(2deg)}76%{opacity:1;transform:translate(-50%,-2px) scale(1.02) rotate(-1deg)}100%{opacity:0;transform:translate(-50%,-13px) scale(.9) rotate(-4deg)}}
+@keyframes whale-result-check{from{stroke-dasharray:48;stroke-dashoffset:48;opacity:.4}to{stroke-dashoffset:0;opacity:1}}
+@keyframes whale-result-glint{from{opacity:.3;transform:scale(.72) rotate(-8deg)}to{opacity:1;transform:scale(1.08) rotate(8deg)}}
 @keyframes whale-menu-view-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 @keyframes whale-heart-rise{0%{opacity:0;transform:translate(-50%,10px) scale(.25)}18%{opacity:1;transform:translate(-50%,0) scale(1.08)}100%{opacity:0;transform:translate(calc(-50% + var(--fx-drift,0px)),-92px) scale(.72) rotate(14deg)}}
 @keyframes whale-shy-pulse{0%{opacity:0;transform:translate(-50%,3px) scale(.35)}22%{opacity:1;transform:translate(-50%,0) scale(1.12)}70%{opacity:1;transform:translate(-50%,-5px) scale(.92)}100%{opacity:0;transform:translate(-50%,-20px) scale(.7)}}

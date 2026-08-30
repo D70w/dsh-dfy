@@ -1251,7 +1251,10 @@ export function WhalePet({
           </div>
         ) : null}
         <WhaleEmotionFx command={emotionCommand} />
-        <WhaleWorkFx kind={activitySource.value?.mode === 'tool' ? activitySource.value.toolKind : 'none'} />
+        <WhaleWorkFx
+          kind={activitySource.value?.mode === 'tool' ? activitySource.value.toolKind : 'none'}
+          reaction={liveReaction}
+        />
         <WhaleDialogue
           dialogue={{ ...dialogueMeta, text: bubble ?? IDLE_LINES[0].text }}
           // Keep the interaction surface clear while the pet is being held.
