@@ -59,3 +59,17 @@ export function resolveEmotionFaceLayerPlan(
   eye: 'neutral' | 'authored' | 'deformed' | 'squint' | 'soft'
   mouth: 'neutral' | 'emotion'
 }>
+
+export function sampleAuthoredLashDeformation(
+  u: number,
+  v: number,
+  side: 'left' | 'right',
+  emotionName: string,
+  weight: number,
+): Readonly<{ x: number; y: number }>
+
+export function resolveEmotionActingWeights(
+  emotionName: string,
+  elapsedMs: number,
+  durationMs: number,
+): Readonly<{ gaze: number; brow: number; lash: number; mouth: number; blush: number }>
