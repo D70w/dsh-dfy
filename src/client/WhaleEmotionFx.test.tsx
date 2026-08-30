@@ -75,6 +75,10 @@ describe('emotion-specific visual language', () => {
       ['happy', '[data-whale-happy-sun]'],
       ['proud', '[data-whale-proud-crown]'],
       ['determined', '[data-whale-determined-target]'],
+      ['pout', '[data-whale-pout-tissue]'],
+      ['surprise', '[data-whale-surprise-bell]'],
+      ['mischievous', '[data-whale-mischief-box]'],
+      ['excited', '[data-whale-excited-gift]'],
     ] as const
     for (const [name, selector] of cases) {
       act(() => {
@@ -95,6 +99,24 @@ describe('emotion-specific visual language', () => {
     const cloud = container.querySelector('[data-whale-sad-cloud]')
     expect(cloud?.querySelectorAll('.sad-rain-drops path')).toHaveLength(3)
     expect(container.querySelectorAll('.emotion-particle.tear')).toHaveLength(0)
+    act(() => root.unmount())
+  })
+
+  it('builds the second prop group from semantic moving parts', () => {
+    const container = document.createElement('div')
+    const root = createRoot(container)
+    const cases = [
+      ['pout', '.pout-tissue-sheet'],
+      ['surprise', '.surprise-bell-clapper'],
+      ['mischievous', '.mischief-spring'],
+      ['excited', '.excited-gift-bow'],
+    ] as const
+    for (const [name, selector] of cases) {
+      act(() => {
+        root.render(<WhaleEmotionFx command={{ id: 22, name, durationMs: 2800 }} />)
+      })
+      expect(container.querySelector(selector)).not.toBeNull()
+    }
     act(() => root.unmount())
   })
 })

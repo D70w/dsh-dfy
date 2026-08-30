@@ -156,7 +156,104 @@ function RelievedTeaIcon({ id }: { id: number }): React.JSX.Element {
   )
 }
 
-const SCENE_PROP_EMOTIONS = new Set<WhaleEmotionName>(['sad', 'happy', 'proud', 'determined', 'relieved'])
+function PoutTissueBoxIcon({ id }: { id: number }): React.JSX.Element {
+  const gradientId = `whale-pout-tissue-${id}`
+  return (
+    <svg className="emotion-scene-icon pout-tissue-icon" data-whale-pout-tissue viewBox="0 0 112 90" aria-hidden="true">
+      <defs>
+        <linearGradient id={gradientId} x1="22" y1="48" x2="84" y2="80" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#dfeaff" /><stop offset=".62" stopColor="#a9bfe9" /><stop offset="1" stopColor="#788fc7" />
+        </linearGradient>
+      </defs>
+      <ellipse className="pout-tissue-shadow" cx="55" cy="79" rx="38" ry="7" />
+      <path className="pout-tissue-sheet" d="M48 50c-12-15-4-29 8-41 12 12 20 26 8 41l-8-4-8 4Z" />
+      <path className="pout-tissue-fold" d="M56 15c-4 12-3 22 2 31" />
+      <path className="pout-tissue-box" fill={`url(#${gradientId})`} d="M17 48 30 35h53l13 13-8 29H25l-8-29Z" />
+      <path className="pout-tissue-slot" d="M40 43c8-5 24-5 32 0" />
+      <path className="pout-tissue-wave" d="M35 62c5-5 10-5 15 0 5 5 10 5 15 0" />
+    </svg>
+  )
+}
+
+function SurpriseBellIcon({ id }: { id: number }): React.JSX.Element {
+  const gradientId = `whale-surprise-bell-${id}`
+  return (
+    <svg className="emotion-scene-icon surprise-bell-icon" data-whale-surprise-bell viewBox="0 0 104 96" aria-hidden="true">
+      <defs>
+        <linearGradient id={gradientId} x1="33" y1="18" x2="72" y2="73" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#fff1a0" /><stop offset=".55" stopColor="#ffc65a" /><stop offset="1" stopColor="#e79535" />
+        </linearGradient>
+      </defs>
+      <g className="surprise-bell-body">
+        <path className="surprise-bell-handle" d="M43 20c0-12 18-12 18 0" />
+        <path className="surprise-bell-shell" fill={`url(#${gradientId})`} d="M52 18c-17 0-25 13-26 31-1 11-5 17-10 23h72c-6-7-9-13-10-23-1-18-10-31-26-31Z" />
+        <path className="surprise-bell-rim" d="M18 72c16 7 52 7 68 0" />
+        <circle className="surprise-bell-clapper" cx="52" cy="79" r="7" />
+      </g>
+      <g className="surprise-bell-rings" fill="none" strokeLinecap="round"><path d="M18 28c-8 8-10 18-7 28" /><path d="M86 28c8 8 10 18 7 28" /></g>
+    </svg>
+  )
+}
+
+function MischiefBoxIcon({ id }: { id: number }): React.JSX.Element {
+  const gradientId = `whale-mischief-box-${id}`
+  return (
+    <svg className="emotion-scene-icon mischief-box-icon" data-whale-mischief-box viewBox="0 0 112 100" aria-hidden="true">
+      <defs>
+        <linearGradient id={gradientId} x1="25" y1="50" x2="87" y2="88" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#d9c8ff" /><stop offset=".58" stopColor="#9c7bd7" /><stop offset="1" stopColor="#684aa6" />
+        </linearGradient>
+      </defs>
+      <ellipse className="mischief-box-shadow" cx="55" cy="90" rx="37" ry="6" />
+      <path className="mischief-spring" d="M55 62c-15-6 17-12 0-19-17-7 15-12 1-20" />
+      <path className="mischief-pop-star" d="m56 7 6 11 13-2-7 11 8 10-14-1-6 12-5-12-14 1 8-10-7-11 13 2 5-11Z" />
+      <g className="mischief-box-lid"><path d="m18 41 63-19 13 17-64 19-12-17Z" /><path d="m42 34 7-2M69 26l7-2" /></g>
+      <path className="mischief-box-body" fill={`url(#${gradientId})`} d="M24 56h65l-7 31H31l-7-31Z" />
+      <path className="mischief-box-ribbon" d="M53 56h12l-3 31H51l2-31Z" />
+    </svg>
+  )
+}
+
+function ExcitedGiftIcon({ id }: { id: number }): React.JSX.Element {
+  const gradientId = `whale-excited-gift-${id}`
+  return (
+    <svg className="emotion-scene-icon excited-gift-icon" data-whale-excited-gift viewBox="0 0 112 98" aria-hidden="true">
+      <defs>
+        <linearGradient id={gradientId} x1="25" y1="45" x2="83" y2="88" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#fff0a0" /><stop offset=".5" stopColor="#ffc668" /><stop offset="1" stopColor="#ef8c63" />
+        </linearGradient>
+      </defs>
+      <ellipse className="excited-gift-shadow" cx="56" cy="90" rx="39" ry="6" />
+      <path className="excited-gift-glow" d="m88 10 3 9 9 3-9 3-3 9-3-9-9-3 9-3 3-9Z" />
+      <g className="excited-gift-bow">
+        <path d="M56 37C42 29 31 16 37 10c7-7 18 8 19 27ZM56 37c14-8 25-21 19-27-7-7-18 8-19 27Z" />
+        <circle cx="56" cy="37" r="7" />
+      </g>
+      <path className="excited-gift-body" fill={`url(#${gradientId})`} d="M21 44h70v43H21V44Z" />
+      <path className="excited-gift-lid" d="M16 39h80v14H16V39Z" />
+      <path className="excited-gift-ribbon" d="M49 39h14v48H49V39Z" />
+    </svg>
+  )
+}
+
+const SCENE_PROP_EMOTIONS = new Set<WhaleEmotionName>([
+  'sad', 'happy', 'proud', 'determined', 'relieved', 'pout', 'surprise', 'mischievous', 'excited',
+])
+
+function scenePropIcon(command: WhaleEmotionCommand): React.JSX.Element | null {
+  switch (command.name) {
+    case 'sad': return <SadRainCloudIcon id={command.id} />
+    case 'happy': return <HappySunIcon id={command.id} />
+    case 'proud': return <ProudCrownIcon id={command.id} />
+    case 'determined': return <DeterminedTargetIcon />
+    case 'relieved': return <RelievedTeaIcon id={command.id} />
+    case 'pout': return <PoutTissueBoxIcon id={command.id} />
+    case 'surprise': return <SurpriseBellIcon id={command.id} />
+    case 'mischievous': return <MischiefBoxIcon id={command.id} />
+    case 'excited': return <ExcitedGiftIcon id={command.id} />
+    default: return null
+  }
+}
 
 function EmotionSceneProp({ command }: { command: WhaleEmotionCommand }): React.JSX.Element | null {
   if (!SCENE_PROP_EMOTIONS.has(command.name)) return null
@@ -166,6 +263,10 @@ function EmotionSceneProp({ command }: { command: WhaleEmotionCommand }): React.
     proud: { x: '74%', y: '14%', width: 80, height: 62 },
     determined: { x: '76%', y: '18%', width: 68, height: 68 },
     relieved: { x: '76%', y: '24%', width: 76, height: 62 },
+    pout: { x: '72%', y: '24%', width: 72, height: 59 },
+    surprise: { x: '73%', y: '16%', width: 66, height: 64 },
+    mischievous: { x: '73%', y: '19%', width: 70, height: 64 },
+    excited: { x: '72%', y: '19%', width: 70, height: 62 },
   } as const
   const layout = placementByEmotion[command.name as keyof typeof placementByEmotion]
   if (!layout) return null
@@ -176,11 +277,7 @@ function EmotionSceneProp({ command }: { command: WhaleEmotionCommand }): React.
   } as React.CSSProperties
   return (
     <i className={`emotion-scene-prop emotion-scene-prop-${command.name}`} style={style}>
-      {command.name === 'sad' ? <SadRainCloudIcon id={command.id} />
-        : command.name === 'happy' ? <HappySunIcon id={command.id} />
-          : command.name === 'proud' ? <ProudCrownIcon id={command.id} />
-            : command.name === 'determined' ? <DeterminedTargetIcon />
-              : <RelievedTeaIcon id={command.id} />}
+      {scenePropIcon(command)}
     </i>
   )
 }

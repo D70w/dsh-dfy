@@ -273,6 +273,18 @@ export const WHALE_STYLE = `
 .relieved-tea-saucer{fill:#8bcac4;stroke:#477e84;stroke-width:2.5}
 .relieved-tea-cup{stroke:#477e84;stroke-width:3;stroke-linejoin:round}
 .relieved-tea-rim,.relieved-tea-handle,.relieved-tea-wave{fill:none;stroke:#477e84;stroke-width:3;stroke-linecap:round}.relieved-tea-wave{stroke:#f7ffff;stroke-width:2.5}
+.pout-tissue-shadow,.mischief-box-shadow,.excited-gift-shadow{fill:rgba(46,56,94,.18)}
+.pout-tissue-sheet{fill:#fbfdff;stroke:#7f94bf;stroke-width:2.6;stroke-linejoin:round;transform-box:fill-box;transform-origin:center bottom;animation:whale-tissue-flutter 1.8s ease-in-out infinite alternate}
+.pout-tissue-fold{fill:none;stroke:#c1d1ed;stroke-width:2;stroke-linecap:round}
+.pout-tissue-box{stroke:#5e75ad;stroke-width:3;stroke-linejoin:round}.pout-tissue-slot{fill:none;stroke:#5e75ad;stroke-width:3.5;stroke-linecap:round}.pout-tissue-wave{fill:none;stroke:#eef5ff;stroke-width:2.5;stroke-linecap:round}
+.surprise-bell-body{transform-box:fill-box;transform-origin:50% 8%;animation:whale-bell-ring .48s ease-in-out infinite alternate}
+.surprise-bell-handle,.surprise-bell-rim{fill:none;stroke:#a7692c;stroke-width:4;stroke-linecap:round}.surprise-bell-shell{stroke:#a7692c;stroke-width:3.2;stroke-linejoin:round}.surprise-bell-clapper{fill:#e38e33;stroke:#874f29;stroke-width:2.5}
+.surprise-bell-rings{stroke:#f4bc55;stroke-width:3.5;animation:whale-bell-rings .72s ease-out infinite}
+.mischief-spring{fill:none;stroke:#514173;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 4;animation:whale-mischief-coil 1.35s ease-in-out infinite alternate}
+.mischief-pop-star{fill:#ffd86d;stroke:#6d4b94;stroke-width:3;stroke-linejoin:round;transform-box:fill-box;transform-origin:center;animation:whale-mischief-star 1.35s ease-in-out infinite alternate}
+.mischief-box-lid{fill:#bda5ed;stroke:#5e438a;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;transform-box:fill-box;transform-origin:20% 80%;animation:whale-mischief-lid 1.35s ease-in-out infinite alternate}.mischief-box-body{stroke:#503979;stroke-width:3;stroke-linejoin:round}.mischief-box-ribbon{fill:#ffd079;stroke:#9b6b36;stroke-width:2}
+.excited-gift-body{stroke:#a75c52;stroke-width:3;stroke-linejoin:round}.excited-gift-lid{fill:#ffbd73;stroke:#a75c52;stroke-width:3;stroke-linejoin:round}.excited-gift-ribbon{fill:#7ec8d4;stroke:#3e8596;stroke-width:2.5}
+.excited-gift-bow{fill:#8dd3df;stroke:#3e8596;stroke-width:2.8;stroke-linejoin:round;transform-box:fill-box;transform-origin:center bottom;animation:whale-gift-bow 1.6s ease-in-out infinite alternate}.excited-gift-glow{fill:#fff5a6;transform-box:fill-box;transform-origin:center;animation:whale-gift-glow 1.1s ease-in-out infinite alternate}
 [data-whale-work-fx]{position:absolute;z-index:23;inset:0;pointer-events:none;overflow:visible}
 .whale-work-object{position:absolute;display:grid;width:60px;height:60px;place-items:center;opacity:0;filter:drop-shadow(0 5px 7px rgba(35,63,124,.2));will-change:transform,opacity;animation:whale-work-object-in .42s cubic-bezier(.16,1,.3,1) forwards}
 .whale-work-object::before{position:absolute;inset:4px;border:1px solid rgba(137,174,226,.34);border-radius:50%;background:radial-gradient(circle,rgba(194,226,255,.28),rgba(194,226,255,0) 68%);content:"";opacity:.65;animation:whale-work-aura 2.4s ease-in-out .42s infinite}
@@ -423,6 +435,14 @@ export const WHALE_STYLE = `
 @keyframes whale-target-arrow{0%,100%{transform:translate(2px,-2px)}50%{transform:translate(-2px,2px)}}
 @keyframes whale-target-glint{from{opacity:.3;transform:scale(.72)}to{opacity:1;transform:scale(1.08)}}
 @keyframes whale-tea-steam{0%{opacity:0;transform:translateY(5px) scaleY(.72)}34%{opacity:.9}100%{opacity:0;transform:translateY(-12px) scaleY(1.16)}}
+@keyframes whale-tissue-flutter{from{transform:rotate(-2deg) scaleX(.98)}to{transform:rotate(3deg) scaleX(1.02)}}
+@keyframes whale-bell-ring{from{transform:rotate(-5deg)}to{transform:rotate(5deg)}}
+@keyframes whale-bell-rings{0%{opacity:0;transform:scale(.86)}35%{opacity:.9}100%{opacity:0;transform:scale(1.08)}}
+@keyframes whale-mischief-coil{from{transform:translateY(3px) scaleY(.88)}to{transform:translateY(-3px) scaleY(1.08)}}
+@keyframes whale-mischief-star{from{transform:translateY(2px) rotate(-5deg) scale(.92)}to{transform:translateY(-3px) rotate(5deg) scale(1.04)}}
+@keyframes whale-mischief-lid{from{transform:rotate(-2deg)}to{transform:rotate(-8deg) translateY(-2px)}}
+@keyframes whale-gift-bow{from{transform:scale(.94) rotate(-2deg)}to{transform:scale(1.04) rotate(2deg)}}
+@keyframes whale-gift-glow{from{opacity:.35;transform:scale(.7) rotate(-8deg)}to{opacity:1;transform:scale(1.05) rotate(6deg)}}
 @media (prefers-reduced-motion:reduce){.emotion-scene-prop,.emotion-scene-icon *{animation:none!important}.emotion-scene-prop{opacity:.96;transform:translate(-50%,0)}}
 @media (max-width:700px){[data-whale-dialogue]{max-width:calc(100vw - 20px)}[data-whale-menu-panel]{width:min(306px,calc(100vw - 16px))}[data-whale-chat-composer]{bottom:-66px}}
 @media (forced-colors:active){
