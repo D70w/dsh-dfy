@@ -248,6 +248,31 @@ export const WHALE_STYLE = `
 [data-whale-account-card]>button[data-state=done]{border-color:#91b9aa;background:#edf8f3;color:#36745f}
 
 [data-whale-emotion-fx]{position:absolute;z-index:22;inset:0;pointer-events:none;overflow:visible}
+.emotion-scene-prop{position:absolute;left:var(--fx-x,70%);top:var(--fx-y,18%);display:block;width:var(--prop-width,88px);height:var(--prop-height,76px);opacity:0;filter:drop-shadow(0 7px 7px rgba(35,56,105,.2));transform-origin:50% 70%;will-change:transform,opacity;animation:whale-emotion-scene-lifecycle var(--fx-duration,2600ms) cubic-bezier(.16,1,.3,1) forwards}
+.emotion-scene-icon{display:block;width:100%;height:100%;overflow:visible}
+.sad-cloud-shadow{fill:rgba(38,55,91,.2)}
+.sad-cloud-body{transform-box:fill-box;transform-origin:center;animation:whale-sad-cloud-breathe 1.9s ease-in-out infinite alternate}
+.sad-cloud-highlight{fill:none;stroke:rgba(233,243,255,.62);stroke-width:4;stroke-linecap:round}
+.sad-rain-drops{fill:#77bfe6;stroke:#dff6ff;stroke-width:1.4}
+.sad-rain-drops path{transform-box:fill-box;transform-origin:center;animation:whale-sad-raindrop .92s ease-in infinite}
+.sad-rain-drops path:nth-child(2){animation-delay:-.31s}.sad-rain-drops path:nth-child(3){animation-delay:-.61s}
+.happy-sun-rays{transform-box:fill-box;transform-origin:center;animation:whale-happy-sun-rays 5.5s linear infinite}
+.happy-sun-core{transform-box:fill-box;transform-origin:center;animation:whale-happy-sun-pulse 1.5s ease-in-out infinite alternate}
+.happy-sun-glint{fill:none;stroke:#fffbe1;stroke-width:4;stroke-linecap:round}
+.proud-crown-body{stroke:#9d692c;stroke-width:3;stroke-linejoin:round}
+.proud-crown-band{fill:#f5b849;stroke:#9d692c;stroke-width:2.6;stroke-linejoin:round}
+.proud-crown-shadow{fill:none;stroke:rgba(67,52,84,.2);stroke-width:7;stroke-linecap:round}
+.proud-crown-jewels{fill:#72cfe5;stroke:#fff4ce;stroke-width:1.5}
+.proud-crown-glint{fill:#fff9cf;transform-box:fill-box;transform-origin:center;animation:whale-crown-glint 1.35s ease-in-out infinite}
+.determined-target-rings circle{fill:rgba(255,247,217,.9);stroke:#d5a03e;stroke-width:4}.determined-target-rings circle:nth-child(2){fill:#ffe082;stroke:#b97b2d}.determined-target-rings circle:nth-child(3){fill:#e55b6a;stroke:#8f3547}
+.determined-target-arrow{fill:none;stroke:#405d9b;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;transform-box:fill-box;transform-origin:center;animation:whale-target-arrow 1.8s ease-in-out infinite}
+.determined-target-glint{fill:#fff3a3;animation:whale-target-glint 1.2s ease-in-out infinite alternate}
+.relieved-tea-steam{stroke:#9bded8;stroke-width:4}
+.relieved-tea-steam path{transform-box:fill-box;transform-origin:center bottom;animation:whale-tea-steam 1.55s ease-in-out infinite}
+.relieved-tea-steam path:nth-child(2){animation-delay:-.62s}
+.relieved-tea-saucer{fill:#8bcac4;stroke:#477e84;stroke-width:2.5}
+.relieved-tea-cup{stroke:#477e84;stroke-width:3;stroke-linejoin:round}
+.relieved-tea-rim,.relieved-tea-handle,.relieved-tea-wave{fill:none;stroke:#477e84;stroke-width:3;stroke-linecap:round}.relieved-tea-wave{stroke:#f7ffff;stroke-width:2.5}
 [data-whale-work-fx]{position:absolute;z-index:23;inset:0;pointer-events:none;overflow:visible}
 .whale-work-object{position:absolute;display:grid;width:60px;height:60px;place-items:center;opacity:0;filter:drop-shadow(0 5px 7px rgba(35,63,124,.2));will-change:transform,opacity;animation:whale-work-object-in .42s cubic-bezier(.16,1,.3,1) forwards}
 .whale-work-object::before{position:absolute;inset:4px;border:1px solid rgba(137,174,226,.34);border-radius:50%;background:radial-gradient(circle,rgba(194,226,255,.28),rgba(194,226,255,0) 68%);content:"";opacity:.65;animation:whale-work-aura 2.4s ease-in-out .42s infinite}
@@ -389,6 +414,16 @@ export const WHALE_STYLE = `
 @keyframes whale-relief-spark{0%{opacity:0;transform:translate(-50%,6px) rotate(-18deg) scale(.35)}28%{opacity:.82;transform:translate(-50%,-2px) rotate(10deg) scale(1)}100%{opacity:0;transform:translate(calc(-50% + var(--fx-drift,0px)),-44px) rotate(68deg) scale(.6)}}
 @keyframes whale-rice-dream-cluster{0%{opacity:0;filter:blur(2px);transform:translate(-50%,12px) scale(.55) rotate(-4deg)}18%{opacity:1;filter:blur(0);transform:translate(-50%,-2px) scale(1.04) rotate(1deg)}38%{transform:translate(-50%,0) scale(1) rotate(0)}76%{opacity:1;transform:translate(-50%,-4px) scale(1.018) rotate(-.7deg)}100%{opacity:0;filter:blur(.35px);transform:translate(-50%,-14px) scale(.88) rotate(2deg)}}
 @keyframes whale-rice-steam{from{opacity:.42;transform:translateY(2px) scaleY(.88) rotate(-3deg)}to{opacity:.95;transform:translateY(-3px) scaleY(1.08) rotate(3deg)}}
+@keyframes whale-emotion-scene-lifecycle{0%{opacity:0;transform:translate(-50%,10px) scale(.68)}14%{opacity:1;transform:translate(-50%,-2px) scale(1.04)}24%,78%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-12px) scale(.88)}}
+@keyframes whale-sad-cloud-breathe{from{transform:translateY(0) scaleX(.98)}to{transform:translateY(-2px) scaleX(1.02)}}
+@keyframes whale-sad-raindrop{0%{opacity:0;transform:translateY(-3px) scale(.72)}18%{opacity:1}100%{opacity:0;transform:translateY(17px) scale(.9)}}
+@keyframes whale-happy-sun-rays{to{transform:rotate(360deg)}}
+@keyframes whale-happy-sun-pulse{from{filter:brightness(.98);transform:scale(.96)}to{filter:brightness(1.08);transform:scale(1.03)}}
+@keyframes whale-crown-glint{0%,32%,100%{opacity:.35;transform:scale(.72) rotate(-12deg)}56%{opacity:1;transform:scale(1.08) rotate(5deg)}}
+@keyframes whale-target-arrow{0%,100%{transform:translate(2px,-2px)}50%{transform:translate(-2px,2px)}}
+@keyframes whale-target-glint{from{opacity:.3;transform:scale(.72)}to{opacity:1;transform:scale(1.08)}}
+@keyframes whale-tea-steam{0%{opacity:0;transform:translateY(5px) scaleY(.72)}34%{opacity:.9}100%{opacity:0;transform:translateY(-12px) scaleY(1.16)}}
+@media (prefers-reduced-motion:reduce){.emotion-scene-prop,.emotion-scene-icon *{animation:none!important}.emotion-scene-prop{opacity:.96;transform:translate(-50%,0)}}
 @media (max-width:700px){[data-whale-dialogue]{max-width:calc(100vw - 20px)}[data-whale-menu-panel]{width:min(306px,calc(100vw - 16px))}[data-whale-chat-composer]{bottom:-66px}}
 @media (forced-colors:active){
   [data-whale-pet-hotspot]:focus-visible,[data-whale-pet-menu] button:focus-visible,[data-whale-pet-summon]:focus-visible{outline:2px solid Highlight;outline-offset:2px}

@@ -62,7 +62,39 @@ describe('emotion-specific visual language', () => {
     act(() => {
       root.render(<WhaleEmotionFx command={{ id: 11, name: 'relieved', durationMs: 3600 }} />)
     })
-    expect(container.querySelector('.relief-spark')).not.toBeNull()
+    expect(container.querySelector('.relief')).not.toBeNull()
+    expect(container.querySelector('[data-whale-relieved-tea]')).not.toBeNull()
+    act(() => root.unmount())
+  })
+
+  it('uses scene props for emotions that need more than floating marks', () => {
+    const container = document.createElement('div')
+    const root = createRoot(container)
+    const cases = [
+      ['sad', '[data-whale-sad-cloud]'],
+      ['happy', '[data-whale-happy-sun]'],
+      ['proud', '[data-whale-proud-crown]'],
+      ['determined', '[data-whale-determined-target]'],
+    ] as const
+    for (const [name, selector] of cases) {
+      act(() => {
+        root.render(<WhaleEmotionFx command={{ id: 20, name, durationMs: 2800 }} />)
+      })
+      expect(container.querySelector(selector)).not.toBeNull()
+      expect(container.querySelector('.emotion-scene-prop')).not.toBeNull()
+    }
+    act(() => root.unmount())
+  })
+
+  it('keeps the sad rain attached to one cloud actor', () => {
+    const container = document.createElement('div')
+    const root = createRoot(container)
+    act(() => {
+      root.render(<WhaleEmotionFx command={{ id: 21, name: 'sad', durationMs: 3200 }} />)
+    })
+    const cloud = container.querySelector('[data-whale-sad-cloud]')
+    expect(cloud?.querySelectorAll('.sad-rain-drops path')).toHaveLength(3)
+    expect(container.querySelectorAll('.emotion-particle.tear')).toHaveLength(0)
     act(() => root.unmount())
   })
 })
