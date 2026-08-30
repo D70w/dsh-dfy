@@ -27,4 +27,11 @@ describe('work-state object cues', () => {
     expect(root.querySelector(`[data-whale-work-fx][data-tool-kind="${kind}"]`)).not.toBeNull()
     expect(root.querySelector(`[data-work-object="${objectKind}"] svg[data-work-detail="${kind}"]`)).not.toBeNull()
   })
+
+  it('renders a visible usage detail for each prop', () => {
+    expect(renderWorkFx('search').querySelector('.work-icon-scan-line')).not.toBeNull()
+    expect(renderWorkFx('read').querySelector('.work-icon-page-turn')).not.toBeNull()
+    expect(renderWorkFx('command').querySelectorAll('.work-icon-network')).toHaveLength(2)
+    expect(renderWorkFx('write').querySelector('.work-icon-stroke')).not.toBeNull()
+  })
 })

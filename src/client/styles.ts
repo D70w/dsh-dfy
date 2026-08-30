@@ -261,21 +261,26 @@ export const WHALE_STYLE = `
 .work-icon-spine{stroke:#b1c8ed;stroke-width:2;stroke-linecap:round;opacity:.9}
 .work-icon-bookmark{fill:#ffb2c9;stroke:#b85b83;stroke-width:1.7;stroke-linejoin:round}
 .work-icon-page-glint{stroke:#fff;stroke-width:2.4;stroke-linecap:round;opacity:.92}
+.work-icon-page-turn{fill:none;stroke:#9badd3;stroke-width:1.8;stroke-linecap:round;opacity:.78;stroke-dasharray:4 3;animation:whale-work-page-turn 2.9s ease-in-out .55s infinite}
 .work-icon-accent{stroke:#3f66b1;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
 .work-icon-glint{stroke:#9edaf4;stroke-width:2.8;stroke-linecap:round}
 .work-icon-scan{stroke:#4c9bc7;stroke-width:2.2;stroke-linecap:round;opacity:.85}
 .work-icon-scan-dot{fill:#fff;stroke:#4c9bc7;stroke-width:1.5}
+.work-icon-ray{stroke:#78c8e7;stroke-width:2;stroke-linecap:round;opacity:.78;animation:whale-work-ray-pulse 1.65s ease-in-out .6s infinite}
+.work-icon-scan-line{stroke:#4c9bc7;stroke-width:1.6;stroke-linecap:round;stroke-dasharray:3 3;opacity:.72;animation:whale-work-scan-line 1.8s linear .5s infinite}
 .work-icon-bar{stroke:#d1def6;stroke-width:2}
 .work-icon-status{fill:#8de0bd;stroke:#3d8f75;stroke-width:1.5}
 .work-icon-status-alt{fill:#ffd37c;stroke:#ba7c35}
 .work-icon-output{stroke:#83a1d3;stroke-width:2;stroke-linecap:round;opacity:.95}
 .work-icon-cursor{stroke:#9de7ca;stroke-width:2.8;stroke-linecap:round;animation:whale-work-cursor-blink 1s steps(1,end) infinite}
+.work-icon-network{fill:#9de7ca;stroke:#3d8f75;stroke-width:1;animation:whale-work-network-pulse 1.8s ease-in-out .4s infinite}
 .work-icon-paper{fill:#fffdf8;stroke:#6d8ac2;stroke-width:2.2;stroke-linejoin:round}
 .work-icon-paper-fold{fill:#e5efff;stroke:#7894c7;stroke-width:1.8;stroke-linejoin:round}
 .work-icon-pencil{fill:#ffd36d;stroke:#466bb0;stroke-width:2.6;stroke-linejoin:round}
 .work-icon-pencil-edge{stroke:#e39c58;stroke-width:2.2;stroke-linecap:round}
 .work-icon-tip{fill:#fff4d7;stroke:#466bb0;stroke-width:2.2;stroke-linejoin:round}
 .work-icon-ink{stroke:#78a3de;stroke-width:2.4;stroke-linecap:round;stroke-dasharray:4 4;animation:whale-work-ink-dash 1.2s linear infinite}
+.work-icon-stroke{stroke:#7d9ccc;stroke-width:1.6;stroke-linecap:round;opacity:.62;stroke-dasharray:5 4;animation:whale-work-stroke-dash 1.7s linear .35s infinite}
 [data-tool-kind=search] .whale-work-icon{animation:whale-work-search-loop 2.5s ease-in-out .42s infinite}
 [data-tool-kind=read] .whale-work-icon{animation:whale-work-read-loop 2.9s ease-in-out .42s infinite}
 [data-tool-kind=command] .whale-work-icon{animation:whale-work-command-loop 1.8s ease-in-out .42s infinite}
@@ -361,6 +366,11 @@ export const WHALE_STYLE = `
 @keyframes whale-work-write-loop{0%,100%{transform:translate(0,0) rotate(-2deg)}38%{transform:translate(-2px,-2px) rotate(4deg)}60%{transform:translate(1px,1px) rotate(-3deg)}}
 @keyframes whale-work-cursor-blink{0%,45%{opacity:1}46%,100%{opacity:.18}}
 @keyframes whale-work-ink-dash{from{stroke-dashoffset:0}to{stroke-dashoffset:-8}}
+@keyframes whale-work-ray-pulse{0%,100%{opacity:.35;transform:translateX(0)}50%{opacity:.95;transform:translateX(1px)}}
+@keyframes whale-work-scan-line{from{stroke-dashoffset:0}to{stroke-dashoffset:-12}}
+@keyframes whale-work-page-turn{0%,100%{opacity:.35;transform:translateY(0)}48%{opacity:.9;transform:translateY(-1px)}72%{opacity:.55;transform:translateY(1px)}}
+@keyframes whale-work-network-pulse{0%,100%{opacity:.34;transform:scale(.8)}46%{opacity:1;transform:scale(1.15)}}
+@keyframes whale-work-stroke-dash{from{stroke-dashoffset:0}to{stroke-dashoffset:-18}}
 @keyframes whale-menu-view-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 @keyframes whale-heart-rise{0%{opacity:0;transform:translate(-50%,10px) scale(.25)}18%{opacity:1;transform:translate(-50%,0) scale(1.08)}100%{opacity:0;transform:translate(calc(-50% + var(--fx-drift,0px)),-92px) scale(.72) rotate(14deg)}}
 @keyframes whale-shy-pulse{0%{opacity:0;transform:translate(-50%,3px) scale(.35)}22%{opacity:1;transform:translate(-50%,0) scale(1.12)}70%{opacity:1;transform:translate(-50%,-5px) scale(.92)}100%{opacity:0;transform:translate(-50%,-20px) scale(.7)}}
