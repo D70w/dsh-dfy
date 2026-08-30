@@ -710,7 +710,11 @@ const emotionActingTimings = {
 	angry: { gaze: [0, 90], brow: [50, 180], lash: [105, 250], mouth: [155, 315], blush: [190, 360] },
 	sad: { gaze: [0, 130], brow: [75, 245], lash: [145, 330], mouth: [205, 410], blush: [230, 460] },
 	shy: { gaze: [0, 105], brow: [70, 230], lash: [110, 290], mouth: [175, 365], blush: [120, 420] },
-	proud: { gaze: [0, 100], brow: [65, 220], lash: [115, 285], mouth: [165, 350], blush: [195, 390] }
+	proud: { gaze: [0, 100], brow: [65, 220], lash: [115, 285], mouth: [165, 350], blush: [195, 390] },
+	confused: { gaze: [0, 95], brow: [80, 245], lash: [125, 305], mouth: [195, 390], blush: [220, 430] },
+	mischievous: { gaze: [0, 85], brow: [55, 205], lash: [105, 275], mouth: [155, 335], blush: [180, 370] },
+	determined: { gaze: [0, 70], brow: [45, 155], lash: [85, 220], mouth: [145, 300], blush: [210, 400] },
+	nervous: { gaze: [0, 80], brow: [50, 190], lash: [95, 260], mouth: [170, 355], blush: [105, 310] }
 };
 function resolveEmotionActingWeights(name, elapsed, duration) {
 	if (!Number.isFinite(elapsed) || !Number.isFinite(duration) || duration <= 0 || elapsed < 0 || elapsed >= duration + 460) return { gaze: 0, brow: 0, lash: 0, mouth: 0, blush: 0 };
@@ -726,7 +730,7 @@ function resolveEmotionActingWeights(name, elapsed, duration) {
 }
 function sampleTransientEmotion(clock, name, elapsed, duration) {
 	const style = transientEmotionStyles[name];
-	const empty = { active: false, weight: 0, gazeWeight: 0, browWeight: 0, lashWeight: 0, mouthWeight: 0, blushWeight: 0, headY: 0, headRotation: 0, headPitch: 0, gazeX: 0, gazeY: 0, blinkOpenness: 1, eyeBlinkBeat: 1, smile: 0, mouthOpen: 0, mouthOverride: 0, browY: 0, browLeftRotation: 0, browRightRotation: 0, blush: 0, tear: 0, tearPool: 0, tearStream: 0, tearDrop: 0, tearDropPhase: 0, waistRotation: 0, chestRotation: 0, shoulderLeftX: 0, shoulderLeftY: 0, shoulderRightX: 0, shoulderRightY: 0 };
+	const empty = { active: false, weight: 0, gazeWeight: 0, browWeight: 0, lashWeight: 0, mouthWeight: 0, blushWeight: 0, headY: 0, headRotation: 0, headPitch: 0, gazeX: 0, gazeY: 0, blinkOpenness: 1, eyeBlinkBeat: 1, eyeBlinkBeatLeft: 1, eyeBlinkBeatRight: 1, smile: 0, mouthOpen: 0, mouthOverride: 0, browY: 0, browLeftRotation: 0, browRightRotation: 0, blush: 0, tear: 0, tearPool: 0, tearStream: 0, tearDrop: 0, tearDropPhase: 0, waistRotation: 0, chestRotation: 0, shoulderLeftX: 0, shoulderLeftY: 0, shoulderRightX: 0, shoulderRightY: 0 };
 	if (!style || !Number.isFinite(elapsed) || elapsed >= duration + 460) return empty;
 	const entered = phase(elapsed, 0, 180);
 	const weight = elapsed <= duration ? entered : entered * (1 - phase(elapsed, duration, duration + 460));
@@ -741,6 +745,15 @@ function sampleTransientEmotion(clock, name, elapsed, duration) {
 	for (const key of ["headY", "headRotation", "headPitch", "gazeX", "gazeY", "smile", "mouthOpen", "mouthOverride", "browY", "browLeftRotation", "browRightRotation", "blush", "tear", "waistRotation", "chestRotation", "shoulderLeftX", "shoulderLeftY", "shoulderRightX", "shoulderRightY"]) scaled[key] = (style[key] ?? 0) * weight;
 	scaled.gazeX = (style.gazeX ?? 0) * acting.gaze;
 	scaled.gazeY = (style.gazeY ?? 0) * acting.gaze;
+	if (name === "confused") {
+		const firstLook = pulse(normalized, .02, .14, .32);
+		const secondLook = pulse(normalized, .34, .5, .68);
+		scaled.gazeX = (style.gazeX ?? 0) * (firstLook - secondLook * .22) * acting.gaze;
+	} else if (name === "nervous") {
+		const uncertainLook = Math.sin(elapsed * .0062 + .8) * .075 * acting.gaze;
+		scaled.gazeX += uncertainLook;
+		scaled.gazeY += Math.cos(elapsed * .0047 + .2) * .035 * acting.gaze;
+	}
 	for (const key of ["browY", "browLeftRotation", "browRightRotation"]) scaled[key] = (style[key] ?? 0) * acting.brow;
 	for (const key of ["smile", "mouthOpen", "mouthOverride"]) scaled[key] = (style[key] ?? 0) * acting.mouth;
 	scaled.blush = (style.blush ?? 0) * acting.blush;
@@ -775,6 +788,11 @@ function sampleTransientEmotion(clock, name, elapsed, duration) {
 	if (name === "shy") eyeBlinkBeat -= pulse(normalized, .05, .11, .19) * .78 * acting.lash;
 	else if (name === "sad") eyeBlinkBeat -= pulse(normalized, .18, .27, .39) * .52 * acting.lash;
 	else if (name === "proud") eyeBlinkBeat -= pulse(normalized, .07, .13, .22) * .42 * acting.lash;
+	else if (name === "confused") eyeBlinkBeat -= pulse(normalized, .11, .17, .25) * .34 * acting.lash;
+	else if (name === "nervous") eyeBlinkBeat -= Math.max(pulse(normalized, .04, .085, .14), pulse(normalized, .16, .205, .27)) * .58 * acting.lash;
+	let eyeBlinkBeatLeft = eyeBlinkBeat;
+	let eyeBlinkBeatRight = eyeBlinkBeat;
+	if (name === "mischievous") eyeBlinkBeatLeft -= pulse(normalized, .08, .16, .28) * .28 * acting.lash;
 	return {
 		...empty,
 		...scaled,
@@ -787,6 +805,8 @@ function sampleTransientEmotion(clock, name, elapsed, duration) {
 		blushWeight: acting.blush,
 		blinkOpenness: 1 + ((style.blinkOpenness ?? 1) - 1) * acting.lash,
 		eyeBlinkBeat: clamp01(eyeBlinkBeat),
+		eyeBlinkBeatLeft: clamp01(eyeBlinkBeatLeft),
+		eyeBlinkBeatRight: clamp01(eyeBlinkBeatRight),
 		headRotation: scaled.headRotation,
 		tearPool,
 		tearStream,
@@ -1569,7 +1589,7 @@ function drawEye(context, white, iris, lash, matrix, centerX, centerY, openness,
 	context.drawImage(lash.image, lash.x, lash.y, lash.width, lash.height);
 	context.restore();
 }
-const localizedAuthoredLashEmotions = new Set(["angry", "sad", "shy", "proud"]);
+const localizedAuthoredLashEmotions = new Set(["angry", "sad", "shy", "proud", "mischievous", "determined"]);
 function sampleAuthoredLashDeformation(u, v, side, emotionName, weight) {
 	const horizontal = (clamp01(u) - .5) * 2;
 	const innerAxis = side === "left" ? horizontal : -horizontal;
@@ -1583,10 +1603,13 @@ function sampleAuthoredLashDeformation(u, v, side, emotionName, weight) {
 	else if (emotionName === "sad") y = outerWeight * 1.25 * amount;
 	else if (emotionName === "shy") y = centerWeight * .75 * amount;
 	else if (emotionName === "proud") y = centerWeight * (side === "left" ? 2.2 : .45) * amount;
+	else if (emotionName === "mischievous") y = centerWeight * (side === "left" ? 1.85 : .3) * amount;
+	else if (emotionName === "determined") y = (innerWeight * 2.4 - outerWeight * .15) * amount;
 	return { x: 0, y };
 }
 function drawAuthoredEmotionEye(context, white, iris, lash, matrix, centerX, centerY, openness, gazeX, gazeY, side, emotionName, pose) {
-	const authoredOpenness = clamp01(openness / Math.max(.08, pose.blinkOpenness)) * (pose.eyeBlinkBeat ?? 1);
+	const sideBlinkBeat = side === "left" ? pose.eyeBlinkBeatLeft ?? pose.eyeBlinkBeat : pose.eyeBlinkBeatRight ?? pose.eyeBlinkBeat;
+	const authoredOpenness = clamp01(openness / Math.max(.08, pose.blinkOpenness)) * (sideBlinkBeat ?? 1);
 	if (authoredOpenness < .9 || !localizedAuthoredLashEmotions.has(emotionName)) {
 		drawEye(context, white, iris, lash, matrix, centerX, centerY, authoredOpenness, gazeX, gazeY);
 		return;

@@ -46,7 +46,7 @@ describe('resolveEmotionFaceLayerPlan', () => {
 
 describe('sampleAuthoredLashDeformation', () => {
   it('keeps localized eyelid changes bounded to three design pixels', () => {
-    const emotions = ['angry', 'sad', 'shy', 'proud']
+    const emotions = ['angry', 'sad', 'shy', 'proud', 'mischievous', 'determined']
     for (const emotion of emotions) {
       for (const side of ['left', 'right'] as const) {
         for (let row = 0; row <= 10; row += 1) {
@@ -71,6 +71,14 @@ describe('sampleAuthoredLashDeformation', () => {
     const right = sampleAuthoredLashDeformation(.5, 0, 'right', 'proud', 1).y
     expect(left).toBeGreaterThan(right)
     expect(left).toBeLessThanOrEqual(2.2)
+  })
+
+  it('keeps the mischievous wink asymmetric and the determined inner lids symmetric', () => {
+    const mischievousLeft = sampleAuthoredLashDeformation(.5, 0, 'left', 'mischievous', 1).y
+    const mischievousRight = sampleAuthoredLashDeformation(.5, 0, 'right', 'mischievous', 1).y
+    expect(mischievousLeft).toBeGreaterThan(mischievousRight)
+    expect(sampleAuthoredLashDeformation(1, 0, 'left', 'determined', 1).y).toBeGreaterThan(2)
+    expect(sampleAuthoredLashDeformation(0, 0, 'right', 'determined', 1).y).toBeGreaterThan(2)
   })
 })
 
@@ -97,5 +105,14 @@ describe('resolveEmotionActingWeights', () => {
       mouth: 0,
       blush: 0,
     })
+  })
+
+  it('gives the second expression group distinct entry timing', () => {
+    const confused = resolveEmotionActingWeights('confused', 100, 2_800)
+    const determined = resolveEmotionActingWeights('determined', 100, 3_200)
+    const nervous = resolveEmotionActingWeights('nervous', 100, 3_000)
+    expect(confused.gaze).toBe(1)
+    expect(confused.brow).toBeLessThan(determined.brow)
+    expect(determined.lash).toBeGreaterThan(nervous.lash)
   })
 })

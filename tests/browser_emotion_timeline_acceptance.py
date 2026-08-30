@@ -8,12 +8,22 @@ from playwright.sync_api import sync_playwright
 
 BASE_URL = os.environ.get("WHALE_E2E_BASE_URL", "http://127.0.0.1:3107")
 ARTIFACT_DIR = Path(os.environ.get("TEMP", ".")) / "dsh-dfy-emotion-timeline"
-EMOTIONS = (
-    ("angry", "生气", 2_800),
-    ("sad", "难过", 3_200),
-    ("shy", "害羞", 2_800),
-    ("proud", "得意", 2_600),
-)
+EMOTION_GROUP = os.environ.get("WHALE_E2E_EMOTION_GROUP", "1")
+EMOTION_GROUPS = {
+    "1": (
+        ("angry", "生气", 2_800),
+        ("sad", "难过", 3_200),
+        ("shy", "害羞", 2_800),
+        ("proud", "得意", 2_600),
+    ),
+    "2": (
+        ("nervous", "紧张", 3_000),
+        ("confused", "困惑", 2_800),
+        ("mischievous", "坏笑", 2_700),
+        ("determined", "认真", 3_200),
+    ),
+}
+EMOTIONS = EMOTION_GROUPS.get(EMOTION_GROUP, EMOTION_GROUPS["1"])
 PHASES = ("视线预备", "眉眼进入", "完整保持", "恢复默认")
 
 
@@ -33,7 +43,7 @@ def build_contact_sheet(captures: dict[tuple[str, str], Path]) -> Path:
             y = row * cell_height + 24
             sheet.paste(crop, (x, y))
             draw.text((column * cell_width + 8, row * cell_height + 5), f"{label} · {phase_label}", fill="#23345c", font=font)
-    output = ARTIFACT_DIR / "group-one-expression-timeline.png"
+    output = ARTIFACT_DIR / f"group-{EMOTION_GROUP}-expression-timeline.png"
     sheet.save(output)
     return output
 
@@ -48,7 +58,7 @@ with sync_playwright() as playwright:
     page = browser.new_page(viewport={"width": 1180, "height": 820})
     page_errors: list[str] = []
     page.on("pageerror", lambda error: page_errors.append(str(error)))
-    page.goto(f"{BASE_URL}/?whale-plugin=face-acting-group1&whaleDebug=1", wait_until="networkidle")
+    page.goto(f"{BASE_URL}/?whale-plugin=face-acting-group{EMOTION_GROUP}&whaleDebug=1", wait_until="networkidle")
     toggle = page.locator("[data-whale-menu-toggle]")
     stage = page.locator("[data-whale-pet-stage]")
     fx = page.locator("[data-whale-emotion-fx]")
