@@ -256,9 +256,24 @@ export const WHALE_STYLE = `
 .sad-rain-drops{fill:#77bfe6;stroke:#dff6ff;stroke-width:1.4}
 .sad-rain-drops path{transform-box:fill-box;transform-origin:center;animation:whale-sad-raindrop .92s ease-in infinite}
 .sad-rain-drops path:nth-child(2){animation-delay:-.31s}.sad-rain-drops path:nth-child(3){animation-delay:-.61s}
-.happy-sun-rays{transform-box:fill-box;transform-origin:center;animation:whale-happy-sun-rays 5.5s linear infinite}
-.happy-sun-core{transform-box:fill-box;transform-origin:center;animation:whale-happy-sun-pulse 1.5s ease-in-out infinite alternate}
-.happy-sun-glint{fill:none;stroke:#fffbe1;stroke-width:4;stroke-linecap:round}
+.happy-sun-aura{transform-box:fill-box;transform-origin:center;animation:whale-happy-sun-aura 2.4s ease-in-out infinite alternate}
+.happy-sun-light-beam{fill:#fff3a8;opacity:.26;transform-box:fill-box;transform-origin:100% 30%;animation:whale-happy-sun-beam 2.4s ease-in-out infinite alternate}
+.happy-sun-rays{transform-box:view-box;transform-origin:58px 52px;animation:whale-happy-sun-rays 3.8s ease-in-out infinite alternate}
+.happy-sun-rays use:nth-child(3n+2){opacity:.86}.happy-sun-rays use:nth-child(3n){opacity:.72}.happy-sun-rays use:nth-child(even){stroke:#e99a3c;stroke-width:1.6}
+.happy-sun-ring{fill:none;stroke:#fff0a5;stroke-width:4;stroke-opacity:.62;stroke-dasharray:3 5;animation:whale-happy-sun-ring 2.6s linear infinite}
+.happy-sun-corona{fill:none;stroke:#fff8bd;stroke-width:2;stroke-linecap:round;stroke-dasharray:2 5;opacity:.56;animation:whale-happy-sun-corona 3.2s ease-in-out infinite alternate}
+.happy-sun-core{stroke:#c9772c;stroke-width:3;transform-box:fill-box;transform-origin:center;animation:whale-happy-sun-pulse 1.8s ease-in-out infinite alternate}
+.happy-sun-core-shade{fill:#e98b32;opacity:.16}
+.happy-sun-core-texture{fill:none;stroke:#fff2a6;stroke-width:1.5;stroke-linecap:round;opacity:.44;animation:whale-happy-sun-texture 2.4s ease-in-out infinite alternate}
+.happy-sun-glint{fill:none;stroke:#fffde3;stroke-width:4.5;stroke-linecap:round;animation:whale-happy-sun-glint 2.2s ease-in-out infinite}
+.happy-sun-face{stroke:#9a633e;stroke-width:2.7;stroke-linecap:round;stroke-linejoin:round}
+.happy-sun-cheeks{fill:#f49a73;opacity:.52}
+.happy-sun-sparkles{fill:#fff4a6;stroke:#e89b37;stroke-width:1.4;stroke-linejoin:round}
+.happy-sun-sparkles path{transform-box:fill-box;transform-origin:center;animation:whale-happy-sun-sparkle 1.55s ease-in-out infinite alternate}
+.happy-sun-sparkles path:nth-child(2){animation-delay:-.72s}
+.happy-sun-dust{fill:#fff6ba;stroke:#e59b3b;stroke-width:1;opacity:.72}
+.happy-sun-dust circle{transform-box:fill-box;transform-origin:center;animation:whale-happy-sun-dust 1.8s ease-in-out infinite alternate}
+.happy-sun-dust circle:nth-child(2){animation-delay:-.55s}.happy-sun-dust circle:nth-child(3){animation-delay:-1.05s}
 .proud-crown-body{stroke:#9d692c;stroke-width:3;stroke-linejoin:round}
 .proud-crown-band{fill:#f5b849;stroke:#9d692c;stroke-width:2.6;stroke-linejoin:round}
 .proud-crown-shadow{fill:none;stroke:rgba(67,52,84,.2);stroke-width:7;stroke-linecap:round}
@@ -293,7 +308,7 @@ export const WHALE_STYLE = `
 .sleepy-moon-body{stroke:#c88f3e;stroke-width:2.8;stroke-linejoin:round;transform-box:fill-box;transform-origin:center;animation:whale-sleepy-moon 2.2s ease-in-out infinite alternate}.sleepy-moon-star{fill:#fff3ab;stroke:#c88f3e;stroke-width:2;transform-box:fill-box;transform-origin:center;animation:whale-sleepy-star 1.4s ease-in-out infinite alternate}.sleepy-moon-zzz{fill:none;stroke:#6685c4;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;animation:whale-sleepy-zzz 1.8s ease-in-out infinite alternate}
 .nervous-checklist-board{transform-box:fill-box;transform-origin:50% 90%;animation:whale-nervous-board 1.05s ease-in-out infinite alternate}.nervous-checklist-board rect:first-child{stroke:#7189b9;stroke-width:3}.nervous-checklist-board rect:nth-child(2){stroke:#7189b9;stroke-width:2}.nervous-checklist-board path{fill:none;stroke:#6180bc;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.nervous-checklist-sweat{fill:#73cbe8;stroke:#3c8cb3;stroke-width:2;animation:whale-nervous-sweat 1.6s ease-in-out infinite}.nervous-checklist-alert{fill:none;stroke:#ef8c67;stroke-width:4;stroke-linecap:round}
 .hungry-tray-chopsticks{fill:none;stroke:#b67b4e;stroke-width:4;stroke-linecap:round}.hungry-tray-glint{fill:#fff3aa;transform-box:fill-box;transform-origin:center;animation:whale-hungry-glint 1.15s ease-in-out infinite alternate}
-.emotion-scene-prop-love{animation-name:whale-love-envelope-in}.emotion-scene-prop-shy{animation-name:whale-shy-fan-in}.emotion-scene-prop-angry{animation-name:whale-angry-burst-in}.emotion-scene-prop-confused{animation-name:whale-confused-card-in}.emotion-scene-prop-sleepy{animation-name:whale-sleepy-moon-in}.emotion-scene-prop-nervous{animation-name:whale-nervous-checklist-in}.emotion-scene-prop-hungry{animation-name:whale-hungry-tray-in}
+.emotion-scene-prop-love{animation-name:whale-love-envelope-in}.emotion-scene-prop-shy{animation-name:whale-shy-fan-in}.emotion-scene-prop-angry{animation-name:whale-angry-burst-in}.emotion-scene-prop-confused{animation-name:whale-confused-card-in}.emotion-scene-prop-sleepy{animation-name:whale-sleepy-moon-in}.emotion-scene-prop-nervous{animation-name:whale-nervous-checklist-in}.emotion-scene-prop-hungry{animation-name:whale-hungry-tray-in}.emotion-scene-prop-happy{animation-name:whale-happy-sun-in}
 [data-whale-work-fx]{position:absolute;z-index:23;inset:0;pointer-events:none;overflow:visible}
 .whale-work-object{position:absolute;display:grid;width:60px;height:60px;place-items:center;opacity:0;filter:drop-shadow(0 5px 7px rgba(35,63,124,.2));will-change:transform,opacity;animation:whale-work-object-in .42s cubic-bezier(.16,1,.3,1) forwards}
 .whale-work-object::before{position:absolute;inset:4px;border:1px solid rgba(137,174,226,.34);border-radius:50%;background:radial-gradient(circle,rgba(194,226,255,.28),rgba(194,226,255,0) 68%);content:"";opacity:.65;animation:whale-work-aura 2.4s ease-in-out .42s infinite}
@@ -460,8 +475,17 @@ export const WHALE_STYLE = `
 @keyframes whale-emotion-scene-lifecycle{0%{opacity:0;transform:translate(-50%,10px) scale(.68)}14%{opacity:1;transform:translate(-50%,-2px) scale(1.04)}24%,78%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-12px) scale(.88)}}
 @keyframes whale-sad-cloud-breathe{from{transform:translateY(0) scaleX(.98)}to{transform:translateY(-2px) scaleX(1.02)}}
 @keyframes whale-sad-raindrop{0%{opacity:0;transform:translateY(-3px) scale(.72)}18%{opacity:1}100%{opacity:0;transform:translateY(17px) scale(.9)}}
-@keyframes whale-happy-sun-rays{to{transform:rotate(360deg)}}
-@keyframes whale-happy-sun-pulse{from{filter:brightness(.98);transform:scale(.96)}to{filter:brightness(1.08);transform:scale(1.03)}}
+@keyframes whale-happy-sun-in{0%{opacity:0;transform:translate(-50%,10px) rotate(-10deg) scale(.62)}18%{opacity:1;transform:translate(-50%,-3px) rotate(3deg) scale(1.07)}42%{transform:translate(-50%,0) rotate(-1deg) scale(1)}78%{opacity:1;transform:translate(-50%,-3px) rotate(1deg) scale(1.02)}100%{opacity:0;transform:translate(-50%,-15px) rotate(5deg) scale(.88)}}
+@keyframes whale-happy-sun-aura{from{opacity:.48;transform:scale(.94)}to{opacity:.82;transform:scale(1.06)}}
+@keyframes whale-happy-sun-beam{from{opacity:.16;transform:rotate(2deg) scaleX(.92)}to{opacity:.34;transform:rotate(-2deg) scaleX(1.06)}}
+@keyframes whale-happy-sun-rays{from{transform:rotate(-3.5deg) scale(.985)}to{transform:rotate(3.5deg) scale(1.015)}}
+@keyframes whale-happy-sun-ring{from{stroke-dashoffset:0;opacity:.48}to{stroke-dashoffset:-16;opacity:.8}}
+@keyframes whale-happy-sun-corona{from{opacity:.3;transform:rotate(-4deg)}to{opacity:.72;transform:rotate(4deg)}}
+@keyframes whale-happy-sun-pulse{from{filter:brightness(.99);transform:scale(.975)}to{filter:brightness(1.06);transform:scale(1.025)}}
+@keyframes whale-happy-sun-glint{0%,28%,100%{opacity:.36;transform:translate(-1px,1px)}52%{opacity:1;transform:translate(3px,-2px)}}
+@keyframes whale-happy-sun-sparkle{from{opacity:.32;transform:scale(.72) rotate(-8deg)}to{opacity:1;transform:scale(1.08) rotate(8deg)}}
+@keyframes whale-happy-sun-texture{from{opacity:.26;transform:translateX(-1px)}to{opacity:.56;transform:translateX(2px)}}
+@keyframes whale-happy-sun-dust{from{opacity:.25;transform:scale(.72) translateY(2px)}to{opacity:.95;transform:scale(1.1) translateY(-2px)}}
 @keyframes whale-crown-glint{0%,32%,100%{opacity:.35;transform:scale(.72) rotate(-12deg)}56%{opacity:1;transform:scale(1.08) rotate(5deg)}}
 @keyframes whale-target-arrow{0%,100%{transform:translate(2px,-2px)}50%{transform:translate(-2px,2px)}}
 @keyframes whale-target-glint{from{opacity:.3;transform:scale(.72)}to{opacity:1;transform:scale(1.08)}}

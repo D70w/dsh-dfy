@@ -93,19 +93,73 @@ function SadRainCloudIcon({ id }: { id: number }): React.JSX.Element {
 }
 
 function HappySunIcon({ id }: { id: number }): React.JSX.Element {
-  const gradientId = `whale-happy-sun-${id}`
+  const coreGradientId = `whale-happy-sun-core-${id}`
+  const auraGradientId = `whale-happy-sun-aura-${id}`
+  const rayGradientId = `whale-happy-sun-ray-${id}`
+  const rayId = `whale-happy-sun-petal-${id}`
+  const shortRayId = `whale-happy-sun-short-petal-${id}`
   return (
-    <svg className="emotion-scene-icon happy-sun-icon" data-whale-happy-sun viewBox="0 0 96 96" aria-hidden="true">
+    <svg className="emotion-scene-icon happy-sun-icon" data-whale-happy-sun viewBox="0 0 116 112" aria-hidden="true">
       <defs>
-        <radialGradient id={gradientId} cx="42%" cy="34%" r="64%">
-          <stop offset="0" stopColor="#fff9bf" /><stop offset=".58" stopColor="#ffd86d" /><stop offset="1" stopColor="#f4a947" />
+        <radialGradient id={coreGradientId} cx="36%" cy="28%" r="72%">
+          <stop offset="0" stopColor="#fffde0" />
+          <stop offset=".38" stopColor="#ffe98a" />
+          <stop offset=".72" stopColor="#ffc64f" />
+          <stop offset="1" stopColor="#ef9130" />
         </radialGradient>
+        <radialGradient id={auraGradientId}>
+          <stop offset="0" stopColor="#fff4a6" stopOpacity=".72" />
+          <stop offset=".54" stopColor="#ffd467" stopOpacity=".3" />
+          <stop offset="1" stopColor="#ffc14c" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id={rayGradientId} x1="58" y1="1" x2="58" y2="25" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#fff2a0" />
+          <stop offset=".55" stopColor="#ffd15b" />
+          <stop offset="1" stopColor="#f0a238" />
+        </linearGradient>
+        <path id={rayId} d="M58 2c2 0 3.6 1.3 4.1 3.2l3.5 14.4L58 24l-7.6-4.4 3.5-14.4A4.2 4.2 0 0 1 58 2Z" />
+        <path id={shortRayId} d="M58 7c1.5 0 2.8 1 3.2 2.5l2.1 8.3L58 21l-5.3-3.2 2.1-8.3A3.3 3.3 0 0 1 58 7Z" />
       </defs>
-      <g className="happy-sun-rays" fill="#ffd66b" stroke="#e69c3e" strokeWidth="2.2" strokeLinejoin="round">
-        <path d="M48 3l6 15H42l6-15ZM48 93l-6-15h12l-6 15ZM3 48l15-6v12L3 48ZM93 48l-15 6V42l15 6ZM16 16l15 6-9 9-6-15ZM80 80l-15-6 9-9 6 15ZM80 16l-6 15-9-9 15-6ZM16 80l6-15 9 9-15 6Z" />
+      <circle className="happy-sun-aura" cx="58" cy="52" r="47" fill={`url(#${auraGradientId})`} />
+      <path className="happy-sun-light-beam" d="M35 66C22 71 11 81 5 95c14-7 27-9 39-6Z" />
+      <g className="happy-sun-rays" fill={`url(#${rayGradientId})`} stroke="#df8b31" strokeWidth="2" strokeLinejoin="round">
+        <use href={`#${rayId}`} />
+        <use href={`#${shortRayId}`} transform="rotate(30 58 52)" />
+        <use href={`#${rayId}`} transform="rotate(60 58 52)" />
+        <use href={`#${shortRayId}`} transform="rotate(90 58 52)" />
+        <use href={`#${rayId}`} transform="rotate(120 58 52)" />
+        <use href={`#${shortRayId}`} transform="rotate(150 58 52)" />
+        <use href={`#${rayId}`} transform="rotate(180 58 52)" />
+        <use href={`#${shortRayId}`} transform="rotate(210 58 52)" />
+        <use href={`#${rayId}`} transform="rotate(240 58 52)" />
+        <use href={`#${shortRayId}`} transform="rotate(270 58 52)" />
+        <use href={`#${rayId}`} transform="rotate(300 58 52)" />
+        <use href={`#${shortRayId}`} transform="rotate(330 58 52)" />
       </g>
-      <circle className="happy-sun-core" cx="48" cy="48" r="27" fill={`url(#${gradientId})`} stroke="#d98b37" strokeWidth="3" />
-      <path className="happy-sun-glint" d="M34 34c6-7 15-9 23-5" />
+      <circle className="happy-sun-ring" cx="58" cy="52" r="31" />
+      <path className="happy-sun-corona" d="M25 52c0-21 13-39 32-45M91 52c0 18-11 34-28 43" />
+      <circle className="happy-sun-core" cx="58" cy="52" r="27" fill={`url(#${coreGradientId})`} />
+      <path className="happy-sun-core-shade" d="M37 62c7 13 24 19 38 10-5 8-14 13-25 13-15 0-27-11-28-26 4 2 9 3 15 3Z" />
+      <path className="happy-sun-core-texture" d="M40 48c7-5 15-7 23-5M43 70c6 3 13 4 20 1" />
+      <path className="happy-sun-glint" d="M40 36c6-7 15-9 23-6" />
+      <g className="happy-sun-face" fill="none">
+        <path d="M43 51c2.7 3.4 6.2 3.4 9 0" />
+        <path d="M64 51c2.7 3.4 6.2 3.4 9 0" />
+        <path d="M52 61c3.6 4 8.4 4 12 0" />
+      </g>
+      <g className="happy-sun-cheeks">
+        <ellipse cx="42" cy="59" rx="4.2" ry="2.2" />
+        <ellipse cx="74" cy="59" rx="4.2" ry="2.2" />
+      </g>
+      <g className="happy-sun-sparkles">
+        <path d="m96 21 2.2 6.3 6.3 2.2-6.3 2.2L96 38l-2.2-6.3-6.3-2.2 6.3-2.2L96 21Z" />
+        <path d="m94 74 1.5 4.2 4.2 1.5-4.2 1.5-1.5 4.2-1.5-4.2-4.2-1.5 4.2-1.5L94 74Z" />
+      </g>
+      <g className="happy-sun-dust">
+        <circle cx="22" cy="32" r="2.2" />
+        <circle cx="88" cy="13" r="1.7" />
+        <circle cx="108" cy="57" r="1.5" />
+      </g>
     </svg>
   )
 }
@@ -368,7 +422,7 @@ function EmotionSceneProp({ command }: { command: WhaleEmotionCommand }): React.
     nervous: { x: '73%', y: '22%', width: 80, height: 68 },
     hungry: { x: '71%', y: '16%', width: 92, height: 76 },
     sad: { x: '77%', y: '15%', width: 96, height: 80 },
-    happy: { x: '75%', y: '17%', width: 68, height: 68 },
+    happy: { x: '77%', y: '14%', width: 78, height: 76 },
     proud: { x: '74%', y: '14%', width: 80, height: 62 },
     determined: { x: '76%', y: '18%', width: 68, height: 68 },
     relieved: { x: '76%', y: '24%', width: 76, height: 62 },

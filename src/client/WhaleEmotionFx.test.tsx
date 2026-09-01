@@ -104,6 +104,25 @@ describe('emotion-specific visual language', () => {
     act(() => root.unmount())
   })
 
+  it('builds the happy sun as a layered character prop', () => {
+    const container = document.createElement('div')
+    const root = createRoot(container)
+    act(() => {
+      root.render(<WhaleEmotionFx command={{ id: 22, name: 'happy', durationMs: 3200 }} />)
+    })
+    const sun = container.querySelector('[data-whale-happy-sun]')
+    expect(sun?.querySelectorAll('.happy-sun-rays use')).toHaveLength(12)
+    expect(sun?.querySelectorAll('defs path')).toHaveLength(2)
+    expect(sun?.querySelector('.happy-sun-aura')).not.toBeNull()
+    expect(sun?.querySelector('.happy-sun-light-beam')).not.toBeNull()
+    expect(sun?.querySelector('.happy-sun-core-texture')).not.toBeNull()
+    expect(sun?.querySelector('.happy-sun-corona')).not.toBeNull()
+    expect(sun?.querySelectorAll('.happy-sun-dust circle')).toHaveLength(3)
+    expect(sun?.querySelectorAll('.happy-sun-face path')).toHaveLength(3)
+    expect(sun?.querySelectorAll('.happy-sun-sparkles path')).toHaveLength(2)
+    act(() => root.unmount())
+  })
+
   it('builds the second prop group from semantic moving parts', () => {
     const container = document.createElement('div')
     const root = createRoot(container)

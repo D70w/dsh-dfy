@@ -1,8 +1,40 @@
 # dsh-dfy
 
-`dsh-dfy` is a Host/Browser Cordis plugin for the DeepSeek Harness web profile. It provides the visually approved “Big Fat Fish” desktop-pet runtime, a Harness-native settings page, and privacy-safe reactions to live Harness work.
+`dsh-dfy` is a Live2D-style “Big Fat Fish” desktop companion for the DeepSeek Harness web profile. It breathes, reacts to touch and dragging, talks through a movable dialogue UI, and now performs privacy-safe visual responses to live Harness work.
 
-[中文说明](./README.md)
+[中文说明（默认）](./README.md)
+
+## Live in DSH
+
+These are captures from the currently installed plugin running inside the DSH Web Profile, not a standalone preview page. They use a blank session with conversation and file panels collapsed; no user history, workspace file list, or debug controls are shown.
+
+<p align="center">
+  <img src="./docs/media/readme/dsh-live-default.png" width="100%" alt="dsh-dfy running inside the DSH workspace" />
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="./docs/media/readme/dsh-live-menu.png" alt="Current companion interaction menu" /></td>
+    <td width="50%"><img src="./docs/media/readme/dsh-live-dialogue.png" alt="Current online model configuration" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Interaction menu</strong><br />Petting, feeding, conversation, performances, and history</td>
+    <td align="center"><strong>Dialogue configuration</strong><br />Offline lines or a saved OpenAI-compatible endpoint</td>
+  </tr>
+</table>
+
+### Emotions
+
+<table>
+  <tr>
+    <td width="50%"><img src="./docs/media/readme/dsh-emotion-love.png" alt="Love expression captured from the current DSH plugin" /></td>
+    <td width="50%"><img src="./docs/media/readme/dsh-emotion-anger.png" alt="Angry expression with the four-part anime anger mark" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Love</strong><br />Facial acting, blush, and a semantic prop</td>
+    <td align="center"><strong>Anger</strong><br />Distinct brows, mouth, posture, and anger mark</td>
+  </tr>
+</table>
 
 ## Development
 
@@ -51,6 +83,7 @@ One `dsh-dfy` Loader row activates the Host entry. The browser module scanner di
 - The store persists on the current device and does not cross the Host settings API.
 - Slot labels are locale thunks, styles consume Harness semantic tokens, and all slot/style registrations dispose with the Cordis fiber.
 - Shared React and DSH browser modules remain external to the client bundle and resolve from the Harness module table.
+- Live work feedback distinguishes idle, thinking, tool activity, success, and failure. Reading, search, command, and write activity use separate semantic props; longer thinking progresses through waiting, analyzing, and organizing stages.
 
 ## Current scope
 
