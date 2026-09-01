@@ -1,7 +1,7 @@
 {
   "name": "dsh-dfy",
   "description": "A low-interruption Big Fat Fish companion plugin for the DeepSeek Harness web workspace",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "keywords": [
     "deepseek",
     "dsh",
