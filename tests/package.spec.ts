@@ -50,14 +50,15 @@ describe('DSH package contract', () => {
     expect(manifest.dependencies).toEqual({ zod: '^4.4.3' })
     expect(manifest.peerDependencies).toMatchObject({
       '@deepseek-ai/cordis': '^4.0.1',
-      '@deepseek-ai/dsh-client-store': '>=0.1.5-rc.2 <0.2.0',
-      '@deepseek-ai/dsh-session-projection': '>=0.1.5-rc.2 <0.2.0',
-      '@deepseek-ai/dsh-host-webserver': '>=0.1.5-rc.2 <0.2.0',
-      '@deepseek-ai/dsh-storage-domain': '>=0.1.5-rc.2 <0.2.0',
+      '@deepseek-ai/dsh-client-store': '>=0.1.5-rc.2',
+      '@deepseek-ai/dsh-session-projection': '>=0.1.5-rc.2',
+      '@deepseek-ai/dsh-host-webserver': '>=0.1.5-rc.2',
+      '@deepseek-ai/dsh-storage-domain': '>=0.1.5-rc.2',
     })
     for (const name of Object.keys(manifest.peerDependencies ?? {})) {
       if (!name.startsWith('@deepseek-ai/dsh-')) continue
       expect(manifest.peerDependenciesMeta?.[name]?.optional).toBe(true)
+      expect(manifest.peerDependencies?.[name]).not.toMatch(/\s</)
     }
     expect(manifest.files.some(file => file.endsWith('.map'))).toBe(false)
   })
