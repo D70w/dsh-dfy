@@ -60,6 +60,7 @@
     "clean": "node scripts/clean.mjs",
     "prepare": "npm run build",
     "test": "vitest run",
+    "test:release": "vitest run --config vitest.release.config.ts",
     "typecheck": "tsc -b --pretty false && tsc -p tsconfig.test.json --pretty false",
     "verify": "npm run typecheck && npm run test && npm run build && npm pack --dry-run"
   },

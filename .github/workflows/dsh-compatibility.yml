@@ -22,7 +22,9 @@ jobs:
         run: |
           corepack enable
           corepack pnpm install --frozen-lockfile
-          npm run verify
+          npm run typecheck
+          npm run test:release
+          npm run build
       - name: Install the current DSH CLI and browser test driver
         shell: pwsh
         run: |
