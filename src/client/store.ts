@@ -1,4 +1,4 @@
-import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-runtime/client'
+import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
 import { DEFAULT_PREFERENCES, type WhalePreferences } from '../preferences.ts'
 import { DEFAULT_POSITION, type WhalePosition } from './position.ts'
 import {

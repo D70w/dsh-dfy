@@ -19,7 +19,17 @@ export interface WhaleActivityProjection {
   reactionSeq: number
 }
 
+/** Host-only fold state; never sent to the browser. */
+export interface WhaleActivityState extends Omit<WhaleActivityProjection, 'toolKind'> {
+  toolKind: WhaleToolKind
+  activeTurn: boolean
+  pendingCalls: Record<string, WhaleToolKind>
+}
+
 declare module '@deepseek-ai/dsh-session-projection/types' {
+  interface SessionProjectionStateMap {
+    'whalePet.activity': WhaleActivityState
+  }
   interface SessionProjectionMap {
     /** Current work mode and the last discrete result for the whale companion. */
     'whalePet.activity': WhaleActivityProjection

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import type {
   PropsLocale, PropsRuntime, PropsStore,
 } from '@deepseek-ai/dsh-client-ui-slots'
@@ -175,11 +176,11 @@ export function WhalePet({
   const preferences = useStore(snapshot => snapshot.preferences)
   const currentPosition = useStore(snapshot => snapshot.position)
   const billing = useStore(snapshot => snapshot.billing ?? EMPTY_BILLING)
-  const usageSamples = useSessions((snapshot): SessionUsageSample[] => snapshot.ids.map((id) => ({
+  const usageSamples = useSessions((snapshot: SessionListState): SessionUsageSample[] => snapshot.ids.map((id) => ({
     sessionId: String(id),
     ...normalizeUsage(snapshot.byId[id]?.projectionValues?.tokenUsage),
   })), sameUsageSamples)
-  const projectedActivitySource = useSessions((snapshot): ActivitySource => {
+  const projectedActivitySource = useSessions((snapshot: SessionListState): ActivitySource => {
     const rows = snapshot.ids.map((id) => {
       const summary = snapshot.byId[id]
       return {

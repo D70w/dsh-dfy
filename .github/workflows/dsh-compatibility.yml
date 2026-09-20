@@ -1,0 +1,40 @@
+name: DSH compatibility
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  current-dsh:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.19.0'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install and check the plugin
+        shell: pwsh
+        run: |
+          corepack enable
+          corepack pnpm install --frozen-lockfile
+          npm run verify
+      - name: Install the current DSH CLI and browser test driver
+        shell: pwsh
+        run: |
+          npm install --prefix "$env:RUNNER_TEMP\dsh-cli" @deepseek-ai/dsh@latest
+          python -m pip install playwright==1.62.0
+      - name: Install, render, and remove the plugin in an isolated DSH profile
+        shell: pwsh
+        env:
+          WHALE_LIFECYCLE_PORT: '3137'
+        run: |
+          $env:WHALE_DSH_CLI = Join-Path $env:RUNNER_TEMP 'dsh-cli\node_modules\@deepseek-ai\dsh\lib\bin.js'
+          npm pack --pack-destination $env:RUNNER_TEMP
+          $version = node -p "require('./package.json').version"
+          $env:WHALE_PLUGIN_SPEC = Join-Path $env:RUNNER_TEMP "dsh-dfy-$version.tgz"
+          python tests/plugin_lifecycle_e2e.py

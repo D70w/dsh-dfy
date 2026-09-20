@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import re
 import signal
 import socket
 import subprocess
@@ -16,6 +17,8 @@ ROOT = Path(__file__).resolve().parent.parent
 HARNESS = ROOT.parent / "deepseek-harness"
 BUILT_CLI = HARNESS / "apps" / "cli" / "lib" / "bin.js"
 SOURCE_CLI = HARNESS / "apps" / "cli" / "src" / "bin.ts"
+EXTERNAL_CLI = Path(os.environ["WHALE_DSH_CLI"]).resolve() if os.environ.get("WHALE_DSH_CLI") else None
+CLI_CWD = EXTERNAL_CLI.parent if EXTERNAL_CLI else HARNESS
 PORT = int(os.environ.get("WHALE_LIFECYCLE_PORT", "3091"))
 BASE_URL = f"http://127.0.0.1:{PORT}"
 
@@ -52,6 +55,8 @@ def stop_process_tree(process: subprocess.Popen[bytes]) -> None:
 
 
 def cli_command(*args: str) -> list[str]:
+    if EXTERNAL_CLI:
+        return ["node", str(EXTERNAL_CLI), *args]
     if BUILT_CLI.is_file():
         return ["node", str(BUILT_CLI.relative_to(HARNESS)), *args]
     return ["node", "--import", "tsx/esm", str(SOURCE_CLI.relative_to(HARNESS)), *args]
@@ -60,7 +65,7 @@ def cli_command(*args: str) -> list[str]:
 def run_cli(environment: dict[str, str], *args: str) -> None:
     subprocess.run(
         cli_command(*args),
-        cwd=HARNESS,
+        cwd=CLI_CWD,
         env=environment,
         check=True,
     )
@@ -69,10 +74,12 @@ def run_cli(environment: dict[str, str], *args: str) -> None:
 def start_web(environment: dict[str, str]) -> subprocess.Popen[bytes]:
     flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
     process = subprocess.Popen(
-        cli_command("web", "--port", str(PORT)),
-        cwd=HARNESS,
+        cli_command("web", "--port", str(PORT), "--no-open"),
+        cwd=CLI_CWD,
         env=environment,
         creationflags=flags,
+        stdout=subprocess.PIPE if EXTERNAL_CLI else None,
+        stderr=subprocess.STDOUT if EXTERNAL_CLI else None,
     )
     deadline = time.monotonic() + 70
     while not port_open():
@@ -82,6 +89,12 @@ def start_web(environment: dict[str, str]) -> subprocess.Popen[bytes]:
             stop_process_tree(process)
             raise TimeoutError("isolated DSH did not listen within 70 seconds")
         time.sleep(0.25)
+    if EXTERNAL_CLI and process.stdout:
+        line = process.stdout.readline().decode("utf-8", errors="replace")
+        match = re.search(r"http://127\.0\.0\.1:\d+/\?token=[A-Za-z0-9_-]+", line)
+        if not match:
+            raise RuntimeError("DSH did not emit its authenticated Web URL")
+        environment["WHALE_E2E_BASE_URL"] = match.group(0)
     return process
 
 
@@ -96,7 +109,7 @@ def stop_web(process: subprocess.Popen[bytes]) -> None:
 
 if port_open():
     raise SystemExit(f"port {PORT} is occupied; refusing to attach to an unowned process")
-if not BUILT_CLI.is_file() and not SOURCE_CLI.is_file():
+if not (EXTERNAL_CLI and EXTERNAL_CLI.is_file()) and not BUILT_CLI.is_file() and not SOURCE_CLI.is_file():
     raise SystemExit(f"DeepSeek Harness checkout is missing at {HARNESS}")
 
 
@@ -109,38 +122,47 @@ with tempfile.TemporaryDirectory(prefix="dsh-whale-lifecycle-", ignore_cleanup_e
     )
     environment = os.environ.copy()
     environment["DSH_HOME"] = temporary
-    run_cli(environment, "plugin", "--profile", "web", "add", "--workspace-root", str(ROOT))
+    package_spec = os.environ.get("WHALE_PLUGIN_SPEC")
+    if package_spec:
+        run_cli(environment, "plugin", "--profile", "web", "add", package_spec)
+    else:
+        run_cli(environment, "plugin", "--profile", "web", "add", "--workspace-root", str(ROOT))
 
     installed_server = start_web(environment)
     try:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(
                 headless=True,
-                executable_path=r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                executable_path=os.environ.get("WHALE_E2E_BROWSER", r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
             )
             page = browser.new_page(viewport={"width": 1280, "height": 800}, locale="zh-CN")
-            page.goto(BASE_URL, wait_until="domcontentloaded", timeout=70_000)
+            page_errors: list[str] = []
+            page.on("pageerror", lambda error: page_errors.append(str(error)))
+            response = page.goto(environment.get("WHALE_E2E_BASE_URL", BASE_URL), wait_until="domcontentloaded", timeout=70_000)
+            page.wait_for_load_state("networkidle", timeout=30_000)
+            assert response and response.status == 200
             page.locator("[data-whale-pet-entry]").wait_for(state="attached", timeout=20_000)
             page.wait_for_function(
                 "element => element.getAttribute('data-whale-renderer') === 'ready'",
                 arg=page.locator("[data-whale-renderer]").element_handle(),
                 timeout=20_000,
             )
-            assert page.locator("[data-whale-rig-canvas]").get_attribute("data-whale-animation-source") == "approved-test-runtime"
+            assert (page.locator("[data-whale-rig-canvas]").get_attribute("data-whale-animation-source") or "").startswith("approved-test-runtime")
+            assert not page_errors, page_errors
             browser.close()
     finally:
         stop_web(installed_server)
 
-    run_cli(environment, "plugin", "--profile", "web", "remove", "--workspace-root", "dsh-dfy")
+    run_cli(environment, "plugin", "--profile", "web", "remove", "dsh-dfy")
     removed_server = start_web(environment)
     try:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(
                 headless=True,
-                executable_path=r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                executable_path=os.environ.get("WHALE_E2E_BROWSER", r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
             )
             page = browser.new_page(viewport={"width": 1280, "height": 800}, locale="zh-CN")
-            page.goto(BASE_URL, wait_until="domcontentloaded", timeout=70_000)
+            page.goto(environment.get("WHALE_E2E_BASE_URL", BASE_URL), wait_until="domcontentloaded", timeout=70_000)
             page.wait_for_timeout(750)
             assert page.locator("[data-whale-pet-entry]").count() == 0
             assert page.locator('style[data-plugin="dsh-dfy"]').count() == 0

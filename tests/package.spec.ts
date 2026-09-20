@@ -23,10 +23,18 @@ describe('DSH package contract', () => {
   it('declares the packages whose services the browser entry waits for', () => {
     expect(manifest.dsh.client.inject).toEqual(expect.arrayContaining([
       '@deepseek-ai/dsh-client-locale',
-      '@deepseek-ai/dsh-client-runtime',
       '@deepseek-ai/dsh-client-ui-layout',
       '@deepseek-ai/dsh-client-ui-settings',
     ]))
+    expect(manifest.dsh.client.inject).not.toContain('@deepseek-ai/dsh-client-runtime')
+  })
+
+  it('uses the DSH 0.1.5 browser seed instead of the removed client runtime', () => {
+    const client = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
+    expect(client.includes('require("@deepseek-ai/dsh-client-store")')).toBe(true)
+    expect(client.includes('require("@deepseek-ai/dsh-client-runtime/client")')).toBe(false)
+    expect(manifest.peerDependencies?.['@deepseek-ai/dsh-client-store']).toBeDefined()
+    expect(manifest.peerDependencies?.['@deepseek-ai/dsh-client-runtime']).toBeUndefined()
   })
 
   it('contains no workspace or adjacent-checkout dependency', () => {
@@ -42,10 +50,10 @@ describe('DSH package contract', () => {
     expect(manifest.dependencies).toEqual({ zod: '^4.4.3' })
     expect(manifest.peerDependencies).toMatchObject({
       '@deepseek-ai/cordis': '^4.0.1',
-      '@deepseek-ai/dsh-client-runtime': '>=0.1.0-rc.5 <0.2.0',
-      '@deepseek-ai/dsh-session-projection': '>=0.1.0-rc.5 <0.2.0',
-      '@deepseek-ai/dsh-host-webserver': '>=0.1.0-rc.5 <0.2.0',
-      '@deepseek-ai/dsh-storage-domain': '>=0.1.0-rc.5 <0.2.0',
+      '@deepseek-ai/dsh-client-store': '>=0.1.5-rc.2 <0.2.0',
+      '@deepseek-ai/dsh-session-projection': '>=0.1.5-rc.2 <0.2.0',
+      '@deepseek-ai/dsh-host-webserver': '>=0.1.5-rc.2 <0.2.0',
+      '@deepseek-ai/dsh-storage-domain': '>=0.1.5-rc.2 <0.2.0',
     })
     for (const name of Object.keys(manifest.peerDependencies ?? {})) {
       if (!name.startsWith('@deepseek-ai/dsh-')) continue

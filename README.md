@@ -126,6 +126,8 @@
 
 ### 推荐：安装到 DSH Web Profile
 
+当前插件需要 **DSH 0.1.5-rc.2 或更新的 0.1.x 版本**。较早的 DSH 使用不同的浏览器模块接口，不能加载这一版插件。
+
 ```sh
 dsh plugin --profile web add dsh-dfy
 ```
@@ -150,7 +152,7 @@ npm install dsh-dfy
 corepack pnpm install
 corepack pnpm run build
 npm pack
-dsh plugin --profile web add ./dsh-dfy-0.1.6.tgz
+dsh plugin --profile web add ./dsh-dfy-0.1.8.tgz
 ```
 
 ## 和 DSH 如何协作

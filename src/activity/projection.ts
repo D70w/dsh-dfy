@@ -1,17 +1,17 @@
 import { z } from 'zod'
 import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
-import type { WhaleActivityProjection, WhaleToolKind, WhaleWorkReaction } from './types.ts'
-
-interface WhaleActivityState extends WhaleActivityProjection {
-  activeTurn: boolean
-  pendingCalls: Record<string, WhaleToolKind>
-}
+import type { WhaleActivityState, WhaleToolKind, WhaleWorkReaction } from './types.ts'
 
 const activitySchema = z.object({
   mode: z.enum(['idle', 'thinking', 'tool']),
   toolKind: z.enum(['none', 'read', 'search', 'command', 'write', 'other']),
   reaction: z.enum(['none', 'completed', 'error']),
   reactionSeq: z.number().int().min(-1),
+}).strict()
+
+const stateSchema = activitySchema.extend({
+  activeTurn: z.boolean(),
+  pendingCalls: z.record(z.string(), z.enum(['none', 'read', 'search', 'command', 'write', 'other'])),
 }).strict()
 
 export function classifyWhaleToolKind(name: string): WhaleToolKind {
@@ -38,11 +38,10 @@ function resultReaction(kind: string): WhaleWorkReaction {
 }
 
 /** Pure fold registered by the Host half as `whalePet.activity`. */
-export const whaleActivityProjectionDefinition:
-ProjectionDefinition<'whalePet.activity', WhaleActivityState> = {
+export const whaleActivityProjectionDefinition = {
   key: 'whalePet.activity',
-  schema: activitySchema,
-  init: () => ({
+  stateSchema,
+  init: (): WhaleActivityState => ({
     mode: 'idle',
     toolKind: 'none',
     reaction: 'none',
@@ -109,11 +108,14 @@ ProjectionDefinition<'whalePet.activity', WhaleActivityState> = {
         return state
     }
   },
-  view: state => ({
-    mode: state.mode,
-    toolKind: state.toolKind,
-    reaction: state.reaction,
-    reactionSeq: state.reactionSeq,
-  }),
-  stateVersion: 2,
-}
+  wire: {
+    viewSchema: activitySchema,
+    view: state => ({
+      mode: state.mode,
+      toolKind: state.toolKind,
+      reaction: state.reaction,
+      reactionSeq: state.reactionSeq,
+    }),
+  },
+  stateVersion: 3,
+} satisfies ProjectionDefinition<'whalePet.activity', WhaleActivityState>

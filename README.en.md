@@ -45,7 +45,7 @@ corepack pnpm run verify
 
 The Browser artifact is not an ordinary ESM bundle. `lib/client.js` registers a lazy CommonJS factory through `window.__ModuleLoader__`; shared React and DSH browser modules remain external and resolve from the Harness module table.
 
-The published `rc.5` SDK set is incomplete on npm, so development types remain pinned to the stable `rc.7` client contracts while the peer range accepts compatible `0.1.x` prerelease components, including those shipped by DSH `0.1.1-rc.2`. Compatibility is verified through source-contract checks and real profile installation against the current Harness release.
+This version requires **DSH 0.1.5-rc.2 or a newer 0.1.x release**. Older releases expose a different browser module table and cannot load this plugin. Development types and the regression checks target the 0.1.5-rc.2 client contracts.
 
 ## Install into a local Harness profile
 
