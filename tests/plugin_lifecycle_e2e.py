@@ -124,7 +124,7 @@ with tempfile.TemporaryDirectory(prefix="dsh-whale-lifecycle-", ignore_cleanup_e
     environment["DSH_HOME"] = temporary
     package_spec = os.environ.get("WHALE_PLUGIN_SPEC")
     if package_spec:
-        run_cli(environment, "plugin", "--profile", "web", "add", package_spec)
+        run_cli(environment, "plugin", "--profile", "web", "add", "--workspace-root", package_spec)
     else:
         run_cli(environment, "plugin", "--profile", "web", "add", "--workspace-root", str(ROOT))
 
