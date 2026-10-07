@@ -25,13 +25,14 @@ export interface IdlePerformance {
   emotion: WhaleEmotionName
   durationMs: number
   originX: number
+  gesture?: 'hands-on-hips'
   line?: DialogueLine
 }
 
 export const EMOTION_PROFILES: Readonly<Record<WhaleEmotionName, EmotionProfile>> = Object.freeze({
   love: { label: '喜欢', durationMs: 2400, className: 'heart', count: 7 },
   shy: { label: '害羞', durationMs: 2800, className: 'shy-heart', count: 4 },
-  angry: { label: '生气', durationMs: 2800, className: 'anger', count: 4 },
+  angry: { label: '生气', durationMs: 2800, className: 'anger', count: 0 },
   surprise: { label: '惊讶', durationMs: 1500, className: 'surprise', count: 1 },
   sad: { label: '难过', durationMs: 3200, className: 'tear', count: 0 },
   happy: { label: '开心', durationMs: 2400, className: 'sparkle', count: 3 },
@@ -203,6 +204,9 @@ export const IDLE_LINES: readonly DialogueLine[] = [
  */
 export const IDLE_PERFORMANCES: readonly IdlePerformance[] = Object.freeze([
   {
+    id: 'hands-on-hips', label: '叉腰', description: '双手扶腰，得意地站一会儿', emotion: 'proud', durationMs: 3200, originX: .5, gesture: 'hands-on-hips',
+  },
+  {
     id: 'quiet-smile', label: '开心待机', description: '轻轻微笑，尾巴跟着摇', emotion: 'happy', durationMs: 2500, originX: .46,
   },
   {
@@ -241,7 +245,8 @@ export const IDLE_PERFORMANCES: readonly IdlePerformance[] = Object.freeze([
 ])
 
 export function pickIdlePerformance(previousId: string | undefined, seed = Math.random()): IdlePerformance {
-  const choices = IDLE_PERFORMANCES.filter(item => item.id !== previousId)
+  // Large authored actions remain explicit menu choices, not surprise idle interruptions.
+  const choices = IDLE_PERFORMANCES.filter(item => item.id !== previousId && !item.gesture)
   return pickLine(choices, seed)
 }
 

@@ -208,6 +208,7 @@ export function WhalePet({
   const [debugActivitySource, setDebugActivitySource] = useState<ActivitySource>()
   const activitySource = debugActivitySource ?? projectedActivitySource
   const [menuOpen, setMenuOpen] = useState(false)
+  const [viewportSize, setViewportSize] = useState(() => ({ width: window.innerWidth, height: window.innerHeight }))
   const [keyboardMenuOpen, setKeyboardMenuOpen] = useState(false)
   const [bubble, setBubble] = useState<string | null>(IDLE_LINES[0].text)
   const [dialogueMeta, setDialogueMeta] = useState<Omit<WhaleDialogueState, 'text'>>({
@@ -530,6 +531,13 @@ export function WhalePet({
     source: 'automatic' | 'manual',
   ): void => {
     lastIdlePerformance.current = performance.id
+    if (performance.gesture !== undefined) {
+      // Image actions own the same visual channel as explicit video actions.
+      autonomy.stopForPerformance()
+      setStationaryAction(undefined)
+      setInteraction('none')
+      setLiveReaction('none')
+    }
     if (source === 'automatic') idlePerformanceCycle.current += 1
     if (performance.line !== undefined && preferences['bubble.enabled']) {
       showDialogueLine(
@@ -540,11 +548,15 @@ export function WhalePet({
     } else {
       playEmotion(performance.emotion, performance.durationMs, performance.originX)
     }
+    if (performance.gesture !== undefined) {
+      setEmotionCommand(command => command === undefined ? command : { ...command, gesture: performance.gesture })
+    }
   }
 
   useEffect(() => {
     const normalize = (): void => {
       const currentViewport = viewport()
+      setViewportSize(current => current.width === currentViewport.width && current.height === currentViewport.height ? current : currentViewport)
       const currentScale = effectivePetScale(preferences['animation.scale'], currentViewport)
       actions.setPosition(clampPosition(positionRef.current, currentViewport, petSizeAtScale(currentScale)))
     }
@@ -678,7 +690,7 @@ export function WhalePet({
   }
 
   const preferredScale = clampWhaleScale(preferences['animation.scale'])
-  const scale = effectivePetScale(preferredScale, viewport())
+  const scale = effectivePetScale(preferredScale, viewportSize)
   const action = resolveBehavior({
     interaction,
     activity: activitySource.value,

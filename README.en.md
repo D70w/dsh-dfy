@@ -49,6 +49,10 @@ This version requires **DSH 0.1.5-rc.2 or newer**, with no upper version cap. Ol
 
 ## Install into a local Harness profile
 
+### Try the no-key local demo
+
+From a source checkout, run `npm run build:demo` then `npm run demo`, and open `http://127.0.0.1:3152/`. Try petting, 16 emotions and 6 simulated work cues. This demo needs no API key, reads no account or conversation history, and executes no real tasks. Full functionality requires the DSH plugin. The static demo output is not included in the npm package.
+
 After publication, install the package from npm:
 
 ```sh

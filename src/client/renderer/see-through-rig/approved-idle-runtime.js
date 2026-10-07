@@ -1,3 +1,15 @@
+import { pointerAttentionWeight, sampleIdleAttention, sampleIdleSway, sampleIdleArticulation, sampleIdleElbows, sampleIdleWind } from './idle-presence.ts';
+import { solveLegContact } from './limb-contact.ts';
+import { wristWeight } from './wrist-binding.ts';
+import { clothOffset, sleeveFollow } from './cloth-follow.ts';
+import { breezePose } from './breeze-pose.ts';
+import { shoulderFreedom } from './shoulder-binding.ts';
+import { forearmInertia, palmInertia } from './arm-overlap.ts';
+import { imageAlphaCoverage } from './alpha-coverage.ts';
+import { deformAhoge, sampleAhogeActing } from './ahoge-motion.ts';
+import { sampleEmotionFollowThrough } from './emotion-follow-through.ts';
+import { sampleLidBlink, sampleEmotionBlink, followBrow } from './face-transition.ts';
+
 //#region ../src/client/renderer/whale-rig2/secondary-motion.ts
 const MAX_FRAME_SECONDS = 1 / 20;
 const FIXED_STEP_SECONDS = 1 / 120;
@@ -37,12 +49,7 @@ var SpringValue = class {
 function clampPointer(value) {
 	return Math.max(-1, Math.min(1, value));
 }
-function blinkOpenness(elapsedMs, durationMs = 150) {
-	if (elapsedMs < 0 || elapsedMs >= durationMs) return 1;
-	const phase = elapsedMs / durationMs;
-	if (phase < .42) return 1 - phase / .42;
-	return (phase - .42) / .58;
-}
+function blinkOpenness(elapsedMs) { return sampleLidBlink(elapsedMs); }
 function sampleIdleMotion(nowMs, pointerX, pointerY, breathing = true) {
 	const breath = breathing ? (1 - Math.cos(nowMs / 3800 * Math.PI * 2)) * .5 : 0;
 	const x = clampPointer(pointerX);
@@ -125,6 +132,7 @@ const partNames = [
 	"collar-front",
 	"human-ears",
 	"arm-left-sleeve",
+	"arm-hip",
 	"hand-left-rest-side",
 	"hand-left-wave-front",
 	"arm-right",
@@ -199,6 +207,7 @@ const waveFrontPalmPlacement = {
 	sourceWristY: 754
 };
 const gestureDurations = {
+	"hands-on-hips": 3600,
 	wave: 1600,
 	nod: 1800,
 	tilt: 2100,
@@ -511,7 +520,7 @@ function loadImage(url) {
 }
 async function loadParts(baseUrl) {
 	const normalized = baseUrl.replace(/\/$/, "");
-	const manifest = await fetch(`${normalized}/manifest.json`).then(async (response) => {
+	const manifest = await fetch(`${normalized}/manifest.json`, { cache: "no-cache" }).then(async (response) => {
 		if (!response.ok) throw new Error(`see-through rig: manifest ${response.status}`);
 		return response.json();
 	});
@@ -736,6 +745,10 @@ function resolveEmotionActingWeights(name, elapsed, duration) {
 		blush: phase(elapsed, timing.blush[0], timing.blush[1]) * exitWeight
 	};
 }
+function resolveEmotionIdleScale(name, weight) {
+	const holds = { angry: .22, determined: .2, sad: .3, pout: .4, shy: .45, nervous: .35, sleepy: .25, relieved: .4, workError: .35, workSuccess: .65 };
+	return 1 - (1 - (holds[name] ?? .8)) * clamp01(weight);
+}
 function sampleTransientEmotion(clock, name, elapsed, duration) {
 	const style = transientEmotionStyles[name];
 	const empty = { active: false, weight: 0, gazeWeight: 0, browWeight: 0, lashWeight: 0, mouthWeight: 0, blushWeight: 0, headY: 0, headRotation: 0, headPitch: 0, gazeX: 0, gazeY: 0, blinkOpenness: 1, eyeBlinkBeat: 1, eyeBlinkBeatLeft: 1, eyeBlinkBeatRight: 1, smile: 0, mouthOpen: 0, mouthOverride: 0, browY: 0, browLeftRotation: 0, browRightRotation: 0, blush: 0, tear: 0, tearPool: 0, tearStream: 0, tearDrop: 0, tearDropPhase: 0, waistRotation: 0, chestRotation: 0, shoulderLeftX: 0, shoulderLeftY: 0, shoulderRightX: 0, shoulderRightY: 0 };
@@ -775,7 +788,29 @@ function sampleTransientEmotion(clock, name, elapsed, duration) {
 	for (const key of ["browY", "browLeftRotation", "browRightRotation"]) scaled[key] = (style[key] ?? 0) * acting.brow;
 	for (const key of ["smile", "mouthOpen", "mouthOverride"]) scaled[key] = (style[key] ?? 0) * acting.mouth;
 	scaled.blush = (style.blush ?? 0) * acting.blush;
-	if (name === "relieved") {
+	if (name === "angry") {
+		const brace = phase(elapsed, 80, 380) * weight;
+		const release = phase(elapsed, 650, 1250) * weight;
+		scaled.headY -= brace * 1.8;
+		scaled.chestRotation += brace * 1.4 - release * .45;
+		scaled.shoulderLeftY -= brace * 2.2;
+		scaled.shoulderRightY -= brace * 2.2;
+	} else if (name === "sad") {
+		const exhale = phase(elapsed, 220, 1100) * weight;
+		scaled.headY += exhale * 2;
+		scaled.headPitch += exhale * .035;
+		scaled.shoulderLeftY += exhale * 2.5;
+		scaled.shoulderRightY += exhale * 2.5;
+		scaled.chestRotation -= exhale * .65;
+	} else if (name === "shy") {
+		const hide = phase(elapsed, 100, 540) * weight;
+		const peek = phase(elapsed, 1050, 1650) * weight;
+		scaled.headRotation -= hide * 1.2 - peek * .65;
+		scaled.gazeX += hide * .12 - peek * .22;
+		scaled.gazeY -= peek * .3;
+		scaled.shoulderLeftY -= hide * 1.2;
+		scaled.shoulderRightY -= hide * .8;
+	} else if (name === "relieved") {
 		// A readable sigh: a short inhale lifts the chest before the shoulders
 		// release. This keeps relief distinct from sleepy's continuous droop.
 		const inhale = pulse(normalized, .015, .14, .3) * weight;
@@ -849,25 +884,18 @@ function sampleTransientEmotion(clock, name, elapsed, duration) {
 		scaled.shoulderLeftY += drowse * 1.8;
 		scaled.shoulderRightY += drowse * 1.8;
 	}
+	const followThrough = sampleEmotionFollowThrough(name, elapsed, duration);
+	for (const key of Object.keys(followThrough)) scaled[key] += followThrough[key] * weight;
 	const isSad = name === "sad";
 	const tearPool = isSad ? phase(elapsed, 220, 620) * weight : 0;
 	const tearStream = isSad ? phase(elapsed, 560, 1050) * weight : 0;
 	const tearDropPhase = isSad && elapsed >= 760 ? (elapsed - 760) % 1250 / 1250 : 0;
 	const tearDrop = isSad ? pulse(tearDropPhase, 0, .2, .92) * weight : 0;
-	let eyeBlinkBeat = 1;
-	if (name === "shy") eyeBlinkBeat -= pulse(normalized, .05, .11, .19) * .78 * acting.lash;
-	else if (name === "sad") eyeBlinkBeat -= pulse(normalized, .18, .27, .39) * .52 * acting.lash;
-	else if (name === "proud") eyeBlinkBeat -= pulse(normalized, .07, .13, .22) * .42 * acting.lash;
-	else if (name === "confused") eyeBlinkBeat -= pulse(normalized, .11, .17, .25) * .34 * acting.lash;
-	else if (name === "nervous") eyeBlinkBeat -= Math.max(pulse(normalized, .04, .085, .14), pulse(normalized, .16, .205, .27)) * .58 * acting.lash;
-	else if (name === "love") eyeBlinkBeat -= pulse(normalized, .1, .2, .34) * .46 * acting.lash;
-	else if (name === "excited") eyeBlinkBeat -= pulse(normalized, .055, .105, .18) * .3 * acting.lash;
-	else if (name === "surprise") eyeBlinkBeat -= pulse(normalized, .005, .035, .075) * .34 * acting.lash;
-	else if (name === "hungry") eyeBlinkBeat -= pulse(normalized, .15, .24, .36) * .3 * acting.lash;
-	else if (name === "pout") eyeBlinkBeat -= pulse(normalized, .16, .27, .41) * .42 * acting.lash;
-	let eyeBlinkBeatLeft = eyeBlinkBeat;
-	let eyeBlinkBeatRight = eyeBlinkBeat;
-	if (name === "mischievous") eyeBlinkBeatLeft -= pulse(normalized, .08, .16, .28) * .28 * acting.lash;
+	// Authored blink beats must reach closed; partial pulses only made narrowed
+	// eyes and could never display the closed-eye attachment.
+	const eyeBlinkBeatLeft = sampleEmotionBlink(name, elapsed, "left");
+	const eyeBlinkBeatRight = sampleEmotionBlink(name, elapsed, "right");
+	const eyeBlinkBeat = eyeBlinkBeatLeft;
 	return {
 		...empty,
 		...scaled,
@@ -935,7 +963,17 @@ function sampleGesture(gesture, progress, amplitude) {
 	const pose = emptyGesturePose();
 	if (gesture === "none") return pose;
 	const t = clamp01(progress);
-	if (gesture === "wave") {
+	if (gesture === "hands-on-hips") {
+		const hold = phase(t, .02, .16) * (1 - phase(t, .78, .98));
+		pose.hipAttachment = t >= .14 && t < .84;
+		pose.chestRotation = -1.6 * hold * amplitude;
+		pose.headRotation = 2.2 * hold * amplitude;
+		pose.headY = -3 * hold * amplitude;
+		pose.armLeftUpper = 9 * hold * amplitude;
+		pose.armRightUpper = -9 * hold * amplitude;
+		pose.armLeftForearm = -10 * hold * amplitude;
+		pose.armRightForearm = 10 * hold * amplitude;
+	} else if (gesture === "wave") {
 		const anticipation = sampleScalarTrack(waveTracks.anticipation, t);
 		const raised = sampleScalarTrack(waveTracks.raised, t);
 		const arrival = sampleScalarTrack(waveTracks.arrival, t);
@@ -1293,15 +1331,16 @@ function drawDeformedPart(context, part, matrix, deformAt, columns, rows) {
 			const x = part.x + part.width * u;
 			const y = part.y + part.height * v;
 			const deformation = deformAt(x, y);
-			const target = matrix.transformPoint(new DOMPoint(x + deformation.x, y + deformation.y));
+			const targetX = x + deformation.x;
+			const targetY = y + deformation.y;
 			vertices.push({
 				source: {
 					x: part.image.naturalWidth * u,
 					y: part.image.naturalHeight * v
 				},
 				target: {
-					x: target.x,
-					y: target.y
+					x: matrix.a * targetX + matrix.c * targetY + matrix.e,
+					y: matrix.b * targetX + matrix.d * targetY + matrix.f
 				}
 			});
 		}
@@ -1458,9 +1497,9 @@ function weightedPoint(bones, x, y, weights) {
 	for (const [id, rawWeight] of weights) {
 		const weight = Math.max(0, rawWeight);
 		if (weight <= 0) continue;
-		const point = (bones.get(id) ?? new DOMMatrix()).transformPoint(new DOMPoint(x, y));
-		resultX += point.x * weight;
-		resultY += point.y * weight;
+		const matrix = bones.get(id);
+		resultX += (matrix ? matrix.a * x + matrix.c * y + matrix.e : x) * weight;
+		resultY += (matrix ? matrix.b * x + matrix.d * y + matrix.f : y) * weight;
 		total += weight;
 	}
 	return total > 0 ? {
@@ -1519,6 +1558,14 @@ function drawTexturedTriangle(context, image, sourceA, sourceB, sourceC, targetA
 	const d = (targetA.y * (sourceC.x - sourceB.x) + targetB.y * (sourceA.x - sourceC.x) + targetC.y * (sourceB.x - sourceA.x)) / denominator;
 	const e = (targetA.x * (sourceB.x * sourceC.y - sourceC.x * sourceB.y) + targetB.x * (sourceC.x * sourceA.y - sourceA.x * sourceC.y) + targetC.x * (sourceA.x * sourceB.y - sourceB.x * sourceA.y)) / denominator;
 	const f = (targetA.y * (sourceB.x * sourceC.y - sourceC.x * sourceB.y) + targetB.y * (sourceC.x * sourceA.y - sourceA.x * sourceC.y) + targetC.y * (sourceA.x * sourceB.y - sourceB.x * sourceA.y)) / denominator;
+	const coverage = imageAlphaCoverage(image);
+	if (coverage) {
+		// Include the expanded clip and bilinear filter footprint in source space.
+		const determinant = Math.abs(a * d - b * c);
+		const padding = 2 + 1.35 * (Math.abs(a) + Math.abs(b) + Math.abs(c) + Math.abs(d)) / Math.max(.0001, determinant);
+		if (!coverage(Math.min(sourceA.x, sourceB.x, sourceC.x) - padding, Math.min(sourceA.y, sourceB.y, sourceC.y) - padding,
+			Math.max(sourceA.x, sourceB.x, sourceC.x) + padding, Math.max(sourceA.y, sourceB.y, sourceC.y) + padding)) return;
+	}
 	const centerX = (targetA.x + targetB.x + targetC.x) / 3;
 	const centerY = (targetA.y + targetB.y + targetC.y) / 3;
 	const expand = (point) => {
@@ -1546,8 +1593,13 @@ function drawTexturedTriangle(context, image, sourceA, sourceB, sourceC, targetA
 	context.restore();
 }
 function drawSkinnedPart(context, part, bones, weightsAt, columns, rows, firstRow = 0, lastRow = rows, deformAt, preserveRigidity = false) {
+	// Partial passes (sleeves/hands) need only their own rows plus the shared boundary.
+	const startRow = Math.max(0, firstRow);
+	const endRow = Math.min(rows, lastRow);
+	if (startRow >= endRow) return;
 	const vertices = [];
-	for (let row = 0; row <= rows; row += 1) {
+	const pointAt = preserveRigidity ? weightedRigidPoint : weightedPoint;
+	for (let row = startRow; row <= endRow; row += 1) {
 		const v = row / rows;
 		for (let column = 0; column <= columns; column += 1) {
 			const u = column / columns;
@@ -1557,7 +1609,6 @@ function drawSkinnedPart(context, part, bones, weightsAt, columns, rows, firstRo
 				x: 0,
 				y: 0
 			};
-			const pointAt = preserveRigidity ? weightedRigidPoint : weightedPoint;
 			vertices.push({
 				source: {
 					x: part.image.naturalWidth * u,
@@ -1567,8 +1618,8 @@ function drawSkinnedPart(context, part, bones, weightsAt, columns, rows, firstRo
 			});
 		}
 	}
-	const vertex = (column, row) => vertices[row * (columns + 1) + column];
-	for (let row = Math.max(0, firstRow); row < Math.min(rows, lastRow); row += 1) for (let column = 0; column < columns; column += 1) {
+	const vertex = (column, row) => vertices[(row - startRow) * (columns + 1) + column];
+	for (let row = startRow; row < endRow; row += 1) for (let column = 0; column < columns; column += 1) {
 		const a = vertex(column, row);
 		const b = vertex(column + 1, row);
 		const c = vertex(column, row + 1);
@@ -1604,13 +1655,19 @@ function armRightCoordinates(x, y) {
 function createArmLeftCorrectiveDeformer(pose) {
 	return (x, y) => {
 		const { along, across } = armLeftCoordinates(x, y);
-		const elbowProgress = clamp01((along - 130) / 42);
+		const contact = pose.contact ?? 0;
+		const bendWeight = smoothstep(134 + 10 * contact, 166 + 50 * contact, along);
+		// Compensate the cross-section lost by linear skinning at a deep bend.
+		// Local to the elbow: shoulder and cuff remain unchanged.
+		const retainedWidth = Math.sqrt(Math.max(.25, 1 - 2 * bendWeight * (1 - bendWeight) * (1 - Math.cos((pose.bendAngle ?? 0) * Math.PI / 180))));
+		const contactVolume = across * Math.min(.35, 1 / retainedWidth - 1) * contact;
+		const elbowProgress = clamp01((along - 130 - 30 * contact) / 42);
 		const elbowBand = Math.sin(elbowProgress * Math.PI) * pose.elbowMorph;
-		const elbowExpansion = Math.tanh(across / 14) * elbowBand * 7.25;
-		const shoulderBand = (1 - smoothstep(0, 105, along)) * pose.shoulderShrug;
+		const elbowExpansion = Math.tanh(across / 14) * elbowBand * 7.25 + sleeveFollow(along, pose.sleeveLag ?? 0);
+		const shoulderBand = shoulderFreedom(along) * (1 - smoothstep(0, 105, along)) * pose.shoulderShrug;
 		return {
-			x: armLeftNormalX * elbowExpansion + shoulderBand * 3.2,
-			y: armLeftNormalY * elbowExpansion - shoulderBand * 4.8
+			x: armLeftNormalX * (elbowExpansion + contactVolume) + shoulderBand * 3.2,
+			y: armLeftNormalY * (elbowExpansion + contactVolume) - shoulderBand * 4.8
 		};
 	};
 }
@@ -1619,26 +1676,28 @@ function createArmRightCorrectiveDeformer(pose) {
 		const { along, across } = armRightCoordinates(x, y);
 		const elbowProgress = clamp01((along - 130) / 42);
 		const elbowBand = Math.sin(elbowProgress * Math.PI) * pose.elbowMorph;
-		const elbowExpansion = Math.tanh(across / 14) * elbowBand * 7.25;
-		const shoulderBand = (1 - smoothstep(0, 105, along)) * pose.shoulderShrug;
+		const elbowExpansion = Math.tanh(across / 14) * elbowBand * 7.25 + sleeveFollow(along, pose.sleeveLag ?? 0);
+		const shoulderBand = shoulderFreedom(along) * (1 - smoothstep(0, 105, along)) * pose.shoulderShrug;
 		return {
 			x: armRightNormalX * elbowExpansion - shoulderBand * 3.2,
 			y: armRightNormalY * elbowExpansion - shoulderBand * 4.8
 		};
 	};
 }
-function armLeftWeights(x, y) {
+function armLeftWeights(x, y, contact = 0) {
 	const { along } = armLeftCoordinates(x, y);
-	const upperToForearm = smoothstep(132, 152, along);
+	// Spread the contact bend through the sleeve, not a single hard elbow crease.
+	const upperToForearm = smoothstep(134 + 10 * contact, 166 + 50 * contact, along);
 	const limbWeights = [["armLeftUpper", 1 - upperToForearm], ["armLeftForearm", upperToForearm]];
-	const chestPin = (1 - smoothstep(14, 102, along)) * smoothstep(470, 555, x) * .94;
-	return [["chest", chestPin], ...limbWeights.map(([id, weight]) => [id, weight * (1 - chestPin)])];
+	const chestPin = 1 - smoothstep(28, 102 + 32 * contact, along);
+	return [["shoulderLeftAnchor", chestPin], ...limbWeights.map(([id, weight]) => [id, weight * (1 - chestPin)])];
 }
 function armRightWeights(x, y) {
 	const { along } = armRightCoordinates(x, y);
-	const upperToForearm = smoothstep(132, 152, along);
-	const limbWeights = [["armRightUpper", 1 - upperToForearm], ["armRightForearm", upperToForearm]];
-	const chestPin = (1 - smoothstep(14, 102, along)) * (1 - smoothstep(701, 786, x)) * .94;
+	const upperToForearm = smoothstep(134, 166, along);
+	const hand = wristWeight(x, y, "right");
+	const limbWeights = [["armRightUpper", 1 - upperToForearm], ["armRightForearm", upperToForearm * (1-hand)], ["handRight", upperToForearm * hand]];
+	const chestPin = 1 - shoulderFreedom(along);
 	return [["chest", chestPin], ...limbWeights.map(([id, weight]) => [id, weight * (1 - chestPin)])];
 }
 function legLeftWeights(x, y) {
@@ -1656,11 +1715,36 @@ function torsoGarmentWeights(x, y) {
 function drawEye(context, white, iris, lash, matrix, centerX, centerY, openness, gazeX, gazeY) {
 	context.save();
 	applyMatrix(context, matrix);
-	context.translate(centerX, centerY);
-	context.scale(1, Math.max(.035, openness));
-	context.translate(-centerX, -centerY);
+	const open = clamp01(openness);
+	if (open < .94) {
+		// Eyelids occlude the eye; the iris itself never becomes a flattened oval.
+		const halfWidth = 39;
+		const edgeY = centerY + 2 * (1 - open);
+		const lidControlY = edgeY - 85 * open;
+		context.save();
+		context.beginPath();
+		context.moveTo(centerX - halfWidth, edgeY);
+		context.quadraticCurveTo(centerX, lidControlY, centerX + halfWidth, edgeY);
+		context.quadraticCurveTo(centerX, edgeY + 64 * open, centerX - halfWidth, edgeY);
+		context.closePath();
+		context.clip();
+		if (open > .08) {
+			context.drawImage(white.image, white.x, white.y, white.width, white.height);
+			context.drawImage(iris.image, iris.x + gazeX * 6, iris.y + gazeY * 5.2, iris.width, iris.height);
+		}
+		context.restore();
+		context.strokeStyle = "#423248";
+		context.lineWidth = 4.5;
+		context.lineCap = "round";
+		context.beginPath();
+		context.moveTo(centerX - halfWidth, edgeY);
+		context.quadraticCurveTo(centerX, open > .08 ? lidControlY : edgeY + 5, centerX + halfWidth, edgeY);
+		context.stroke();
+		context.restore();
+		return;
+	}
 	context.drawImage(white.image, white.x, white.y, white.width, white.height);
-	if (openness > .1) context.drawImage(iris.image, iris.x + gazeX * 6, iris.y + gazeY * 5.2, iris.width, iris.height);
+	context.drawImage(iris.image, iris.x + gazeX * 6, iris.y + gazeY * 5.2, iris.width, iris.height);
 	context.drawImage(lash.image, lash.x, lash.y, lash.width, lash.height);
 	context.restore();
 }
@@ -1689,7 +1773,7 @@ function sampleAuthoredLashDeformation(u, v, side, emotionName, weight) {
 }
 function drawAuthoredEmotionEye(context, white, iris, lash, matrix, centerX, centerY, openness, gazeX, gazeY, side, emotionName, pose) {
 	const sideBlinkBeat = side === "left" ? pose.eyeBlinkBeatLeft ?? pose.eyeBlinkBeat : pose.eyeBlinkBeatRight ?? pose.eyeBlinkBeat;
-	const authoredOpenness = clamp01(openness / Math.max(.08, pose.blinkOpenness)) * (sideBlinkBeat ?? 1);
+	const authoredOpenness = clamp01(openness) * (sideBlinkBeat ?? 1);
 	if (authoredOpenness < .9 || !localizedAuthoredLashEmotions.has(emotionName)) {
 		drawEye(context, white, iris, lash, matrix, centerX, centerY, authoredOpenness, gazeX, gazeY);
 		return;
@@ -1713,9 +1797,9 @@ function drawRoundedSquintEye(context, matrix, centerX, centerY, emotionName) {
 	// Closed eyes are authored as clean lid strokes. Compressing the pointed
 	// source lash bitmap is what produced the narrow, upturned eye silhouette.
 	const width = emotionName === "happy" ? 38 : emotionName === "sleepy" ? 34 : 36;
-	const arch = emotionName === "happy" ? 12 : emotionName === "sleepy" ? 3.5 : 7;
+	const arch = emotionName === "happy" ? 17 : emotionName === "sleepy" ? 3.5 : 7;
 	context.strokeStyle = "#35456f";
-	context.lineWidth = emotionName === "happy" ? 7.2 : emotionName === "sleepy" ? 6.4 : 6.7;
+	context.lineWidth = emotionName === "happy" ? 5 : emotionName === "sleepy" ? 6.4 : 6.7;
 	context.lineCap = "round";
 	context.lineJoin = "round";
 	context.beginPath();
@@ -1723,7 +1807,7 @@ function drawRoundedSquintEye(context, matrix, centerX, centerY, emotionName) {
 	context.quadraticCurveTo(centerX, centerY - arch, centerX + width, centerY + 2);
 	context.stroke();
 	if (emotionName === "happy") {
-		context.lineWidth = 3.4;
+		context.lineWidth = 2.4;
 		context.beginPath();
 		context.moveTo(centerX - width, centerY + 2);
 		context.lineTo(centerX - width - 7, centerY - 3);
@@ -1934,7 +2018,7 @@ function drawExpressiveEye(context, white, iris, lash, matrix, centerX, centerY,
 	if (layerPlan.eye === "squint") {
 		const closure = resolveSquintEyeClosure(emotionName, pose.lashWeight ?? weight);
 		if (closure < .96) {
-			const neutralOpenness = clamp01(openness / Math.max(.08, pose.blinkOpenness));
+			const neutralOpenness = clamp01(openness);
 			const transitionOpenness = Math.min(neutralOpenness, 1 - closure * .94);
 			drawEye(context, white, iris, lash, matrix, centerX, centerY, transitionOpenness, gazeX, gazeY);
 		} else {
@@ -2144,6 +2228,42 @@ function drawEmotionBrows(context, matrix, emotionName, pose) {
 	context.stroke();
 	context.restore();
 }
+function drawAnimeTearColumn(context, startX, startY, progress, flow) {
+	const amount = clamp01(progress);
+	const length = 82 * amount;
+	const halfWidth = 15;
+	context.save();
+	context.globalAlpha = amount * .92;
+	const gradient = context.createLinearGradient(startX - halfWidth, 0, startX + halfWidth, 0);
+	gradient.addColorStop(0, '#6fbfe5');
+	gradient.addColorStop(.32, '#b6edff');
+	gradient.addColorStop(.65, '#a4e1fa');
+	gradient.addColorStop(1, '#63b7df');
+	context.fillStyle = gradient;
+	context.strokeStyle = '#d5f5ff';
+	context.lineWidth = 2;
+	context.beginPath();
+	context.moveTo(startX - halfWidth, startY);
+	context.quadraticCurveTo(startX, startY + 4, startX + halfWidth, startY);
+	context.bezierCurveTo(startX + 13, startY + length * .4, startX + 17, startY + length * .75, startX + 14, startY + length);
+	context.quadraticCurveTo(startX, startY + length + 7, startX - 14, startY + length);
+	context.bezierCurveTo(startX - 17, startY + length * .75, startX - 13, startY + length * .4, startX - halfWidth, startY);
+	context.closePath();
+	context.fill();
+	context.stroke();
+	context.clip();
+	context.strokeStyle = 'rgba(255,255,255,.8)';
+	context.lineWidth = 3;
+	context.lineCap = 'round';
+	for (let i = 0; i < 3; i++) {
+		const y = startY + ((flow + i / 3) % 1) * 110 - 15;
+		context.beginPath();
+		context.moveTo(startX - 7, y);
+		context.lineTo(startX - 7, y + 14);
+		context.stroke();
+	}
+	context.restore();
+}
 function drawAttachedTear(context, startX, startY, direction, progress, alpha) {
 	const amount = clamp01(progress);
 	const length = 26 + 50 * amount;
@@ -2181,10 +2301,8 @@ function drawEmotionFaceDetails(context, matrix, emotionName, pose) {
 	if (resolveEmotionFaceLayerPlan(emotionName, pose).mouth !== "emotion") return;
 	context.save();
 	applyMatrix(context, matrix);
-	// The neutral raster and authored emotion mouth crossfade with complementary
-	// weights during entry and recovery. Neither layer reaches full opacity at
-	// the same time, avoiding the old doubled-mouth frame without a cover patch.
-	context.globalAlpha = pose.mouthWeight ?? pose.weight;
+	// Change contours through a briefly closed mouth, never two visible mouths.
+	context.globalAlpha = Math.max(0, ((pose.mouthWeight ?? pose.weight) - .5) * 2);
 	context.strokeStyle = "#56384a";
 	context.fillStyle = "#56384a";
 	context.lineWidth = 4.2;
@@ -2212,17 +2330,17 @@ function drawEmotionFaceDetails(context, matrix, emotionName, pose) {
 		context.moveTo(611, 448);
 		context.quadraticCurveTo(624.5, 436, 638, 448);
 	} else if (emotionName === "happy" || emotionName === "excited") {
-		const width = emotionName === "excited" ? 22 : 19;
-		const depth = emotionName === "excited" ? 25 : 21;
+		const width = emotionName === "excited" ? 18 : 15;
+		const depth = emotionName === "excited" ? 20 : 16;
 		context.moveTo(624.5 - width, 438);
 		context.quadraticCurveTo(624.5, 449, 624.5 + width, 438);
-		context.quadraticCurveTo(624.5 + width - 4, 438 + depth, 624.5, 461);
+		context.quadraticCurveTo(624.5 + width - 4, 438 + depth, 624.5, 438 + depth);
 		context.quadraticCurveTo(624.5 - width + 4, 438 + depth, 624.5 - width, 438);
 		context.closePath();
 		context.fill();
 		context.fillStyle = "#ef8fa4";
 		context.beginPath();
-		context.ellipse(624.5, 454.5, emotionName === "excited" ? 11 : 9, 4.5, 0, 0, Math.PI * 2);
+		context.ellipse(624.5, 438 + depth - 4, emotionName === "excited" ? 8 : 6, 2.5, 0, 0, Math.PI * 2);
 		context.fill();
 		mouthFilled = true;
 	} else if (emotionName === "workSuccess") {
@@ -2252,13 +2370,9 @@ function drawEmotionFaceDetails(context, matrix, emotionName, pose) {
 	} else if (emotionName === "relieved") {
 		context.moveTo(611, 444);
 		context.quadraticCurveTo(624.5, 457, 638, 444);
-		context.moveTo(618, 458);
-		context.quadraticCurveTo(624.5, 462, 631, 458);
 	} else if (emotionName === "determined") {
 		context.moveTo(611, 445);
 		context.lineTo(638, 445);
-		context.moveTo(615, 450);
-		context.lineTo(634, 450);
 	} else if (emotionName === "nervous") {
 		context.moveTo(610, 443);
 		context.quadraticCurveTo(616, 450, 621, 443);
@@ -2323,16 +2437,16 @@ function drawEmotionFaceDetails(context, matrix, emotionName, pose) {
 	}
 	if (emotionName === "sad" && pose.tearPool > .001) {
 		context.lineCap = "round";
-		context.globalAlpha = pose.tearPool * .96;
+		context.globalAlpha = pose.tearPool * .65;
 		context.strokeStyle = "rgba(210,245,255,.98)";
-		context.lineWidth = 7;
+		context.lineWidth = 4;
 		context.beginPath();
 		context.moveTo(527, 408);
 		context.quadraticCurveTo(552, 422, 579, 408);
 		context.moveTo(672, 408);
 		context.quadraticCurveTo(698, 422, 726, 408);
 		context.stroke();
-		context.globalAlpha = pose.tearPool * .68;
+		context.globalAlpha = pose.tearPool * .38;
 		context.strokeStyle = "rgba(79,184,238,.9)";
 		context.lineWidth = 2.2;
 		context.beginPath();
@@ -2342,19 +2456,18 @@ function drawEmotionFaceDetails(context, matrix, emotionName, pose) {
 		context.quadraticCurveTo(698, 424, 724, 412);
 		context.stroke();
 		if (pose.tearStream > .001) {
-			drawAttachedTear(context, 541, 411, -1, pose.tearStream * .86, pose.tearStream * .78);
-			drawAttachedTear(context, 570, 411, 1, pose.tearStream, pose.tearStream * .94);
-			drawAttachedTear(context, 681, 411, -1, pose.tearStream * .96, pose.tearStream * .9);
-			drawAttachedTear(context, 710, 411, 1, pose.tearStream * .84, pose.tearStream * .76);
+			// One broad ribbon per eye, attached in the same head coordinate space.
+			drawAnimeTearColumn(context, 552, 414, pose.tearStream, pose.tearDropPhase);
+			drawAnimeTearColumn(context, 698, 414, pose.tearStream, (pose.tearDropPhase + .16) % 1);
 		}
 		if (pose.tearDrop > .001) {
-			const dropY = 433 + pose.tearDropPhase * 20;
+			const dropY = 502 + pose.tearDropPhase * 16;
 			context.globalAlpha = pose.tearDrop * .68;
 			context.fillStyle = "rgba(104,210,255,.9)";
 			context.beginPath();
-			context.moveTo(714, dropY - 4);
-			context.bezierCurveTo(710, dropY + 1, 711, dropY + 5, 714, dropY + 6);
-			context.bezierCurveTo(718, dropY + 5, 718, dropY + 1, 714, dropY - 4);
+			context.moveTo(698, dropY - 4);
+			context.bezierCurveTo(694, dropY + 1, 695, dropY + 5, 698, dropY + 6);
+			context.bezierCurveTo(702, dropY + 5, 702, dropY + 1, 698, dropY - 4);
 			context.closePath();
 			context.fill();
 		}
@@ -2372,6 +2485,8 @@ async function createSeeThroughIdleRig(canvas, options) {
 	const context = canvas.getContext("2d");
 	let pointerX = 0;
 	let pointerY = 0;
+	let pointerChangedAt = Number.NEGATIVE_INFINITY;
+	let motionTime = 0;
 	let externalMotionX = 0;
 	let externalMotionY = 0;
 	let grabPointX = .5;
@@ -2382,6 +2497,7 @@ async function createSeeThroughIdleRig(canvas, options) {
 	let expressionTo = expressionStyles.neutral;
 	let expressionChangedAt = performance.now();
 	let gesture = "none";
+	let leftHandAttachment = null;
 	let gestureElapsed = 0;
 	let gestureSpeed = 1;
 	let petReactionStartedAt = Number.NEGATIVE_INFINITY;
@@ -2414,6 +2530,7 @@ async function createSeeThroughIdleRig(canvas, options) {
 	let nextBlinkAt = previousTime + 1700;
 	let blinkStartedAt = Number.NEGATIVE_INFINITY;
 	let blink = 1;
+	const browPose = { y: 0, left: 0, right: 0 };
 	const manualRotations = /* @__PURE__ */ new Map();
 	const manualPivotOffsets = /* @__PURE__ */ new Map();
 	let layerOrder = [...defaultSeeThroughLayerOrder];
@@ -2428,6 +2545,8 @@ async function createSeeThroughIdleRig(canvas, options) {
 		damping: 18,
 		maxOffset: 1
 	});
+	const headGazeXSpring = new SpringValue({ stiffness: 28, damping: 11, maxOffset: 1 });
+	const headGazeYSpring = new SpringValue({ stiffness: 28, damping: 11, maxOffset: 1 });
 	const backHairLeftSpring = new SpringValue({
 		stiffness: 36,
 		damping: 8.4,
@@ -2474,9 +2593,9 @@ async function createSeeThroughIdleRig(canvas, options) {
 		maxOffset: 14
 	});
 	const ahogeTipSpring = new SpringValue({
-		stiffness: 38,
-		damping: 7.7,
-		maxOffset: 18
+		stiffness: 58,
+		damping: 8.2,
+		maxOffset: 38
 	});
 	const tailRootSpring = new SpringValue({
 		stiffness: 38,
@@ -2503,11 +2622,22 @@ async function createSeeThroughIdleRig(canvas, options) {
 		damping: 10.2,
 		maxOffset: 9
 	});
+	const clothMiddle = [0, 1, 2, 3].map(i => new SpringValue({stiffness: 42 - i * 3, damping: 10, maxOffset: 9}));
+	const clothHem = [0, 1, 2, 3].map(i => new SpringValue({stiffness: 25 - i * 2, damping: 7.4, maxOffset: 10}));
+	const clothPressure = [0, 1, 2, 3].map(i => new SpringValue({stiffness: 38 - i * 3, damping: 9, maxOffset: 12}));
+	// Heavy body response filters the breeze; attached lighter parts trail it.
+	const breezeBodySpring = new SpringValue({stiffness: 18, damping: 8.4, maxOffset: 1.6});
+	const breezeChestSpring = new SpringValue({stiffness: 25, damping: 9, maxOffset: 1.6});
+	const breezeHeadSpring = new SpringValue({stiffness: 21, damping: 8.4, maxOffset: 1.6});
 	const armLeftUpperFollowSpring = new SpringValue({
 		stiffness: 52,
 		damping: 10.4,
 		maxOffset: 6
 	});
+	const wristLeftSpring = new SpringValue({stiffness: 32, damping: 8, maxOffset: 8});
+	const wristRightSpring = new SpringValue({stiffness: 38, damping: 9, maxOffset: 8});
+	const elbowLeftSpring = new SpringValue({stiffness: 38, damping: 12.4, maxOffset: 24});
+	const elbowRightSpring = new SpringValue({stiffness: 30, damping: 11, maxOffset: 21});
 	const armLeftForearmFollowSpring = new SpringValue({
 		stiffness: 16,
 		damping: 5.6,
@@ -2519,8 +2649,8 @@ async function createSeeThroughIdleRig(canvas, options) {
 		maxOffset: 6
 	});
 	const armRightForearmFollowSpring = new SpringValue({
-		stiffness: 17,
-		damping: 5.8,
+		stiffness: 25,
+		damping: 8.2,
 		maxOffset: 13
 	});
 	const legLeftUpperFollowSpring = new SpringValue({
@@ -2563,6 +2693,7 @@ async function createSeeThroughIdleRig(canvas, options) {
 		damping: 8.5,
 		maxOffset: 5
 	});
+	let footContact = 1;
 	const manual = (id) => manualRotations.get(id) ?? 0;
 	const scheduleBlink = (now) => {
 		nextBlinkAt = now + 2300 + (Math.sin(now * .00131) * .5 + .5) * 1900;
@@ -2572,6 +2703,9 @@ async function createSeeThroughIdleRig(canvas, options) {
 		const rawDelta = Math.max(0, now - previousTime);
 		const delta = Math.min(50, rawDelta);
 		previousTime = now;
+		// Freeze the motion phase while hidden or playing video. Wall time still
+		// controls dialogue/emotion expiry, but must not jump the resting pose.
+		motionTime += delta;
 		let emotionResetThisFrame = false;
 		const directEmotionRequest = canvas.dataset.emotionCommandReceived;
 		if (directEmotionRequest && directEmotionRequest !== emotionDirectRequestKey) {
@@ -2627,15 +2761,24 @@ async function createSeeThroughIdleRig(canvas, options) {
 		const legLeftLever = grabLeverWeight(.45, .87, grabPointX, grabPointY, 1.02, .2, 1.45);
 		const legRightLever = grabLeverWeight(.55, .87, grabPointX, grabPointY, 1.02, .2, 1.45);
 		const armMotionScale = secondaryMotion && !reducedMotion ? 1 : 0;
-		const armLeftInput = ((-grabBodySway * .48 - directGrabX * 3.1 + directGrabY * .34) * armLeftLever + petReaction.armLeftKick * 3.8) * armMotionScale;
-		const armRightInput = ((-grabBodySway * .39 - directGrabX * 2.35 - directGrabY * .22) * armRightLever + petReaction.armRightKick * 3.2) * armMotionScale;
+		const breezeGain = !grabbed && gesture === "none" ? armMotionScale * motionIntensity * resolveEmotionIdleScale(transientEmotion, emotionPose.weight) : 0;
+		const breezeBody = breezeBodySpring.step(sampleIdleWind(motionTime).wave * .7 * breezeGain, delta);
+		const breezeChest = breezeChestSpring.step(breezeBody, delta);
+		const breezeHead = breezeHeadSpring.step(breezeChest, delta);
+		const breeze = breezePose(breezeBody, breezeChest, breezeHead);
+		const elbowTargets = sampleIdleElbows(motionTime, armMotionScale * motionIntensity * resolveEmotionIdleScale(transientEmotion, emotionPose.weight) * (grabbed || gesture !== "none" ? 0 : 1));
+		const elbowLeft = elbowLeftSpring.step(elbowTargets.left, delta);
+		const elbowRight = elbowRightSpring.step(elbowTargets.right, delta);
+		const articulation = sampleIdleArticulation(motionTime, armMotionScale * motionIntensity * resolveEmotionIdleScale(transientEmotion, emotionPose.weight) * (grabbed || gesture !== "none" ? 0 : 1));
+		const armLeftInput = ((-grabBodySway * .48 - directGrabX * 3.1 + directGrabY * .34) * armLeftLever + petReaction.armLeftKick * 3.8 + articulation.armLeft + breeze.armLeft) * armMotionScale;
+		const armRightInput = ((-grabBodySway * .39 - directGrabX * 2.35 - directGrabY * .22) * armRightLever + petReaction.armRightKick * 3.2 + articulation.armRight + breeze.armRight) * armMotionScale;
 		const armLeftUpperFollow = armLeftUpperFollowSpring.step(armLeftInput * .92, delta);
 		const armRightUpperFollow = armRightUpperFollowSpring.step(armRightInput * .72, delta);
-		// The elbow is a real second stage, not a second multiplier of the same
-		// value. A softer spring follows the acceleration input and the already
-		// moving upper arm, creating visible delay and a local elbow angle.
-		const armLeftForearmFollow = armLeftForearmFollowSpring.step(armLeftInput * 3.05 - armLeftUpperFollow * .15, delta);
-		const armRightForearmFollow = armRightForearmFollowSpring.step(armRightInput * 2.45 - armRightUpperFollow * .22, delta);
+		// Local lag opposes travel, then catches up; never re-add the inherited parent angle.
+		const armLeftForearmFollow = armLeftForearmFollowSpring.step(forearmInertia(armLeftUpperFollowSpring.velocity, armLeftInput, "left") * armMotionScale, delta);
+		const armRightForearmFollow = armRightForearmFollowSpring.step(forearmInertia(armRightUpperFollowSpring.velocity, armRightInput, "right") * armMotionScale, delta);
+		const wristLeft = wristLeftSpring.step(palmInertia(armLeftUpperFollowSpring.velocity * 1.15 - elbowLeftSpring.velocity * .22, armLeftForearmFollowSpring.velocity * 1.25, elbowLeftSpring.velocity, elbowLeft, "left") * armMotionScale, delta);
+		const wristRight = wristRightSpring.step(palmInertia(armRightUpperFollowSpring.velocity * 1.08 - elbowRightSpring.velocity * .22, armRightForearmFollowSpring.velocity * 1.05, elbowRightSpring.velocity, elbowRight, "right") * armMotionScale, delta);
 		const legMotionScale = secondaryMotion && !reducedMotion ? 1 : 0;
 		const legLeftInput = ((-grabBodySway * .3 - directGrabX * 1.55 + directGrabY * .28) * legLeftLever + petReaction.legLeftKick * 3.45) * legMotionScale;
 		const legRightInput = ((-grabBodySway * .23 - directGrabX * 1.12 - directGrabY * .18) * legRightLever + petReaction.legRightKick * 2.85) * legMotionScale;
@@ -2643,31 +2786,30 @@ async function createSeeThroughIdleRig(canvas, options) {
 		const legRightUpperFollow = legRightUpperFollowSpring.step(legRightInput * .54, delta);
 		const legLeftLowerFollow = legLeftLowerFollowSpring.step(legLeftInput * 2.15 - legLeftUpperFollow * .18, delta);
 		const legRightLowerFollow = legRightLowerFollowSpring.step(legRightInput * 1.72 - legRightUpperFollow * .25, delta);
-		const gazeX = gazeSpringX.step(reducedMotion ? 0 : pointerX, delta);
-		const gazeY = gazeSpringY.step(reducedMotion ? 0 : pointerY, delta);
 		const idleMotionEnabled = secondaryMotion && !reducedMotion;
-		const accentPeriod = 6500;
-		const accentCycle = Math.floor(now / accentPeriod);
-		const accentPhase = now % accentPeriod / accentPeriod;
-		const accentWindow = accentPhase > .57 ? Math.sin((accentPhase - .57) / .43 * Math.PI) ** 2 : 0;
-		const idleAccent = idleMotionEnabled ? (accentCycle % 2 === 0 ? 1 : -1) * accentWindow : 0;
-		const pointerActivity = Math.min(1, Math.abs(pointerX) + Math.abs(pointerY));
-		const autoGazeScale = idleMotionEnabled ? 1 - pointerActivity : 0;
-		const idleGazeX = clampPointer(gazeX + (Math.sin(now / 2600 + .3) * .32 + idleAccent * .24) * autoGazeScale);
-		const idleGazeY = clampPointer(gazeY + (Math.sin(now / 3300 + 1.05) * .18 - Math.abs(idleAccent) * .12) * autoGazeScale);
+		const pointerWeight = grabbed ? 1 : pointerAttentionWeight(now, pointerChangedAt);
+		const attention = sampleIdleAttention(motionTime);
+		const autoWeight = idleMotionEnabled && !emotionPose.active && gesture === "none" ? 1 - pointerWeight : 0;
+		const idleGazeX = gazeSpringX.step(reducedMotion ? 0 : pointerX * pointerWeight + attention.x * autoWeight, delta);
+		const idleGazeY = gazeSpringY.step(reducedMotion ? 0 : pointerY * pointerWeight + attention.y * autoWeight, delta);
+		const headGazeX = headGazeXSpring.step(idleGazeX, delta);
+		const headGazeY = headGazeYSpring.step(idleGazeY, delta);
+		const sway = sampleIdleSway(motionTime);
+		const idleAccent = idleMotionEnabled ? sway.accent : 0;
 		// Primary body motion is intentionally separated from the later cloth
 		// and hair phases.  This creates a readable line of action instead of a
 		// collection of independent, barely moving springs.
-		const idleBodyWave = idleMotionEnabled ? (Math.sin(now / 1380) + idleAccent * .85) * motionIntensity : 0;
-		const idleBodyFollow = idleMotionEnabled ? (Math.sin(now / 1380 - .58) + idleAccent * .98) * motionIntensity : 0;
-		const idleClothWave = idleMotionEnabled ? (Math.sin(now / 1050 - .92) + idleAccent * 1.15) * motionIntensity : 0;
-		const windEnvelope = idleMotionEnabled ? .78 + Math.sin(now / 2050 + .4) * .22 : 0;
-		const windWave = idleMotionEnabled ? (Math.sin(now / 420 + .2) * 1.65 + Math.sin(now / 238 + 1.15) * .48) * windEnvelope * motionIntensity : 0;
-		const windFlutter = idleMotionEnabled ? (Math.sin(now / 168 + .65) * .52 + Math.sin(now / 113 + 2.1) * .2) * windEnvelope * motionIntensity : 0;
+		const emotionStillness = resolveEmotionIdleScale(transientEmotion, emotionPose.weight);
+		const idleBodyWave = idleMotionEnabled ? sway.body * motionIntensity * emotionStillness : 0;
+		const idleBodyFollow = idleMotionEnabled ? sway.follow * motionIntensity * emotionStillness : 0;
+		const idleClothWave = idleMotionEnabled ? sway.cloth * motionIntensity * emotionStillness : 0;
+		const wind = sampleIdleWind(motionTime);
+		const windWave = idleMotionEnabled ? wind.wave * motionIntensity : 0;
+		const windFlutter = idleMotionEnabled ? wind.flutter * motionIntensity : 0;
 		if (blinking && !reducedMotion && now >= nextBlinkAt && blinkStartedAt < nextBlinkAt) blinkStartedAt = now;
 		blink = blinking && !reducedMotion ? blinkOpenness(now - blinkStartedAt) : 1;
-		if (now - blinkStartedAt >= 150 && blinkStartedAt >= nextBlinkAt) scheduleBlink(now);
-		const idle = sampleIdleMotion(now, idleGazeX, idleGazeY, breathing && !reducedMotion);
+		if (now - blinkStartedAt >= 320 && blinkStartedAt >= nextBlinkAt) scheduleBlink(now);
+		const idle = sampleIdleMotion(motionTime, headGazeX, headGazeY, breathing && !reducedMotion);
 		if (gesture !== "none") {
 			gestureElapsed += delta * gestureSpeed;
 			if (gestureElapsed >= gestureDurations[gesture]) gesture = "none";
@@ -2675,10 +2817,16 @@ async function createSeeThroughIdleRig(canvas, options) {
 		const gestureProgress = gesture === "none" ? 1 : gestureElapsed / gestureDurations[gesture];
 		const gesturePose = sampleGesture(gesture, gestureProgress, reducedMotion ? .35 : 1);
 		const expressionStyle = expressionStyleAt(now);
-		const renderedGazeX = clampPointer(idleGazeX + gesturePose.gazeX + emotionPose.gazeX);
-		const renderedGazeY = clampPointer(idleGazeY + gesturePose.gazeY + emotionPose.gazeY);
-		const renderedBlink = Math.min(blink, gesturePose.blinkOpenness, petReaction.blinkOpenness, emotionPose.blinkOpenness);
-		const totalHeadRotation = idle.headRotationDeg + gesturePose.headRotation + petReaction.headRotation + emotionPose.headRotation + idleBodyFollow * 1.45;
+		const gazeFreedom = 1 - emotionPose.gazeWeight * .85;
+		const renderedGazeX = clampPointer(idleGazeX * gazeFreedom + gesturePose.gazeX + emotionPose.gazeX);
+		const renderedGazeY = clampPointer(idleGazeY * gazeFreedom + gesturePose.gazeY + emotionPose.gazeY);
+		// Physical closure is independent of the legacy expression openness value.
+		// Dividing by that value reopened a blink during shy/love expressions.
+		const renderedBlink = Math.min(blink, gesturePose.blinkOpenness, petReaction.blinkOpenness);
+		browPose.y = followBrow(browPose.y, gesturePose.browY + emotionPose.browY, delta);
+		browPose.left = followBrow(browPose.left, gesturePose.browLeftRotation + emotionPose.browLeftRotation, delta);
+		browPose.right = followBrow(browPose.right, gesturePose.browRightRotation + emotionPose.browRightRotation, delta);
+		const totalHeadRotation = idle.headRotationDeg + gesturePose.headRotation + petReaction.headRotation + emotionPose.headRotation + idleBodyFollow * 1.45 + breeze.head;
 		const secondaryScale = secondaryMotion && !reducedMotion ? 1 : 0;
 		const nodInertia = Math.max(0, gesturePose.headY);
 		const backHairLeft = backHairLeftSpring.step((-totalHeadRotation * 1.15 - nodInertia * .11 + (grabBodySway * .78 + grabInputX * -1.4) * hairLeftLever + windWave * .82 + windFlutter * .28 + petReaction.hairKick * 1.4) * secondaryScale, delta);
@@ -2691,15 +2839,16 @@ async function createSeeThroughIdleRig(canvas, options) {
 		const torsoBow = torsoBowSpring.step(((grabBodySway * .24 - grabInputX * .42) * chestLever - gesturePose.chestRotation * .12 + idleBodyFollow * .7 + petReaction.clothKick * .72) * secondaryScale, delta);
 		const frontHairLeft = frontHairLeftSpring.step((-totalHeadRotation * .42 - nodInertia * .045 + grabBodySway * .48 + grabInputX * -.75 + windWave * .32 + windFlutter * .2 + petReaction.hairKick * .74) * secondaryScale, delta);
 		const frontHairRight = frontHairRightSpring.step((-totalHeadRotation * .38 + nodInertia * .045 + grabBodySway * .5 + grabInputX * -.68 + windWave * .28 - windFlutter * .18 + petReaction.hairKick * .58) * secondaryScale, delta);
-		const ahogeRoot = ahogeRootSpring.step((-backHairLeft * .74 + grabBodySway * .34 + nodInertia * .12 + windWave * .72 + windFlutter * .52) * secondaryScale, delta);
-		const ahogeTip = ahogeTipSpring.step((-ahogeRoot * .72 + windWave * .88 + windFlutter * .72) * secondaryScale, delta);
-		const tailRoot = tailRootSpring.step((Math.sin(now / 980) * 2.3 + (grabBodySway * .48 - grabInputX * 1.4) * tailLever - gesturePose.chestRotation * .35 + petReaction.tailKick * 1.1) * secondaryScale, delta);
-		const tail1 = tail1Spring.step((Math.sin(now / 980 - .32) * 2.7 - tailRoot * .28) * secondaryScale, delta);
-		const tail2 = tail2Spring.step((Math.sin(now / 980 - .68) * 3.1 - tail1 * .22) * secondaryScale, delta);
-		const tailTip = tailTipSpring.step((Math.sin(now / 980 - 1.02) * 3.5 - tail2 * .18) * secondaryScale, delta);
+		const ahogeActing = sampleAhogeActing(transientEmotion, emotionElapsed, emotionPose.weight);
+		const ahogeRoot = ahogeRootSpring.step((-totalHeadRotation * .55 + grabBodySway * .34 + nodInertia * .12 + windWave * .9 + ahogeActing.root + petReaction.hairKick * 2) * secondaryScale, delta);
+		const ahogeTip = ahogeTipSpring.step((-ahogeRoot * .55 + windWave * 2.2 + windFlutter * 1.1 + ahogeActing.tip + petReaction.hairKick * 6) * secondaryScale, delta);
+		const tailRoot = tailRootSpring.step((Math.sin(motionTime / 980) * 2.3 + breezeBody * 1.8 + (grabBodySway * .48 - grabInputX * 1.4) * tailLever - gesturePose.chestRotation * .35 + petReaction.tailKick * 1.1) * secondaryScale, delta);
+		const tail1 = tail1Spring.step((Math.sin(motionTime / 980 - .32) * 2.7 - tailRoot * .28) * secondaryScale, delta);
+		const tail2 = tail2Spring.step((Math.sin(motionTime / 980 - .68) * 3.1 - tail1 * .22) * secondaryScale, delta);
+		const tailTip = tailTipSpring.step((Math.sin(motionTime / 980 - 1.02) * 3.5 - tail2 * .18) * secondaryScale, delta);
 		const skirtSway = skirtSwaySpring.step((gesturePose.skirtSway * .82 - gesturePose.pelvisRotation * 1.6 - gesturePose.chestRotation * .34 + (grabBodySway * 1.08 - grabInputX * 1.8) * skirtLever + idleClothWave * 2.6 + petReaction.clothKick * 1.9) * secondaryScale, delta);
-		const stanceLeft = idleMotionEnabled ? Math.sin(now / 1520 + .9) * .95 : 0;
-		const stanceRight = idleMotionEnabled ? Math.sin(now / 1710 + 2.05) * .72 : 0;
+		const stanceLeft = articulation.stanceLeft;
+		const stanceRight = articulation.stanceRight;
 		const breathScale = breathing && !reducedMotion ? 1 + idle.breath * .018 : 1;
 		const correctedPoses = [
 			{
@@ -2717,7 +2866,7 @@ async function createSeeThroughIdleRig(canvas, options) {
 				parent: "root",
 				pivotX: 640,
 				pivotY: 870,
-				x: gesturePose.pelvisX + idleBodyWave * 5.2,
+				x: gesturePose.pelvisX + idleBodyWave * 5.2 + breezeBody * 2,
 				y: -idle.breath * 2.1 + gesturePose.pelvisY + grabBodyLift * .45 + petReaction.pelvisY,
 				rotation: gesturePose.pelvisRotation + petReaction.pelvisRotation + idleBodyWave * .95 + grabBodySway * .42 * pelvisLever + manual("pelvis")
 			},
@@ -2726,7 +2875,7 @@ async function createSeeThroughIdleRig(canvas, options) {
 				parent: "pelvis",
 				pivotX: 640,
 				pivotY: 750,
-				rotation: gesturePose.waistRotation + emotionPose.waistRotation + petReaction.waistRotation - idleBodyFollow * 1.1 + grabBodySway * .5 * waistLever + manual("waist")
+				rotation: gesturePose.waistRotation + emotionPose.waistRotation + petReaction.waistRotation - idleBodyFollow * 1.1 + breeze.waist + grabBodySway * .5 * waistLever + manual("waist")
 			},
 			{
 				id: "chest",
@@ -2735,7 +2884,7 @@ async function createSeeThroughIdleRig(canvas, options) {
 				pivotY: 645,
 				scaleX: 1 + (breathScale - 1) * .55,
 				scaleY: breathScale,
-				rotation: gesturePose.chestRotation + emotionPose.chestRotation + petReaction.chestRotation + idleBodyFollow * 1.5 + grabBodySway * .72 * chestLever + manual("chest")
+				rotation: gesturePose.chestRotation + emotionPose.chestRotation + petReaction.chestRotation + (idleBodyFollow - idleBodyWave) * 1.5 + breeze.chest + grabBodySway * .72 * chestLever + manual("chest")
 			},
 			{
 				id: "torsoBow",
@@ -2769,21 +2918,21 @@ async function createSeeThroughIdleRig(canvas, options) {
 				pivotY: 548,
 				x: gesturePose.shoulderLeftX + emotionPose.shoulderLeftX,
 				y: gesturePose.shoulderLeftY + emotionPose.shoulderLeftY,
-				rotation: -idle.breath * .65 - idleBodyFollow * .72 + gesturePose.armLeftUpper + armLeftUpperFollow * 1.15 + manual("armLeftUpper")
+				rotation: -idle.breath * .25 - elbowLeft * .22 + gesturePose.armLeftUpper + armLeftUpperFollow * 1.15 + manual("armLeftUpper")
 			},
 			{
 				id: "armLeftForearm",
 				parent: "armLeftUpper",
 				pivotX: committedArmPivots.leftForearm.x,
 				pivotY: committedArmPivots.leftForearm.y,
-				rotation: gesturePose.armLeftForearm + armLeftForearmFollow * 1.65 + manual("armLeftForearm")
+				rotation: gesturePose.armLeftForearm + elbowLeft + armLeftForearmFollow * 1.25 + manual("armLeftForearm")
 			},
 			{
 				id: "handLeft",
 				parent: "armLeftForearm",
 				pivotX: 426,
 				pivotY: 775,
-				rotation: gesturePose.handLeft + manual("handLeft")
+				rotation: gesturePose.handLeft + wristLeft + manual("handLeft")
 			},
 			{
 				id: "armRightUpper",
@@ -2792,21 +2941,21 @@ async function createSeeThroughIdleRig(canvas, options) {
 				pivotY: 548,
 				x: gesturePose.shoulderRightX + emotionPose.shoulderRightX,
 				y: gesturePose.shoulderRightY + emotionPose.shoulderRightY,
-				rotation: idle.breath * .65 + idleBodyFollow * .72 + gesturePose.armRightUpper + armRightUpperFollow * 1.08 + manual("armRightUpper")
+				rotation: idle.breath * .18 - elbowRight * .22 + gesturePose.armRightUpper + armRightUpperFollow * 1.08 + manual("armRightUpper")
 			},
 			{
 				id: "armRightForearm",
 				parent: "armRightUpper",
 				pivotX: committedArmPivots.rightForearm.x,
 				pivotY: committedArmPivots.rightForearm.y,
-				rotation: gesturePose.armRightForearm + armRightForearmFollow * 1.48 + manual("armRightForearm")
+				rotation: gesturePose.armRightForearm + elbowRight + armRightForearmFollow * 1.05 + manual("armRightForearm")
 			},
 			{
 				id: "handRight",
 				parent: "armRightForearm",
 				pivotX: 831,
 				pivotY: 775,
-				rotation: gesturePose.handRight + manual("handRight")
+				rotation: gesturePose.handRight + wristRight + manual("handRight")
 			},
 			{
 				id: "legLeft",
@@ -2820,7 +2969,7 @@ async function createSeeThroughIdleRig(canvas, options) {
 				parent: "legLeft",
 				pivotX: 570,
 				pivotY: 1038,
-				rotation: legLeftLowerFollow - stanceLeft * .18 + manual("legLeftLower")
+				rotation: legLeftLowerFollow - stanceLeft * .18 + articulation.kneeLeft + manual("legLeftLower")
 			},
 			{
 				id: "legRight",
@@ -2834,7 +2983,7 @@ async function createSeeThroughIdleRig(canvas, options) {
 				parent: "legRight",
 				pivotX: 704,
 				pivotY: 1038,
-				rotation: legRightLowerFollow - stanceRight * .14 + manual("legRightLower")
+				rotation: legRightLowerFollow - stanceRight * .14 + articulation.kneeRight + manual("legRightLower")
 			},
 			{
 				id: "hairBackRoot",
@@ -2943,17 +3092,51 @@ async function createSeeThroughIdleRig(canvas, options) {
 				pivotY: pose.pivotY + offset.y
 			};
 		});
+		// Root fabric translates with the shoulder, without inheriting its arm rotation.
+		const leftShoulderPose = correctedPoses.find(p => p.id === "armLeftUpper");
+		correctedPoses.push({id:"shoulderLeftAnchor",parent:"chest",pivotX:550,pivotY:548,x:leftShoulderPose.x,y:leftShoulderPose.y,rotation:0});
 		const bones = solveBones(correctedPoses);
+		// Solve fixed ankle targets in pelvis space. Release smoothly when lifted
+		// or when an authored gesture/manual inspection owns the limbs.
+		const contactTarget = grabbed || gesture !== "none" || manualRotations.size || manualPivotOffsets.size ? 0 : 1;
+		footContact += (contactTarget - footContact) * (1 - Math.exp(-delta / 150));
+		const pelvisMatrix = bones.get("pelvis");
+		for (const [upperId, lowerId, hip, knee, ankle] of [
+			["legLeft", "legLeftLower", {x:575,y:900}, {x:570,y:1038}, {x:560,y:1144}],
+			["legRight", "legRightLower", {x:705,y:900}, {x:704,y:1038}, {x:716,y:1144}]
+		]) {
+			const target = pelvisMatrix.inverse().transformPoint(ankle);
+			const contact = solveLegContact(hip, knee, ankle, target);
+			const upperPose = correctedPoses.find(p => p.id === upperId);
+			const lowerPose = correctedPoses.find(p => p.id === lowerId);
+			const upper = pelvisMatrix.multiply(localBoneMatrix({...upperPose, rotation: upperPose.rotation * (1-footContact) + contact.upper * footContact}));
+			bones.set(upperId, upper);
+			bones.set(lowerId, upper.multiply(localBoneMatrix({...lowerPose, rotation: lowerPose.rotation * (1-footContact) + contact.lower * footContact})));
+		}
 		const bone = (id) => bones.get(id) ?? new DOMMatrix();
+		// All contributors (authored gesture, idle flex, inertia and manual pose)
+		// must use the same final local angle for volume restoration.
+		const leftElbowAngle = correctedPoses.find(p => p.id === "armLeftForearm").rotation;
+		const rightElbowAngle = correctedPoses.find(p => p.id === "armRightForearm").rotation;
 		const armLeftDeformer = createArmLeftCorrectiveDeformer({
 			...gesturePose,
-			elbowMorph: Math.max(gesturePose.elbowMorph, clamp01(Math.abs(armLeftForearmFollow) / 3.5))
+			contact: 0,
+			bendAngle: leftElbowAngle,
+			sleeveLag: wristLeft,
+			elbowMorph: clamp01(Math.abs(leftElbowAngle) / 45) * .5
 		});
+		const contactArmLeftWeights = (x, y) => armLeftWeights(x, y);
 		const armRightDeformer = createArmRightCorrectiveDeformer({
 			...gesturePose,
-			elbowMorph: Math.max(gesturePose.elbowMorph, clamp01(Math.abs(armRightForearmFollow) / 3.5))
+			sleeveLag: wristRight,
+			elbowMorph: clamp01(Math.abs(rightElbowAngle) / 45) * .5
 		});
-		const apronDeformer = (x, y) => sampleSkirtMeshDeformation(x, y, parts.skirt, skirtSway * .82);
+		// The same breeze as the hair travels across the continuous cloth; no cut panels.
+		const pressure = clothPressure.map((spring, i) => spring.step(sampleIdleWind(motionTime - i * 145).wave * 5.5 * motionIntensity * secondaryScale * (idleMotionEnabled ? 1 : 0), delta));
+		const middle = clothMiddle.map((spring, i) => spring.step(skirtSway * [1.05, .94, .98, 1.08][i] + pressure[i] * .42, delta));
+		const hem = clothHem.map((spring, i) => spring.step(middle[i] + pressure[i] * .55, delta));
+		const garmentDeformer = (x, y) => clothOffset((x - parts.skirt.x) / parts.skirt.width, (y - parts.skirt.y) / parts.skirt.height, middle, hem, pressure);
+		const apronDeformer = garmentDeformer;
 		const headMatrix = bone("head");
 		const combinedHeadPitch = gesturePose.headPitch + emotionPose.headPitch;
 		const headPitchAt = (x, y) => sampleHeadPitchDeformation(x, y, combinedHeadPitch);
@@ -2992,7 +3175,7 @@ async function createSeeThroughIdleRig(canvas, options) {
 			"lower-body": () => {
 				drawSkinnedPart(context, parts["leg-left"], bones, legLeftWeights, 7, 18, 0, 18, (x, y) => sampleLegMeshDeformation(x, y, parts["leg-left"], legLeftLowerFollow * .72, -1));
 				drawSkinnedPart(context, parts["leg-right"], bones, legRightWeights, 7, 18, 0, 18, (x, y) => sampleLegMeshDeformation(x, y, parts["leg-right"], legRightLowerFollow * .68, 1));
-				drawDeformedPart(context, parts.skirt, bone("pelvis"), (x, y) => sampleSkirtMeshDeformation(x, y, parts.skirt, skirtSway), 8, 12);
+				drawDeformedPart(context, parts.skirt, bone("pelvis"), garmentDeformer, 8, 12);
 			},
 			torso: () => {
 				drawPartClippedToDesignRect(context, parts.neck, bone("neck"), 586, 430, 84, 103);
@@ -3003,25 +3186,35 @@ async function createSeeThroughIdleRig(canvas, options) {
 				drawPart(context, parts["torso-bow"], bone("torsoBow"));
 			},
 			"arms-back": () => {
-				drawSkinnedPart(context, parts["arm-left-sleeve"], bones, armLeftWeights, 12, 32, 0, 22, armLeftDeformer);
+				if (gesturePose.hipAttachment) return;
+				drawSkinnedPart(context, parts["arm-left-sleeve"], bones, contactArmLeftWeights, 12, 32, 0, 22, armLeftDeformer);
 				drawSkinnedPart(context, parts["arm-right"], bones, armRightWeights, 10, 28, 0, 12, armRightDeformer);
 			},
 		shoes: () => {
 			// Keep the soles visually grounded while the two lower-leg links
 			// catch up independently. A small ankle counter-rotation prevents
 			// the shoes from looking glued to a swinging shin.
-			const leftAnkleTilt = -(legLeftLowerFollow - stanceLeft * 0.18) * 0.34;
-			const rightAnkleTilt = -(legRightLowerFollow - stanceRight * 0.14) * 0.34;
+			const leftAnkleTilt = -Math.atan2(bone("legLeftLower").b, bone("legLeftLower").a) * 180 / Math.PI * footContact;
+			const rightAnkleTilt = -Math.atan2(bone("legRightLower").b, bone("legRightLower").a) * 180 / Math.PI * footContact;
 			drawPartRotatedAtPivot(context, parts["shoe-left"], bone("legLeftLower"), 560, 1144, leftAnkleTilt);
 			drawPartRotatedAtPivot(context, parts["shoe-right"], bone("legRightLower"), 716, 1144, rightAnkleTilt);
 		},
 			head: () => {
 				drawDeformedPart(context, parts.face, headMatrix, headPitchAt, 6, 8);
-				const browLeftMatrix = featureMatrixAt(555, 311).translate(0, gesturePose.browY);
-				const browRightMatrix = featureMatrixAt(696, 310).translate(0, gesturePose.browY);
-				drawPartRotatedAtPivot(context, parts["brow-left"], browLeftMatrix, 555, 311, gesturePose.browLeftRotation);
-				drawPartRotatedAtPivot(context, parts["brow-right"], browRightMatrix, 696, 310, gesturePose.browRightRotation);
-				drawEmotionBrows(context, featureMatrixAt(624.5, 311), transientEmotion, emotionPose);
+				// Source brow crops contain blue pixels: never translate the rectangular
+				// crops across skin. A clean silhouette stays beneath the front hair.
+				for (const [cx, cy, angle] of [[555,311,browPose.left],[696,310,browPose.right]]) {
+					context.save();
+					applyMatrix(context, featureMatrixAt(cx, cy).translate(0,browPose.y));
+					context.translate(cx,cy);
+					context.rotate(angle*Math.PI/180);
+					context.strokeStyle="#49364b";
+					context.lineWidth=3.2;
+					context.lineCap="round";
+					context.beginPath();context.moveTo(-27,3);
+					context.quadraticCurveTo(0,-6,27,1);context.stroke();
+					context.restore();
+				}
 				drawExpressiveEye(context, parts["eye-white-left"], parts["iris-left"], parts["lash-left"], featureMatrixAt(552, 386), 552, 386, renderedBlink, renderedGazeX, renderedGazeY, "left", transientEmotion, emotionPose);
 				drawExpressiveEye(context, parts["eye-white-right"], parts["iris-right"], parts["lash-right"], featureMatrixAt(698, 386), 698, 386, renderedBlink, renderedGazeX, renderedGazeY, "right", transientEmotion, emotionPose);
 				drawEmotionEyeAccents(context, featureMatrixAt(624.5, 386), transientEmotion, emotionPose, renderedBlink);
@@ -3036,7 +3229,7 @@ async function createSeeThroughIdleRig(canvas, options) {
 				context.scale(expressionStyle.mouthScaleX * gestureMouthScaleX, expressionStyle.mouthScaleY * gestureMouthScaleY);
 				context.translate(-624.5, -440.5);
 				const emotionMouthWeight = emotionOwnsMouth ? clamp01(emotionPose.mouthWeight ?? emotionPose.weight) : 0;
-				context.globalAlpha = (1 - emotionMouthWeight) * (1 - combinedMouthOpen);
+				context.globalAlpha = (emotionMouthWeight >= .5 ? 0 : 1 - emotionMouthWeight * 2) * (1 - combinedMouthOpen);
 				context.drawImage(parts.mouth.image, parts.mouth.x, parts.mouth.y, parts.mouth.width, parts.mouth.height);
 				context.globalAlpha = 1;
 				if (combinedMouthOpen > 0) {
@@ -3070,23 +3263,45 @@ async function createSeeThroughIdleRig(canvas, options) {
 				const frontHairSplit = (frontHairLeft - frontHairRight) * .5;
 				drawDeformedPart(context, parts["hair-front"], headMatrix, (x, y) => sampleFrontHairDynamicDeformation(x, y, combinedHeadPitch, frontHairCommon, frontHairSplit, windFlutter), 12, 16);
 				drawPart(context, parts["side-bow"], headMatrix);
-				drawBentPart(context, parts.ahoge, bone("ahogeRoot"), ahogeTip * .7, 8, true);
+				drawDeformedPart(context, parts.ahoge, bone("ahogeRoot"), (x, y) => deformAhoge(x, y, ahogeTip), 6, 10);
 			},
 			"collar-ruffles": () => drawCollarSideRuffles(context, parts["collar-front"], bone("chest")),
 			hands: () => {
+				if (gesturePose.hipAttachment) return;
+				if (leftHandAttachment && gesture === "none") {
+					const a = leftHandAttachment;
+					context.save();
+					applyMatrix(context, bone("handLeft"));
+					context.drawImage(a.image, a.sx, a.sy, a.sw, a.sh, a.x, a.y, a.width, a.height);
+					context.restore();
+					return;
+				}
 				const palmFlip = Math.cos(gesturePose.wavePalm * Math.PI);
 				const clockwiseTurn = 90 * gesturePose.wavePalm;
 				const edgeOnScale = .075;
 				// Both PNGs share the full arm canvas, but their alpha channels are
 				// complementary: the sleeve file stops at the cuff and this file only
-				// contains the hand. Keep that hand rigidly on the forearm so the arm
-				// remains a two-link upper-arm/forearm chain while reconstructing the
-				// complete approved silhouette.
-				if (gesturePose.wavePalm <= .5) drawPart(context, parts["hand-left-rest-side"], bone("armLeftForearm"));
+				// contains the hand. Pin its cuff edge to the forearm and blend into
+				// the wrist control over a narrow band, preserving the attachment.
+				if (gesturePose.wavePalm <= .5) drawSkinnedPart(context, parts["hand-left-rest-side"], bones, (x,y) => {
+					const hand = wristWeight(x,y,"left");
+					return [["armLeftForearm",1-hand],["handLeft",hand]];
+				}, 12, 32, 24, 32);
 				else drawPartScaledAtPivot(context, parts["hand-left-wave-front"], bone("armLeftForearm"), waveFrontPalmPlacement.targetX, waveFrontPalmPlacement.targetY, Math.max(edgeOnScale, -palmFlip), clockwiseTurn + gesturePose.handLeft + waveFrontPalmPlacement.rotationOffset, waveFrontPalmPlacement.mirrorAxis, waveFrontPalmPlacement.sourceWristX, waveFrontPalmPlacement.sourceWristY);
 			},
 			"arms-front": () => {
-				drawSkinnedPart(context, parts["arm-left-sleeve"], bones, armLeftWeights, 12, 32, 22, 32, armLeftDeformer);
+				if (gesturePose.hipAttachment) {
+					context.save();
+					applyMatrix(context, bone("chest"));
+					const attachment = parts["arm-hip"];
+					drawPart(context, attachment, new DOMMatrix());
+					context.translate(1256, 0);
+					context.scale(-1, 1);
+					drawPart(context, attachment, new DOMMatrix());
+					context.restore();
+					return;
+				}
+				drawSkinnedPart(context, parts["arm-left-sleeve"], bones, contactArmLeftWeights, 12, 32, 22, 32, armLeftDeformer);
 				drawSkinnedPart(context, parts["arm-right"], bones, armRightWeights, 10, 28, 12, 28, armRightDeformer);
 			}
 		};
@@ -3117,13 +3332,27 @@ async function createSeeThroughIdleRig(canvas, options) {
 		}
 		context.restore();
 		canvas.dataset.grabPointX = grabPointX.toFixed(3);
+		canvas.dataset.wristLeft = wristLeft.toFixed(4);
+		canvas.dataset.elbowLeft = elbowLeft.toFixed(3);
+		canvas.dataset.elbowRight = elbowRight.toFixed(3);
+		canvas.dataset.elbowLeftAngle = leftElbowAngle.toFixed(3);
+		canvas.dataset.elbowRightAngle = rightElbowAngle.toFixed(3);
+		canvas.dataset.wristRight = wristRight.toFixed(4);
+		canvas.dataset.hipAttachment = gesturePose.hipAttachment ? "active" : "rest";
 		canvas.dataset.grabPointY = grabPointY.toFixed(3);
 		canvas.dataset.idleBodyWave = idleBodyWave.toFixed(3);
 		canvas.dataset.idleBodyFollow = idleBodyFollow.toFixed(3);
 		canvas.dataset.idleClothWave = idleClothWave.toFixed(3);
 		canvas.dataset.idleAccent = idleAccent.toFixed(3);
+		canvas.dataset.idleGazeX = idleGazeX.toFixed(3);
+		canvas.dataset.idleHeadGazeX = headGazeX.toFixed(3);
+		canvas.dataset.idlePointerWeight = pointerWeight.toFixed(3);
+		canvas.dataset.idleMotionTime = motionTime.toFixed(1);
 		canvas.dataset.motionIntensity = motionIntensity.toFixed(2);
 		canvas.dataset.windWave = windWave.toFixed(3);
+		canvas.dataset.breezeBody = breezeBody.toFixed(3);
+		canvas.dataset.breezeChest = breezeChest.toFixed(3);
+		canvas.dataset.breezeHead = breezeHead.toFixed(3);
 		canvas.dataset.windFlutter = windFlutter.toFixed(3);
 		canvas.dataset.backHairMode = "continuous-five-zone-mesh";
 		canvas.dataset.frontHairCommon = ((frontHairLeft + frontHairRight) * .5).toFixed(3);
@@ -3136,6 +3365,14 @@ async function createSeeThroughIdleRig(canvas, options) {
 		canvas.dataset.petEarKick = petReaction.earKick.toFixed(3);
 		canvas.dataset.petBlush = petReaction.blush.toFixed(3);
 		canvas.dataset.affectionBlush = heldBlush.toFixed(3);
+		canvas.dataset.lidOpenness = renderedBlink.toFixed(4);
+		const diagnosticSquint = emotionPose.active && roundedSquintEmotionNames.has(transientEmotion)
+			? resolveSquintEyeClosure(transientEmotion, emotionPose.lashWeight) : 0;
+		canvas.dataset.eyeLeftOpenness = Math.min(1 - diagnosticSquint, renderedBlink * emotionPose.eyeBlinkBeatLeft).toFixed(4);
+		canvas.dataset.eyeRightOpenness = Math.min(1 - diagnosticSquint, renderedBlink * emotionPose.eyeBlinkBeatRight).toFixed(4);
+		canvas.dataset.browY = browPose.y.toFixed(4);
+		canvas.dataset.browLeft = browPose.left.toFixed(4);
+		canvas.dataset.browRight = browPose.right.toFixed(4);
 		canvas.dataset.emotion = emotionPose.active ? transientEmotion : "neutral";
 		canvas.dataset.emotionWeight = emotionPose.weight.toFixed(3);
 		canvas.dataset.emotionElapsed = Number.isFinite(emotionElapsed) ? emotionElapsed.toFixed(1) : "inf";
@@ -3184,6 +3421,7 @@ async function createSeeThroughIdleRig(canvas, options) {
 	frame = requestAnimationFrame(animate);
 	return {
 		setPointer(x, y) {
+			pointerChangedAt = performance.now();
 			pointerX = clampPointer(x);
 			pointerY = clampPointer(y);
 		},
@@ -3262,6 +3500,10 @@ async function createSeeThroughIdleRig(canvas, options) {
 		setMotionIntensity(value) {
 			motionIntensity = Math.max(.5, Math.min(2.5, Number(value) || 1));
 		},
+		setLeftHandAttachment(value) {
+			leftHandAttachment = value;
+			canvas.dataset.leftHandAttachment = value ? "custom" : "original";
+		},
 		setDebug(value) {
 			debug = value;
 		},
@@ -3316,4 +3558,4 @@ const seeThroughBoneOptions = Object.entries(boneLabels).map(([id, label]) => ({
 
 //#endregion
 
-export { createSeeThroughIdleRig, resolveEmotionActingWeights, resolveEmotionFaceLayerPlan, resolveSquintEyeClosure, sampleAuthoredLashDeformation, seeThroughBoneOptions }
+export { createSeeThroughIdleRig, resolveEmotionActingWeights, resolveEmotionIdleScale, resolveEmotionFaceLayerPlan, resolveSquintEyeClosure, sampleAuthoredLashDeformation, seeThroughBoneOptions }

@@ -102,7 +102,7 @@ export function createWhaleAssetHandler(catalog: AssetCatalog) {
     }
     const headers: Record<string, string> = {
       'accept-ranges': asset.contentType === 'video/webm' ? 'bytes' : 'none',
-      'cache-control': 'public, max-age=86400',
+      'cache-control': asset.contentType.startsWith('application/json') ? 'no-cache' : 'public, max-age=86400',
       'content-type': asset.contentType,
       'cross-origin-resource-policy': 'same-origin',
       etag: asset.etag,

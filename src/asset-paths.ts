@@ -24,6 +24,7 @@ const idleFiles = [
   'collar-front.png',
   'human-ears.png',
   'arm-left-sleeve.png',
+  'arm-hip-v1.png',
   'hand-left-rest-side.png',
   'hand-left-wave-front.png',
   'arm-right.png',

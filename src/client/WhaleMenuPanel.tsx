@@ -117,6 +117,7 @@ export function WhaleMenuPanel(props: WhaleMenuPanelProps): React.JSX.Element {
   const [balanceRefreshState, setBalanceRefreshState] = useState<'idle' | 'refreshing' | 'done'>('idle')
   const [offset, setOffset] = useState<PanelOffset>({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
+  const [panelHeight, setPanelHeight] = useState(0)
   const [interactionHistory, setInteractionHistory] = useState<InteractionRecord[]>([])
   const panelRef = useRef<HTMLElement>(null)
   const previousSide = useRef(props.side)
@@ -142,6 +143,7 @@ export function WhaleMenuPanel(props: WhaleMenuPanelProps): React.JSX.Element {
     const keepInsideViewport = (): void => {
       const panel = panelRef.current
       if (panel === null) return
+      setPanelHeight(panel.offsetHeight)
       setOffset(current => clampPanelOffset(panel.getBoundingClientRect(), current, {
         width: window.innerWidth,
         height: window.innerHeight,
@@ -169,13 +171,17 @@ export function WhaleMenuPanel(props: WhaleMenuPanelProps): React.JSX.Element {
     setOffset(current => ({ x: current.x + boundedX, y: current.y + boundedY }))
   }
 
+  const toggleLeft = props.anchor.left + props.anchor.width * 0.72
   const anchorStyle = {
+    '--menu-toggle-left': `${toggleLeft}px`,
+    '--menu-toggle-top': `${props.anchor.top + 10}px`,
     '--menu-anchor-left': `${props.anchor.left}px`,
     '--menu-anchor-top': `${props.anchor.top}px`,
     '--menu-anchor-width': `${props.anchor.width}px`,
     '--menu-anchor-height': `${props.anchor.height}px`,
     '--menu-x': `${offset.x}px`,
     '--menu-y': `${offset.y}px`,
+    '--menu-panel-height': `${panelHeight}px`,
   } as React.CSSProperties
 
   const recordInteraction = (kind: InteractionKind): void => {
@@ -314,7 +320,14 @@ export function WhaleMenuPanel(props: WhaleMenuPanelProps): React.JSX.Element {
         </div>
 
         <div data-whale-menu-view data-active={tab === 'emotion' ? 'true' : 'false'}>
-          <h3>角色演出</h3><p>旧测试版的视频动作已经接回，播放完会平滑回到当前待机状态。</p>
+          <h3>角色演出</h3><p>图片动作保留实时表情与头发摆动；经典动作使用视频。</p>
+          <div data-whale-performance-list>
+            {IDLE_PERFORMANCES.filter(item => item.gesture !== undefined).map(performance => (
+              <button type="button" key={performance.id} aria-label={`立即${performance.label}`} onClick={() => props.onIdlePerformance(performance)}>
+                <span><strong>{performance.label}</strong><small>双手扶腰 · 点击立即演示</small></span><em>图片动作</em>
+              </button>
+            ))}
+          </div>
           <div data-whale-acting-switch role="tablist" aria-label="演出类型">
             <button type="button" role="tab" aria-selected={actingView === 'video'} data-active={actingView === 'video' ? 'true' : 'false'} onClick={() => setActingView('video')}>经典动作</button>
             <button type="button" role="tab" aria-selected={actingView === 'performance'} data-active={actingView === 'performance' ? 'true' : 'false'} onClick={() => setActingView('performance')}>待机小剧场</button>

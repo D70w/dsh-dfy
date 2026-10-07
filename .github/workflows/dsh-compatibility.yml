@@ -36,6 +36,7 @@ jobs:
         shell: pwsh
         env:
           WHALE_LIFECYCLE_PORT: '3137'
+          WHALE_FIRST_EXPERIENCE: '1'
         run: |
           $env:WHALE_DSH_CLI = Join-Path $env:RUNNER_TEMP 'dsh-cli\node_modules\@deepseek-ai\dsh\lib\bin.js'
           npm pack --pack-destination $env:RUNNER_TEMP

@@ -39,8 +39,8 @@ describe('emotion-specific visual language', () => {
     act(() => {
       root.render(<WhaleEmotionFx command={{ id: 9, name: 'angry', durationMs: 2800 }} />)
     })
-    expect(container.querySelector('.anger-mark')).not.toBeNull()
-    expect(container.querySelector('[data-whale-anger-mark]')).not.toBeNull()
+    expect(container.querySelectorAll('[data-whale-angry-burst]')).toHaveLength(1)
+    expect(container.querySelector('.anger-mark')).toBeNull()
     expect(container.querySelector('.anger')).toBeNull()
     expect(container.textContent).not.toContain('💢')
     act(() => root.unmount())

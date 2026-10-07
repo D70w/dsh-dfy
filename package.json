@@ -1,7 +1,7 @@
 {
   "name": "dsh-dfy",
   "description": "A low-interruption Big Fat Fish companion plugin for the DeepSeek Harness web workspace",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "keywords": [
     "deepseek",
     "dsh",
@@ -57,6 +57,8 @@
   },
   "scripts": {
     "build": "node scripts/clean.mjs && tsc -b && tsdown",
+    "build:demo": "tsc -p tsconfig.demo.json && node scripts/build-demo.mjs",
+    "demo": "node scripts/serve-demo.mjs",
     "clean": "node scripts/clean.mjs",
     "prepare": "npm run build",
     "test": "vitest run",
@@ -115,12 +117,11 @@
     "@deepseek-ai/dsh-client-ui-session": { "optional": true },
     "@deepseek-ai/dsh-client-ui-settings": { "optional": true },
     "@deepseek-ai/dsh-client-ui-slots": { "optional": true },
-    "@deepseek-ai/dsh-credentials": { "optional": true },
     "@deepseek-ai/dsh-invariants": { "optional": true },
     "@deepseek-ai/dsh-host-webserver": { "optional": true },
     "@deepseek-ai/dsh-session": { "optional": true },
     "@deepseek-ai/dsh-session-projection": { "optional": true },
-    "@deepseek-ai/dsh-storage-domain": { "optional": true }
+    "@deepseek-ai/dsh-storage-domain": { "optional": false }
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",

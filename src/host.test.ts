@@ -44,7 +44,7 @@ describe('whale-pet Host half', () => {
     const asset = await fetch(`${base}/${WHALE_IDLE_MANIFEST_FILE}`)
     expect(asset.status).toBe(200)
     expect(asset.headers.get('content-type')).toBe('application/json; charset=utf-8')
-    expect(asset.headers.get('cache-control')).toContain('max-age=86400')
+    expect(asset.headers.get('cache-control')).toBe('no-cache')
     expect(asset.headers.get('x-content-type-options')).toBe('nosniff')
     const etag = asset.headers.get('etag')
     expect(etag).toMatch(/^"sha256-[0-9a-f]{64}"$/)

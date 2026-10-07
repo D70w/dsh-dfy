@@ -1,5 +1,5 @@
 export type ApprovedExpression = 'neutral' | 'smug' | 'happy'
-export type ApprovedGesture = 'none' | 'wave' | 'nod' | 'tilt' | 'inspect' | 'type' | 'write'
+export type ApprovedGesture = 'none' | 'wave' | 'nod' | 'tilt' | 'inspect' | 'type' | 'write' | 'hands-on-hips'
 export type ApprovedEmotion =
   | 'neutral' | 'love' | 'shy' | 'angry' | 'surprise' | 'sad' | 'happy'
   | 'confused' | 'pout' | 'sleepy' | 'proud' | 'excited' | 'mischievous'
@@ -14,6 +14,8 @@ export interface ApprovedIdleRigOptions {
 }
 
 export interface ApprovedIdleRigController {
+  /** Optional hand study attachment; null restores the original open palm. */
+  setLeftHandAttachment(value: null | { image: HTMLImageElement; sx: number; sy: number; sw: number; sh: number; x: number; y: number; width: number; height: number }): void
   setPointer(x: number, y: number): void
   setExternalMotion(x: number, y: number): void
   setGrabPoint(x: number, y: number): void
@@ -78,3 +80,5 @@ export function resolveSquintEyeClosure(
   emotionName: string,
   lashWeight: number,
 ): number
+
+export function resolveEmotionIdleScale(name: string, weight: number): number

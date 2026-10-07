@@ -1,5 +1,23 @@
-import { describe, expect, it } from 'vitest'
-import { resolveActionVideo, resolveAnimationProfile, resolveGrabMotionInput, resultSafeGesture, shouldPauseLive2d, workReactionEmotion, workToolMotion } from './WhaleRenderer.tsx'
+import { describe, expect, it, vi } from 'vitest'
+import { applyAmbientGesture, resolveActionVideo, resolveAnimationProfile, resolveGrabMotionInput, resultSafeGesture, shouldPauseLive2d, workReactionEmotion, workToolMotion } from './WhaleRenderer.tsx'
+import type { ApprovedIdleRigController, ApprovedGesture } from './see-through-rig/approved-idle-runtime.js'
+
+it('protects a manual image pose from work updates, then resumes work after completion', () => {
+  let gesture: ApprovedGesture = 'hands-on-hips'
+  const controller = {
+    getState: () => ({ gesture } as ReturnType<ApprovedIdleRigController['getState']>),
+    stopGesture: vi.fn(), setGestureSpeed: vi.fn(), playGesture: vi.fn(),
+  }
+  applyAmbientGesture(controller, 'nod', .72)
+  applyAmbientGesture(controller, 'inspect', .72)
+  applyAmbientGesture(controller, undefined, 1)
+  expect(controller.stopGesture).not.toHaveBeenCalled()
+  expect(controller.playGesture).not.toHaveBeenCalled()
+  expect(controller.setGestureSpeed).not.toHaveBeenCalled()
+  gesture = 'none'
+  applyAmbientGesture(controller, 'inspect', .72)
+  expect(controller.playGesture).toHaveBeenCalledWith('inspect')
+})
 
 describe('approved desktop runtime quality policy', () => {
   it('keeps capable desktop devices on the high-quality realtime renderer', () => {

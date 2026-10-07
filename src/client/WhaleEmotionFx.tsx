@@ -6,6 +6,7 @@ export interface WhaleEmotionCommand {
   name: WhaleEmotionName
   durationMs: number
   originX?: number
+  gesture?: 'hands-on-hips'
 }
 
 interface ParticlePlacement {
@@ -21,12 +22,12 @@ function AngerMarkIcon(): React.JSX.Element {
   return (
     <svg className="anger-mark-icon" data-whale-anger-mark viewBox="0 0 100 100" aria-hidden="true">
       <g fill="#e52338" stroke="#211a27" strokeWidth="7" strokeLinejoin="round">
-        <path d="M17 30 30 17l22 22-11 11-10-10-6 6Z" />
-        <path d="m70 17 13 13-22 22-11-11 10-10-6-6Z" />
-        <path d="m17 70 13-13 22 22-11 11-10-10-6 6Z" />
-        <path d="m70 83-13-13 22-22 11 11-10 10 6 6Z" />
+        <path d="M13 33H33V13H44V44H13Z" />
+        <path d="M56 13H67V33H87V44H56Z" />
+        <path d="M13 56H44V87H33V67H13Z" />
+        <path d="M56 56H87V67H67V87H56Z" />
       </g>
-      <path d="M45 45 55 55M55 45 45 55" stroke="#fff0e9" strokeWidth="3.5" strokeLinecap="round" opacity=".9" />
+      <path d="M18 36H36V18M62 18V36H82" fill="none" stroke="#ff9b97" strokeWidth="2" strokeLinecap="round" />
     </svg>
   )
 }
@@ -83,6 +84,8 @@ function SadRainCloudIcon({ id }: { id: number }): React.JSX.Element {
         <path d="M24 66c-10-2-16-10-14-20 2-9 10-14 20-13 3-14 15-23 29-20 8-10 24-11 34-2 7 6 10 14 9 23 11 0 19 8 18 18-1 9-8 15-18 15H29l-5-1Z" />
       </g>
       <path className="sad-cloud-highlight" d="M28 39c7-8 16-9 25-5 7-12 20-15 31-8" />
+      <path d="M19 53c8 9 19 6 24 2 10 10 23 9 31 3 13 7 27 5 36-3" fill="none" stroke="#d8e3f3" strokeOpacity=".28" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M24 62c20 6 63 6 80-1" fill="none" stroke="#394b69" strokeOpacity=".3" strokeWidth="3" strokeLinecap="round" />
       <g className="sad-rain-drops">
         <path d="M37 74c-7 9-8 14-3 17 5 3 10-1 9-6-1-4-3-7-6-11Z" />
         <path d="M63 76c-7 10-8 15-3 18 5 3 11-1 10-7-1-4-4-8-7-11Z" />
@@ -176,6 +179,7 @@ function ProudCrownIcon({ id }: { id: number }): React.JSX.Element {
       <path className="proud-crown-shadow" d="M20 68c16 8 56 8 72 0" />
       <path className="proud-crown-body" fill={`url(#${gradientId})`} d="M18 25 39 42l17-29 17 29 22-17-8 42H26l-8-42Z" />
       <path className="proud-crown-band" d="M27 56h59l-2 14H30l-3-14Z" />
+      <path d="m25 31 13 17 18-27 17 27 15-17M31 59h50" fill="none" stroke="#fff7c9" strokeWidth="2.4" strokeLinecap="round" opacity=".8" />
       <g className="proud-crown-jewels"><circle cx="40" cy="62" r="4" /><path d="m56 56 6 6-6 6-6-6 6-6Z" /><circle cx="72" cy="62" r="4" /></g>
       <path className="proud-crown-glint" d="m85 12 2 7 7 2-7 2-2 7-2-7-7-2 7-2 2-7Z" />
     </svg>
@@ -186,6 +190,7 @@ function DeterminedTargetIcon(): React.JSX.Element {
   return (
     <svg className="emotion-scene-icon determined-target-icon" data-whale-determined-target viewBox="0 0 100 100" aria-hidden="true">
       <g className="determined-target-rings"><circle cx="45" cy="55" r="31" /><circle cx="45" cy="55" r="20" /><circle cx="45" cy="55" r="8" /></g>
+      <path d="M20 48a26 26 0 0 1 27-19" fill="none" stroke="#fff" strokeWidth="3" opacity=".8" strokeLinecap="round" />
       <g className="determined-target-arrow"><path d="M79 14 48 52" /><path d="m72 14 14-4-3 14M50 50l-5 5" /></g>
       <path className="determined-target-glint" d="m80 58 2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6Z" />
     </svg>
@@ -206,6 +211,7 @@ function RelievedTeaIcon({ id }: { id: number }): React.JSX.Element {
       <path className="relieved-tea-cup" fill={`url(#${gradientId})`} d="M18 39h65c-1 25-11 37-31 38-21-1-32-13-34-38Z" />
       <path className="relieved-tea-rim" d="M18 39c12 8 52 8 65 0" /><path className="relieved-tea-handle" d="M82 45c21-3 22 22 3 23" />
       <path className="relieved-tea-wave" d="M36 59c5-5 10-5 15 0 5 5 10 5 15 0" />
+      <path d="M26 49c2 11 7 17 14 20M26 80c14 4 34 4 48 0" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" opacity=".8" />
     </svg>
   )
 }
@@ -225,6 +231,7 @@ function PoutTissueBoxIcon({ id }: { id: number }): React.JSX.Element {
       <path className="pout-tissue-box" fill={`url(#${gradientId})`} d="M17 48 30 35h53l13 13-8 29H25l-8-29Z" />
       <path className="pout-tissue-slot" d="M40 43c8-5 24-5 32 0" />
       <path className="pout-tissue-wave" d="M35 62c5-5 10-5 15 0 5 5 10 5 15 0" />
+      <path d="m25 51 5 20M33 50h47M62 23l5 14" fill="none" stroke="#f5f8ff" strokeWidth="2.2" strokeLinecap="round" opacity=".85" />
     </svg>
   )
 }
@@ -242,6 +249,7 @@ function SurpriseBellIcon({ id }: { id: number }): React.JSX.Element {
         <path className="surprise-bell-handle" d="M43 20c0-12 18-12 18 0" />
         <path className="surprise-bell-shell" fill={`url(#${gradientId})`} d="M52 18c-17 0-25 13-26 31-1 11-5 17-10 23h72c-6-7-9-13-10-23-1-18-10-31-26-31Z" />
         <path className="surprise-bell-rim" d="M18 72c16 7 52 7 68 0" />
+        <path d="M43 28c-8 3-10 12-11 24M25 69h53" fill="none" stroke="#fff7cd" strokeWidth="3" strokeLinecap="round" />
         <circle className="surprise-bell-clapper" cx="52" cy="79" r="7" />
       </g>
       <g className="surprise-bell-rings" fill="none" strokeLinecap="round"><path d="M18 28c-8 8-10 18-7 28" /><path d="M86 28c8 8 10 18 7 28" /></g>
@@ -264,6 +272,7 @@ function MischiefBoxIcon({ id }: { id: number }): React.JSX.Element {
       <g className="mischief-box-lid"><path d="m18 41 63-19 13 17-64 19-12-17Z" /><path d="m42 34 7-2M69 26l7-2" /></g>
       <path className="mischief-box-body" fill={`url(#${gradientId})`} d="M24 56h65l-7 31H31l-7-31Z" />
       <path className="mischief-box-ribbon" d="M53 56h12l-3 31H51l2-31Z" />
+      <path d="m29 60 5 21M69 60h14M33 44l43-13" fill="none" stroke="#eee1ff" strokeWidth="2.4" strokeLinecap="round" opacity=".7" />
     </svg>
   )
 }
@@ -286,6 +295,7 @@ function ExcitedGiftIcon({ id }: { id: number }): React.JSX.Element {
       <path className="excited-gift-body" fill={`url(#${gradientId})`} d="M21 44h70v43H21V44Z" />
       <path className="excited-gift-lid" d="M16 39h80v14H16V39Z" />
       <path className="excited-gift-ribbon" d="M49 39h14v48H49V39Z" />
+      <path d="M25 57v24M21 43h24M67 43h23M53 55v27" fill="none" stroke="#fff9d9" strokeWidth="2.2" strokeLinecap="round" opacity=".8" />
     </svg>
   )
 }
@@ -294,12 +304,12 @@ function AngryBurstIcon(): React.JSX.Element {
   return (
     <svg className="emotion-scene-icon angry-burst-icon" data-whale-angry-burst viewBox="0 0 112 104" aria-hidden="true">
       <g className="angry-burst-shards" fill="#e52338" stroke="#211a27" strokeWidth="6" strokeLinejoin="round">
-        <path d="M18 31 32 17l24 23-12 12-11-11-7 7Z" />
-        <path d="m76 17 15 14-24 23-12-12 11-11-7-7Z" />
-        <path d="m18 75 14-15 24 24-12 12-11-11-7 7Z" />
-        <path d="m76 91-15-14 24-24 12 12-11 11 7 7Z" />
+        <path d="M18 35H37V16H49V47H18Z" />
+        <path d="M61 16H73V35H92V47H61Z" />
+        <path d="M18 59H49V90H37V71H18Z" />
+        <path d="M61 59H92V71H73V90H61Z" />
       </g>
-      <path d="M47 47 57 57M57 47 47 57" stroke="#fff0e9" strokeWidth="3.2" strokeLinecap="round" opacity=".9" />
+      <path d="M23 39H41V21M66 21V39H87" fill="none" stroke="#ffb0a3" strokeWidth="2.5" strokeLinecap="round" />
       <path className="angry-burst-steam" d="M89 10c8 5 7 12 1 16M101 20c6 5 4 11-2 14" />
     </svg>
   )
@@ -329,6 +339,7 @@ function ShyFanIcon({ id }: { id: number }): React.JSX.Element {
       <path className="shy-fan-ribs" d="M56 77 19 27c18-10 39-13 59-4 15 7 22 17 24 26L56 77Z" fill={`url(#${gradientId})`} />
       <path className="shy-fan-rib" d="M56 77 19 27M56 77l1-55M56 77l22-48M56 77l46-28" />
       <path className="shy-fan-handle" d="m53 72 10 13" />
+      <path d="M26 30c25-9 51-2 66 16M54 72l-1-40" fill="none" stroke="#fff3f8" strokeWidth="2" opacity=".8" />
       <path className="shy-fan-heart" d="m83 17 4 6 7 1-5 5 1 7-7-3-7 3 1-7-5-5 7-1 4-6Z" />
     </svg>
   )
@@ -356,6 +367,7 @@ function SleepyMoonIcon({ id }: { id: number }): React.JSX.Element {
       <path className="sleepy-moon-body" fill={`url(#${gradientId})`} d="M76 18c-8 2-15 10-15 20 0 14 11 25 25 25 4 0 8-1 11-3-5 10-15 16-27 16-17 0-31-13-31-30S52 15 69 15c3 0 5 1 7 3Z" />
       <path className="sleepy-moon-star" d="m29 16 3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8Z" />
       <path className="sleepy-moon-zzz" d="M78 20h20l-20 17h20M83 45h13l-13 12h13" />
+      <path d="M51 30c-9 17-3 32 10 38" fill="none" stroke="#fff9df" strokeWidth="2.5" strokeLinecap="round" opacity=".8" />
     </svg>
   )
 }
@@ -363,12 +375,15 @@ function SleepyMoonIcon({ id }: { id: number }): React.JSX.Element {
 function NervousChecklistIcon({ id }: { id: number }): React.JSX.Element {
   const gradientId = `whale-nervous-checklist-${id}`
   return (
-    <svg className="emotion-scene-icon nervous-checklist-icon" data-whale-nervous-checklist viewBox="0 0 114 96" aria-hidden="true">
-      <defs><linearGradient id={gradientId} x1="24" y1="18" x2="85" y2="82" gradientUnits="userSpaceOnUse"><stop stopColor="#ffffff" /><stop offset=".62" stopColor="#dce8fa" /><stop offset="1" stopColor="#a3b8dc" /></linearGradient></defs>
-      <ellipse className="nervous-checklist-shadow" cx="57" cy="85" rx="36" ry="5" />
-      <g className="nervous-checklist-board"><rect x="22" y="15" width="70" height="68" rx="9" fill={`url(#${gradientId})`} /><rect x="42" y="9" width="30" height="13" rx="6" fill="#8fa5cf" /><path d="m32 37 5 5 8-10M32 56l5 5 8-10M32 73l5 5 8-10" /><path d="M52 38h27M52 57h23M52 75h18" /></g>
-      <path className="nervous-checklist-sweat" d="M98 24c-8 10-9 15-3 18 6 2 11-3 9-9-1-3-3-6-6-9Z" />
-      <path className="nervous-checklist-alert" d="M92 53v14M92 73h.1" />
+    <svg className="emotion-scene-icon nervous-checklist-icon" data-whale-nervous-checklist data-whale-nervous-sweat viewBox="0 0 114 96" aria-hidden="true">
+      <defs><linearGradient id={gradientId} x1="35" y1="20" x2="72" y2="76" gradientUnits="userSpaceOnUse"><stop stopColor="#e8faff" /><stop offset=".5" stopColor="#8bdcf2" /><stop offset="1" stopColor="#3e9bcc" /></linearGradient></defs>
+      <g className="nervous-sweat-main">
+        <path d="M57 12C52 28 31 45 31 59a26 24 0 0 0 52 0C83 44 63 27 57 12Z" fill={`url(#${gradientId})`} stroke="#4382ae" strokeWidth="2.8" />
+        <path d="M47 38c-9 10-12 20-8 26" fill="none" stroke="#fff" strokeWidth="5" strokeLinecap="round" opacity=".9" />
+        <path d="M49 75c9 4 21-1 25-10" fill="none" stroke="#b5edfa" strokeWidth="2.5" strokeLinecap="round" />
+      </g>
+      <path className="nervous-checklist-sweat" d="M92 30c-8 10-9 15-3 18 6 2 11-3 9-9-1-3-3-6-6-9Z" />
+      <path d="m20 18 8 9M14 34l10 3" fill="none" stroke="#8ea4c7" strokeWidth="3" strokeLinecap="round" />
     </svg>
   )
 }
@@ -419,9 +434,9 @@ function EmotionSceneProp({ command }: { command: WhaleEmotionCommand }): React.
     angry: { x: '74%', y: '14%', width: 78, height: 72 },
     confused: { x: '74%', y: '16%', width: 76, height: 68 },
     sleepy: { x: '73%', y: '12%', width: 82, height: 64 },
-    nervous: { x: '73%', y: '22%', width: 80, height: 68 },
+    nervous: { x: '72%', y: '18%', width: 62, height: 58 },
     hungry: { x: '71%', y: '16%', width: 92, height: 76 },
-    sad: { x: '77%', y: '15%', width: 96, height: 80 },
+    sad: { x: '74%', y: '14%', width: 84, height: 70 },
     happy: { x: '77%', y: '14%', width: 78, height: 76 },
     proud: { x: '74%', y: '14%', width: 80, height: 62 },
     determined: { x: '76%', y: '18%', width: 68, height: 68 },
@@ -437,6 +452,8 @@ function EmotionSceneProp({ command }: { command: WhaleEmotionCommand }): React.
     '--fx-x': layout.x, '--fx-y': layout.y,
     '--fx-duration': `${Math.max(900, command.durationMs)}ms`,
     '--prop-width': `${layout.width}px`, '--prop-height': `${layout.height}px`,
+    // Let the character register the feeling before its visual metaphor arrives.
+    animationDelay: `${command.name === 'surprise' ? 60 : command.name === 'sad' ? 420 : command.name === 'sleepy' || command.name === 'relieved' ? 320 : 160}ms`,
   } as React.CSSProperties
   return (
     <i className={`emotion-scene-prop emotion-scene-prop-${command.name}`} style={style}>
@@ -478,9 +495,9 @@ function placement(name: WhaleEmotionName, index: number, count: number, originX
     size = [17, 12, 8][index] ?? 8
     className = index === 0 ? 'sweat-bead' : 'sweat-trail'
   } else if (name === 'shy') {
-    x = 50 + side * (9 + tier * 5)
-    y = 31 + tier * 4
-    size = 21 + index % 2 * 3
+    x = 50 + side * (23 + tier * 3)
+    y = 33 + tier * 4
+    size = 15 + index % 2 * 2
   } else if (name === 'relieved') {
     x = 50 + side * 11
     y = 31 + index * 4

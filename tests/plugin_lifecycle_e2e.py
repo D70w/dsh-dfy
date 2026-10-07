@@ -1,16 +1,19 @@
 import os
 from pathlib import Path
 import re
+import queue
 import signal
 import socket
 import subprocess
 import sys
 import tempfile
 import time
+import threading
+from collections import deque
 from urllib.error import HTTPError
 from urllib.request import urlopen
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError as BrowserTimeout
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -81,6 +84,15 @@ def start_web(environment: dict[str, str]) -> subprocess.Popen[bytes]:
         stdout=subprocess.PIPE if EXTERNAL_CLI else None,
         stderr=subprocess.STDOUT if EXTERNAL_CLI else None,
     )
+    startup_lines: queue.Queue[str] = queue.Queue()
+    process.whale_logs = deque(maxlen=80)
+    if EXTERNAL_CLI and process.stdout:
+        def drain_output() -> None:
+            for raw in process.stdout:
+                line = raw.decode('utf-8', errors='replace')
+                process.whale_logs.append(line)
+                startup_lines.put(line)
+        threading.Thread(target=drain_output, daemon=True).start()
     deadline = time.monotonic() + 70
     while not port_open():
         if process.poll() is not None:
@@ -90,11 +102,19 @@ def start_web(environment: dict[str, str]) -> subprocess.Popen[bytes]:
             raise TimeoutError("isolated DSH did not listen within 70 seconds")
         time.sleep(0.25)
     if EXTERNAL_CLI and process.stdout:
-        line = process.stdout.readline().decode("utf-8", errors="replace")
-        match = re.search(r"http://127\.0\.0\.1:\d+/\?token=[A-Za-z0-9_-]+", line)
-        if not match:
-            raise RuntimeError("DSH did not emit its authenticated Web URL")
-        environment["WHALE_E2E_BASE_URL"] = match.group(0)
+        deadline = time.monotonic() + 15
+        while time.monotonic() < deadline:
+            try:
+                line = startup_lines.get(timeout=.25)
+            except queue.Empty:
+                continue
+            match = re.search(r"http://127\.0\.0\.1:\d+/\?token=[A-Za-z0-9_-]+", line)
+            if match:
+                environment["WHALE_E2E_BASE_URL"] = match.group(0)
+                break
+        else:
+            stop_process_tree(process)
+            raise RuntimeError("DSH did not emit its authenticated Web URL; check that the CLI meets the plugin's minimum DSH version")
     return process
 
 
@@ -128,6 +148,9 @@ with tempfile.TemporaryDirectory(prefix="dsh-whale-lifecycle-", ignore_cleanup_e
     else:
         run_cli(environment, "plugin", "--profile", "web", "add", "--workspace-root", str(ROOT))
 
+    host_entry = Path(temporary) / 'profiles' / 'web' / 'node_modules' / 'dsh-dfy' / 'lib' / 'index.js'
+    subprocess.run(['node', '--input-type=module', '-e', 'await import(process.argv[1])', host_entry.as_uri()],
+                   cwd=CLI_CWD, env=environment, check=True)
     installed_server = start_web(environment)
     try:
         with sync_playwright() as playwright:
@@ -141,7 +164,23 @@ with tempfile.TemporaryDirectory(prefix="dsh-whale-lifecycle-", ignore_cleanup_e
             response = page.goto(environment.get("WHALE_E2E_BASE_URL", BASE_URL), wait_until="domcontentloaded", timeout=70_000)
             page.wait_for_load_state("networkidle", timeout=30_000)
             assert response and response.status == 200
-            page.locator("[data-whale-pet-entry]").wait_for(state="attached", timeout=20_000)
+            for label in ['继续', '稍后配置']:
+                button = page.get_by_role('button', name=label, exact=True)
+                try:
+                    button.first.wait_for(state='visible', timeout=5000)
+                    button.first.click()
+                except BrowserTimeout:
+                    pass
+            try:
+                page.locator("[data-whale-pet-entry]").wait_for(state="attached", timeout=20_000)
+            except Exception:
+                diagnostic = ROOT / 'artifacts' / 'first-experience'
+                diagnostic.mkdir(parents=True, exist_ok=True)
+                page.screenshot(path=str(diagnostic / 'startup-failure.png'), full_page=True)
+                print('Startup page errors:', [re.sub(r'token=[A-Za-z0-9_-]+', 'token=REDACTED', error) for error in page_errors])
+                print('Startup page:', page.locator('body').inner_text()[:2500])
+                print('Host diagnostics:', re.sub(r'token=[A-Za-z0-9_-]+', 'token=REDACTED', ''.join(installed_server.whale_logs)))
+                raise
             page.wait_for_function(
                 "element => element.getAttribute('data-whale-renderer') === 'ready'",
                 arg=page.locator("[data-whale-renderer]").element_handle(),
@@ -150,6 +189,9 @@ with tempfile.TemporaryDirectory(prefix="dsh-whale-lifecycle-", ignore_cleanup_e
             assert (page.locator("[data-whale-rig-canvas]").get_attribute("data-whale-animation-source") or "").startswith("approved-test-runtime")
             assert not page_errors, page_errors
             browser.close()
+        if os.environ.get('WHALE_FIRST_EXPERIENCE') == '1':
+            subprocess.run([sys.executable, str(ROOT / 'tests/browser_first_experience.py')],
+                           cwd=ROOT, env=environment, check=True)
     finally:
         stop_web(installed_server)
 

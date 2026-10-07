@@ -160,6 +160,18 @@ export function resultSafeGesture(
   return actionGesture(action)
 }
 
+export function applyAmbientGesture(
+  controller: Pick<ApprovedIdleRigController, 'getState' | 'stopGesture' | 'setGestureSpeed' | 'playGesture'>,
+  gesture: Exclude<ApprovedGesture, 'none'> | undefined,
+  speed: number,
+): void {
+  // Work-state updates and periodic tool beats must not cancel a user pose.
+  if (controller.getState().gesture === 'hands-on-hips') return
+  controller.stopGesture()
+  controller.setGestureSpeed(speed)
+  if (gesture !== undefined) controller.playGesture(gesture)
+}
+
 function stationaryVideo(action: WhaleAction): string | undefined {
   if (action === 'feeding') return whaleActionUrl('nod.webm')
   if (action === 'smug') return whaleActionUrl('confident.webm')
@@ -221,7 +233,7 @@ export interface WhaleRendererProps {
   quality: WhaleAnimationQuality
   secondaryMotion: boolean
   motionIntensity?: number
-  emotion?: Readonly<{ id: number; name: ApprovedEmotion; durationMs: number }>
+  emotion?: Readonly<{ id: number; name: ApprovedEmotion; durationMs: number; gesture?: 'hands-on-hips' }>
   petReaction?: Readonly<{
     id: number
     xRatio: number
@@ -317,11 +329,10 @@ export function WhaleRenderer({
     const controller = controllerRef.current
     if (controller === undefined) return
     controller.setExpression(workReaction === 'none' ? actionExpression(action) : 'neutral')
-    controller.stopGesture()
     const toolMotion = action === 'tool' ? workToolMotion(workToolKind) : undefined
     const gesture = toolMotion?.gesture ?? resultSafeGesture(action, workReaction)
-    controller.setGestureSpeed(toolMotion?.gestureSpeed ?? (action === 'working' ? 0.72 : 1))
-    if (gesture !== undefined && actionVideo === undefined) controller.playGesture(gesture)
+    const speed = toolMotion?.gestureSpeed ?? (action === 'working' ? 0.72 : 1)
+    applyAmbientGesture(controller, actionVideo === undefined ? gesture : undefined, speed)
     if (gesture === undefined || actionVideo !== undefined || reducedMotion
       || (action !== 'working' && action !== 'tool')) return undefined
 
@@ -329,8 +340,7 @@ export function WhaleRenderer({
     // phrases. Replay them at different cadences so thinking reads as a slow,
     // deliberate nod and tool work as a quicker inspection beat.
     const interval = window.setInterval(() => {
-      controller.stopGesture()
-      controller.playGesture(gesture)
+      applyAmbientGesture(controller, gesture, speed)
     }, toolMotion?.cadenceMs ?? 5_600)
     return () => window.clearInterval(interval)
   }, [action, actionVideo, reducedMotion, status, workReaction, workToolKind])
@@ -339,8 +349,14 @@ export function WhaleRenderer({
   useEffect(() => { controllerRef.current?.setSecondaryMotion(secondaryMotion && !reducedMotion) }, [reducedMotion, secondaryMotion])
   useEffect(() => { controllerRef.current?.setMotionIntensity(motionIntensity) }, [motionIntensity])
   useEffect(() => {
-    if (emotion !== undefined) controllerRef.current?.playEmotion(emotion.name, emotion.durationMs)
-  }, [emotion?.id])
+    if (emotion !== undefined && status === 'ready') {
+      controllerRef.current?.playEmotion(emotion.name, emotion.durationMs)
+      if (emotion.gesture !== undefined) {
+        controllerRef.current?.setGestureSpeed(1)
+        controllerRef.current?.playGesture(emotion.gesture)
+      }
+    }
+  }, [emotion?.id, status])
   useEffect(() => {
     const resultEmotion = workReactionEmotion(workReaction)
     if (resultEmotion !== undefined) {

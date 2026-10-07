@@ -250,6 +250,8 @@ export const WHALE_STYLE = `
 [data-whale-emotion-fx]{position:absolute;z-index:22;inset:0;pointer-events:none;overflow:visible}
 .emotion-scene-prop{position:absolute;left:var(--fx-x,70%);top:var(--fx-y,18%);display:block;width:var(--prop-width,88px);height:var(--prop-height,76px);opacity:0;filter:drop-shadow(0 7px 7px rgba(35,56,105,.2));transform-origin:50% 70%;will-change:transform,opacity;animation:whale-emotion-scene-lifecycle var(--fx-duration,2600ms) cubic-bezier(.16,1,.3,1) forwards}
 .emotion-scene-icon{display:block;width:100%;height:100%;overflow:visible}
+.nervous-sweat-main{transform-box:fill-box;transform-origin:50% 15%;animation:whale-sweat-weight 1.9s ease-in-out infinite}
+@keyframes whale-sweat-weight{0%,100%{transform:translateY(0) rotate(-3deg)}55%{transform:translateY(4px) rotate(2deg)}}
 .sad-cloud-shadow{fill:rgba(38,55,91,.2)}
 .sad-cloud-body{transform-box:fill-box;transform-origin:center;animation:whale-sad-cloud-breathe 1.9s ease-in-out infinite alternate}
 .sad-cloud-highlight{fill:none;stroke:rgba(233,243,255,.62);stroke-width:4;stroke-linecap:round}
@@ -589,7 +591,8 @@ export const WHALE_STYLE = `
 [data-whale-menu-panel]{position:fixed;z-index:2147483002;top:calc(var(--menu-anchor-top) + var(--menu-anchor-height) * .5 + var(--menu-y));left:calc(var(--menu-anchor-left) - 330px + var(--menu-x));right:auto;width:min(318px,calc(100vw - 24px));max-height:min(560px,calc(100vh - 24px));padding:0;overflow:auto;border:1px solid #c7d3e8;border-radius:18px;background:rgba(255,255,255,.985);color:#304f91;box-shadow:0 18px 48px rgba(28,54,108,.2);opacity:0;pointer-events:none;transform:translateY(-50%) translateX(12px) scale(.98);transform-origin:right center;transition:transform .22s cubic-bezier(.2,.78,.22,1),opacity .18s ease;scrollbar-width:thin;scrollbar-color:#b7c5df transparent}
 [data-whale-menu-panel][data-side=left]{left:calc(var(--menu-anchor-left) - 330px + var(--menu-x))}
 [data-whale-menu-panel][data-side=right]{left:calc(var(--menu-anchor-left) + var(--menu-anchor-width) + 12px + var(--menu-x));transform-origin:left center}
-[data-whale-menu-panel][data-open=true]{opacity:1;pointer-events:auto;transform:translateY(-50%) translateX(0) scale(1)}
+[data-whale-menu-panel],[data-whale-menu-panel][data-open=true]{top:clamp(calc(12px + var(--menu-panel-height,0px) / 2),calc(var(--menu-anchor-top) + var(--menu-anchor-height) * .5 + var(--menu-y)),calc(100vh - 12px - var(--menu-panel-height,0px) / 2));transform:translateY(-50%);transition:opacity .18s ease}
+[data-whale-menu-panel][data-open=true]{opacity:1;pointer-events:auto}
 [data-whale-menu-panel][data-dragging=true]{user-select:none;transition:none;cursor:grabbing}
 [data-whale-menu-head]{display:flex;align-items:center;gap:9px;min-height:58px;padding:8px 12px 8px 8px;border-bottom:1px solid #e5eaf3;background:#fbfcff;cursor:grab;user-select:none}
 [data-whale-menu-head]:focus-visible{outline:2px solid #7895cf;outline-offset:-2px}
@@ -764,9 +767,10 @@ export const WHALE_STYLE = `
 
 /* The menu belongs to the companion, so its entry sits on the character's
    upper-right shoulder instead of occupying a separate strip of workspace. */
-[data-whale-menu-toggle],[data-whale-menu-toggle][data-side=left]{top:calc(var(--menu-anchor-top) + 10px);left:calc(var(--menu-anchor-left) + var(--menu-anchor-width) - 118px);width:36px;height:36px;transform:none;border:1px solid rgba(128,153,202,.7);border-radius:12px;background:rgba(248,251,255,.94);box-shadow:0 6px 16px rgba(35,65,124,.16);opacity:.94}
-[data-whale-menu-toggle] svg{width:19px;height:19px;stroke:#315696;stroke-width:2}
-[data-whale-menu-toggle]:hover,[data-whale-menu-toggle]:focus-visible{background:#eaf2ff;box-shadow:0 8px 20px rgba(35,65,124,.22);opacity:1;transform:translateY(-1px);outline:2px solid rgba(68,101,166,.2);outline-offset:2px}
+[data-whale-menu-toggle],[data-whale-menu-toggle][data-side=left]{top:clamp(8px,var(--menu-toggle-top),calc(100vh - 36px));left:clamp(8px,var(--menu-toggle-left),calc(100vw - 36px));width:28px;height:28px;transform:none;border:0;border-radius:8px;background:transparent;box-shadow:none;opacity:.8}
+[data-whale-menu-toggle] svg{width:16px;height:16px;stroke:#315696;stroke-width:1.9}
+[data-whale-menu-toggle]:hover,[data-whale-menu-toggle]:focus-visible{background:rgba(234,242,255,.9);box-shadow:none;opacity:1;transform:none;outline:none}
+[data-whale-menu-toggle]:focus-visible{outline:2px solid #4569ad;outline-offset:2px}
 [data-whale-menu-toggle][aria-expanded=true]{opacity:0;pointer-events:none}
 
 /* Companion chat dock: identity first, configuration second, conversation
@@ -826,7 +830,7 @@ export const WHALE_STYLE = `
 [data-whale-chat-entry] [data-whale-chat-send]:hover,[data-whale-chat-entry] [data-whale-chat-send]:focus-visible{background:#274c8c;box-shadow:0 6px 14px rgba(39,78,145,.27);transform:translateY(-1px);outline:2px solid rgba(49,91,159,.22);outline-offset:2px}
 [data-whale-chat-entry] [data-whale-chat-send]:disabled{cursor:wait;opacity:.56;transform:none;box-shadow:none}
 [data-whale-chat-thinking]{display:block;font-size:14px;font-weight:800;letter-spacing:.12em;transform:translateY(-2px)}
-@media (max-width:430px){[data-whale-menu-toggle],[data-whale-menu-toggle][data-side=left]{left:calc(var(--menu-anchor-left) + var(--menu-anchor-width) - 114px)}[data-whale-chat-head]{gap:6px;padding-left:6px}[data-whale-chat-grip]{display:none}[data-whale-chat-avatar]{width:34px;height:34px;flex-basis:34px}[data-whale-chat-identity]{min-width:62px}[data-whale-chat-identity] small{display:none}[data-whale-chat-options] button{min-width:40px;padding:0 6px!important}[data-whale-chat-model]{grid-template-columns:1fr;gap:4px}[data-whale-chat-model]>span{display:none}}
+@media (max-width:430px){[data-whale-chat-head]{gap:6px;padding-left:6px}[data-whale-chat-grip]{display:none}[data-whale-chat-avatar]{width:34px;height:34px;flex-basis:34px}[data-whale-chat-identity]{min-width:62px}[data-whale-chat-identity] small{display:none}[data-whale-chat-options] button{min-width:40px;padding:0 6px!important}[data-whale-chat-model]{grid-template-columns:1fr;gap:4px}[data-whale-chat-model]>span{display:none}}
 
 /* Interaction history reads like a small activity feed rather than a pair of
    unrelated buttons. The timeline keeps the last few events scannable while

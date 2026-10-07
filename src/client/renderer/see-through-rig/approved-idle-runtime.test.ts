@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import {
   resolveEmotionActingWeights, resolveEmotionFaceLayerPlan, resolveSquintEyeClosure,
-  sampleAuthoredLashDeformation,
+  sampleAuthoredLashDeformation, resolveEmotionIdleScale,
 } from './approved-idle-runtime.js'
+
+describe('emotion motion composition', () => {
+  it('lets tense and quiet expressions hold without removing joyful movement', () => {
+    expect(resolveEmotionIdleScale('angry', 1)).toBeLessThan(.3)
+    expect(resolveEmotionIdleScale('sad', 1)).toBeLessThan(.4)
+    expect(resolveEmotionIdleScale('happy', 1)).toBeGreaterThan(.7)
+    for (const name of ['angry', 'sad', 'shy', 'happy', 'neutral']) {
+      expect(resolveEmotionIdleScale(name, 0)).toBe(1)
+      expect(resolveEmotionIdleScale(name, .5)).toBeCloseTo((1 + resolveEmotionIdleScale(name, 1)) / 2)
+    }
+  })
+})
 
 describe('resolveEmotionFaceLayerPlan', () => {
   it('keeps work result eyes authored and gives the emotion exclusive mouth ownership', () => {

@@ -124,6 +124,17 @@
 
 ## 安装
 
+### 免 API 本地体验
+
+想先试试角色与表情，可以在项目目录运行：
+
+```sh
+npm run build:demo
+npm run demo
+```
+
+打开 `http://127.0.0.1:3152/`，体验摸摸、16 种表情和 6 种模拟工作反馈。演示不需要密钥，不读取账户、对话历史，不执行真实任务。完整功能仍需安装到 DSH。[演示说明](demo/README.md)
+
 ### 推荐：安装到 DSH Web Profile
 
 当前插件需要 **DSH 0.1.5-rc.2 或更高版本**，不设置最高版本限制。较早的 DSH 使用不同的浏览器模块接口，不能加载这一版插件。
@@ -152,7 +163,7 @@ npm install dsh-dfy
 corepack pnpm install
 corepack pnpm run build
 npm pack
-dsh plugin --profile web add ./dsh-dfy-0.1.8.tgz
+dsh plugin --profile web add ./dsh-dfy-0.1.9.tgz
 ```
 
 ## 和 DSH 如何协作
@@ -174,7 +185,7 @@ corepack pnpm install
 corepack pnpm run verify
 ```
 
-`verify` 包含 TypeScript 类型检查、312 个 Vitest 测试、正式构建和 npm 包内容预览。
+`verify` 包含 TypeScript 类型检查、Vitest 测试、正式构建和 npm 包内容预览。
 
 真实浏览器验收：
 

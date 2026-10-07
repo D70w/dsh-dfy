@@ -6,6 +6,13 @@
   ],
   "source": "Live2D See-through / LayerDiff user export + user-authored default hair-back.psd and torso.psd",
   "parts": {
+    "arm-hip": {
+      "file": "arm-hip-v1.png",
+      "x": 392,
+      "y": 524,
+      "width": 226,
+      "height": 226
+    },
     "hair-back": {
       "file": "hair-back.png",
       "x": 328,

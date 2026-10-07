@@ -57,7 +57,13 @@ describe('DSH package contract', () => {
     })
     for (const name of Object.keys(manifest.peerDependencies ?? {})) {
       if (!name.startsWith('@deepseek-ai/dsh-')) continue
-      expect(manifest.peerDependenciesMeta?.[name]?.optional).toBe(true)
+      // These imports execute before Cordis can inject an optional service.
+      // A clean profile must install them for the Host entry to load at all.
+      if (name === '@deepseek-ai/dsh-credentials' || name === '@deepseek-ai/dsh-storage-domain') {
+        expect(manifest.peerDependenciesMeta?.[name]?.optional).not.toBe(true)
+      } else {
+        expect(manifest.peerDependenciesMeta?.[name]?.optional).toBe(true)
+      }
       expect(manifest.peerDependencies?.[name]).not.toMatch(/\s</)
     }
     expect(manifest.files.some(file => file.endsWith('.map'))).toBe(false)
